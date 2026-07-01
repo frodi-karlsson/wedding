@@ -39,16 +39,16 @@ func (s *Service) GetInvite(ctx context.Context, id int64) (db.Invite, []db.Gues
 	return s.store.GetInviteWithGuests(ctx, id)
 }
 
-func (s *Service) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (db.Invite, error) {
-	return s.store.CreateInvite(ctx, name, minPlus, maxPlus)
+func (s *Service) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
+	return s.store.CreateInvite(ctx, name, minPlus, maxPlus, guestNames)
 }
 
 func (s *Service) ListInvites(ctx context.Context) ([]db.Invite, error) {
 	return s.store.ListInvites(ctx)
 }
 
-func (s *Service) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (db.Invite, error) {
-	return s.store.UpdateInvite(ctx, id, name, minPlus, maxPlus)
+func (s *Service) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
+	return s.store.UpdateInvite(ctx, id, name, minPlus, maxPlus, guestNames)
 }
 
 func (s *Service) DeleteInvite(ctx context.Context, id int64) error {

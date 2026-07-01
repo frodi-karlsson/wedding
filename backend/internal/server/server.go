@@ -189,7 +189,7 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "name is required")
 			return
 		}
-		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus)
+		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, []string{req.Name})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal error")
 			return
@@ -245,7 +245,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "name is required")
 			return
 		}
-		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus)
+		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, []string{req.Name})
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
 				writeError(w, http.StatusNotFound, "invite not found")

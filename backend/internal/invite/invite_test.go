@@ -41,7 +41,7 @@ func TestSubmitRSVP_Valid(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2)
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestSubmitRSVP_NoPrimary(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	guests := []db.Guest{
 		{Name: "Frodi"},
 	}
@@ -85,7 +85,7 @@ func TestSubmitRSVP_TooManyPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1, []string{"Frodi"})
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Plus1"},
@@ -102,7 +102,7 @@ func TestSubmitRSVP_TooFewPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2, []string{"Frodi"})
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 	}
@@ -117,7 +117,7 @@ func TestSubmitRSVP_EmptyName(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: ""},
@@ -138,13 +138,33 @@ func TestSubmitRSVP_InviteNotFound(t *testing.T) {
 	}
 }
 
+func TestCreateInvite_MultipleGuests(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+	ctx := context.Background()
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi", "Carla"})
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+	_, guests, err := svc.GetInvite(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInvite() error: %v", err)
+	}
+	if len(guests) != 2 {
+		t.Fatalf("len(guests) = %d, want 2", len(guests))
+	}
+	if !guests[0].IsPrimary {
+		t.Errorf("guests[0] not primary")
+	}
+}
+
 func TestSubmitRSVP_EmailSendFailure_RollsBack(t *testing.T) {
 	svc, emailer, cleanup := newTestService(t)
 	defer cleanup()
 	emailer.sendErr = errors.New("send failed")
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
 
 	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)

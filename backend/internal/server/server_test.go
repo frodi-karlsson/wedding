@@ -238,7 +238,7 @@ func jsonRequest(t *testing.T, srv http.Handler, method, path string, body inter
 
 type updateFetchNotFoundStore struct{}
 
-func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
 	return db.Invite{}, nil
 }
 
@@ -254,7 +254,7 @@ func (s *updateFetchNotFoundStore) ListInvites(ctx context.Context) ([]db.Invite
 	return nil, nil
 }
 
-func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
 	return db.Invite{ID: id, Name: name, MinPlus: minPlus, MaxPlus: maxPlus}, nil
 }
 
