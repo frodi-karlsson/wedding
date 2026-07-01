@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@anabranch/web-client": "^0.3.5",
@@ -18,9 +19,12 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "eslint": "10.6.0",
+    "eslint-plugin-astro": "2.1.1",
     "jsdom": "^29.1.1",
     "sass": "^1.101.0",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9"
   }
 }

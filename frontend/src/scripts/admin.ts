@@ -23,7 +23,7 @@ export interface AdminState {
 
 export function buildShareLink(id: number, lang: Lang): string {
   const prefix = lang === 'en' ? '' : lang;
-  return `${window.location.origin}/${prefix}?id=${id}`;
+  return `${globalThis.location.origin}/${prefix}?id=${id}`;
 }
 
 function escapeHtml(text: string): string {
@@ -273,7 +273,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
 
         if (action === 'create') {
           const shareLink = buildShareLink(response.invite.id, link_lang);
-          window.alert(shareLink);
+          globalThis.alert(shareLink);
         }
 
         await refreshDashboard();
@@ -341,7 +341,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
         break;
       }
       case 'delete': {
-        if (window.confirm(translate('admin_delete_confirm', state.lang))) {
+        if (globalThis.confirm(translate('admin_delete_confirm', state.lang))) {
           try {
             await api.deleteInvite(id).run();
           } catch {
