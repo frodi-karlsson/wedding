@@ -75,14 +75,3 @@ variable "droplet_size" {
   default = "s-1vcpu-1gb"
 }
 
-variable "backup_spaces_key" {
-  type        = string
-  sensitive   = true
-  description = "DO Spaces access key for the backup bucket."
-}
-
-variable "backup_spaces_secret" {
-  type        = string
-  sensitive   = true
-  description = "DO Spaces secret key for the backup bucket."
-}

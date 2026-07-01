@@ -11,7 +11,6 @@ compose files for prod and local staging.
 - Firewall (ports 22, 80, 443)
 - Reserved IP (stable across droplet recreation)
 - Container Registry (private, for the backend image)
-- Spaces bucket + 30-day lifecycle (nightly SQLite backups)
 
 **Cloudflare:**
 - Pages project (direct-upload, no git connection)
@@ -26,7 +25,6 @@ compose files for prod and local staging.
 3. A Cloudflare account + API token with Pages + DNS edit perms.
 4. Your SSH public key for droplet access.
 5. A Resend account + API key (domain `carlaochfrodi.wedding` verified in Resend).
-6. DO Spaces keys for the backup bucket.
 
 ## Setup
 
@@ -60,9 +58,17 @@ sqlite3 infra/data/wedding-staging.db < db/seed.staging.sql
 
 ## Backups
 
-A cron job on the droplet runs nightly at 03:00, backing up the SQLite file to
-the DO Spaces bucket via rclone. The bucket has a 30-day lifecycle rule.
-Installed by cloud-init.
+Backups are manual. The SQLite file lives on a DO Volume (durable, persists
+across droplet recreation). To take a snapshot after a batch of RSVPs, SSH into
+the droplet and run:
+
+```sh
+sqlite3 /mnt/data/wedding.db ".backup '/tmp/wedding-backup.db'"
+# then scp /tmp/wedding-backup.db down to your machine
+```
+
+There is no automated off-droplet backup (DO Spaces was removed to avoid the
+$5/mo flat cost — not worth it for a few KB of RSVP data).
 
 ## CI
 

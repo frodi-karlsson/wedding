@@ -4,8 +4,6 @@ packages:
   - docker.io
   - docker-compose-v2
   - sqlite3
-  - cron
-  - rclone
 
 write_files:
   - path: /opt/wedding/docker-compose.yml
@@ -54,34 +52,9 @@ write_files:
       CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
       PORT=8080
 
-  - path: /opt/wedding/backup.sh
-    permissions: '0755'
-    content: |
-      #!/bin/sh
-      set -e
-      TS=$$(date +%Y%m%d-%H%M%S)
-      sqlite3 /mnt/data/wedding.db ".backup '/tmp/wedding-backup-$$TS.db'"
-      rclone copy /tmp/wedding-backup-$$TS.db s3:${backup_bucket}/ --config /root/.rclone.conf
-      rm /tmp/wedding-backup-$$TS.db
-
-  - path: /root/.rclone.conf
-    permissions: '0600'
-    content: |
-      [s3]
-      type = s3
-      provider = DigitalOcean
-      env_auth = false
-      access_key_id = ${spaces_key}
-      secret_access_key = ${spaces_secret}
-      endpoint = ${backup_region}.digitaloceanspaces.com
-      acl = private
-
 runcmd:
   - mkdir -p /mnt/data
   - docker login ${registry_server_url} -u ${do_token} -p ${do_token}
   - cd /opt/wedding
   - docker compose pull
   - docker compose up -d
-  - systemctl enable cron || systemctl enable crond
-  - systemctl start cron || systemctl start crond
-  - (crontab -l 2>/dev/null; echo "0 3 * * * /opt/wedding/backup.sh") | crontab -

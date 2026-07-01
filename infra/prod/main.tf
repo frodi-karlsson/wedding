@@ -29,10 +29,6 @@ resource "digitalocean_droplet" "wedding" {
     domain               = var.domain
     registry_server      = digitalocean_container_registry.wedding.endpoint
     registry_server_url  = digitalocean_container_registry.wedding.server_url
-    spaces_key           = var.backup_spaces_key
-    spaces_secret        = var.backup_spaces_secret
-    backup_bucket        = digitalocean_spaces_bucket.backups.name
-    backup_region        = var.do_region
   })
 }
 
@@ -88,27 +84,6 @@ resource "digitalocean_firewall" "wedding" {
     protocol              = "udp"
     port_range            = "all"
     destination_addresses = ["0.0.0.0/0", "::/0"]
-  }
-}
-
-# --- Spaces bucket for backups ---
-resource "digitalocean_spaces_bucket" "backups" {
-  name   = "wedding-backups"
-  region = var.do_region
-  acl    = "private"
-}
-
-resource "digitalocean_spaces_bucket_lifecycle" "backups" {
-  bucket = digitalocean_spaces_bucket.backups.name
-  region = digitalocean_spaces_bucket.backups.region
-
-  rule {
-    id      = "expire-old-backups"
-    enabled = true
-
-    expiration {
-      days = 30
-    }
   }
 }
 
