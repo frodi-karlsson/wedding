@@ -21,6 +21,7 @@ it('should create state with the primary guest first and status ready', () => {
   const invite = mockInvite({ max_plus: 2 });
   const primary = mockGuest({ name: 'Ada', is_primary: true });
   const plus = mockGuest({ id: 2, name: 'Guest', is_primary: false });
+
   const state = createRsvpState(invite, [plus, primary], 'en');
 
   expect(state.status).toBe('ready');
@@ -49,6 +50,7 @@ it('should create state mapping existing guest data into GuestInput', () => {
     alcohol_free: true,
     is_primary: true,
   });
+
   const state = createRsvpState(invite, [guest], 'is');
 
   expect(state.guests[0]).toEqual({
@@ -61,6 +63,7 @@ it('should create state mapping existing guest data into GuestInput', () => {
 
 it('should add a non-primary empty guest row when under max_plus', () => {
   const state = createRsvpState(mockInvite({ max_plus: 1 }), [mockGuest()], 'en');
+
   const next = addGuest(state);
 
   expect(next.guests).toHaveLength(2);
@@ -74,6 +77,7 @@ it('should add a non-primary empty guest row when under max_plus', () => {
 
 it('should not add a guest when the non-primary count is already at max_plus', () => {
   const state = createRsvpState(mockInvite({ max_plus: 0 }), [mockGuest()], 'en');
+
   const next = addGuest(state);
 
   expect(next.guests).toHaveLength(1);
@@ -86,6 +90,7 @@ it('should remove a non-primary guest row', () => {
     [mockGuest(), mockGuest({ id: 2, name: 'Plus', is_primary: false })],
     'en',
   );
+
   const next = removeGuest(state, 1);
 
   expect(next.guests).toHaveLength(1);
@@ -94,6 +99,7 @@ it('should remove a non-primary guest row', () => {
 
 it('should not remove the primary guest', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
+
   const next = removeGuest(state, 0);
 
   expect(next.guests).toHaveLength(1);
@@ -102,6 +108,7 @@ it('should not remove the primary guest', () => {
 
 it('should update a guest field immutably', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
+
   const next = updateGuest(state, 0, { name: 'Ada Updated', dietary_preference: 'vegetarian' });
 
   expect(next.guests[0].name).toBe('Ada Updated');
@@ -112,7 +119,9 @@ it('should update a guest field immutably', () => {
 it('should not allow submit when the plus count is below min_plus', () => {
   const state = createRsvpState(mockInvite({ min_plus: 1, max_plus: 2 }), [mockGuest()], 'en');
 
-  expect(canSubmit(state)).toBe(false);
+  const result = canSubmit(state);
+
+  expect(result).toBe(false);
 });
 
 it('should allow submit when the plus count is at min_plus and all names are non-empty', () => {
@@ -122,7 +131,9 @@ it('should allow submit when the plus count is at min_plus and all names are non
     'en',
   );
 
-  expect(canSubmit(state)).toBe(true);
+  const result = canSubmit(state);
+
+  expect(result).toBe(true);
 });
 
 it('should not allow submit when any name is empty or only whitespace', () => {
@@ -132,11 +143,15 @@ it('should not allow submit when any name is empty or only whitespace', () => {
     'en',
   );
 
-  expect(canSubmit(state)).toBe(false);
+  const result = canSubmit(state);
+
+  expect(result).toBe(false);
 });
 
 it('should return the guests array from guestsToInput', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
 
-  expect(guestsToInput(state)).toBe(state.guests);
+  const result = guestsToInput(state);
+
+  expect(result).toBe(state.guests);
 });

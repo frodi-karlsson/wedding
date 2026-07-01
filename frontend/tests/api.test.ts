@@ -32,9 +32,7 @@ function fakeResponse(body: unknown) {
 }
 
 function setupFetch(responseBody: unknown) {
-  const fetchMock = vi.fn((input: string, init: RequestInit) => {
-    return Promise.resolve(fakeResponse(responseBody));
-  });
+  const fetchMock = vi.fn(() => Promise.resolve(fakeResponse(responseBody)));
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock as Mock<(input: string, init: RequestInit) => Promise<ReturnType<typeof fakeResponse>>>;
 }
