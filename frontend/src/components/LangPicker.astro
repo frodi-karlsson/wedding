@@ -8,12 +8,20 @@ const locales: { code: Lang; label: string }[] = [
   { code: 'de', label: 'DE' },
   { code: 'sv', label: 'SV' },
 ];
-const url = new URL(Astro.url.href);
-const id = url.searchParams.get('id');
+
+const localeCodes: Lang[] = ['is', 'de', 'sv'];
+const firstSegment = Astro.url.pathname.split('/')[1];
+const strippedPath =
+  firstSegment && localeCodes.includes(firstSegment as Lang)
+    ? Astro.url.pathname.slice(firstSegment.length + 1) || '/'
+    : Astro.url.pathname;
+const search = Astro.url.search;
 ---
 <nav class="lang-picker">
   {locales.map((l) => {
-    const href = (l.code === 'en' ? '/' : `/${l.code}`) + (id ? `?id=${id}` : '');
+    const prefix = l.code === 'en' ? '' : `/${l.code}`;
+    const base = strippedPath === '/' ? prefix || '/' : `${prefix}${strippedPath}`;
+    const href = `${base}${search}`;
     return <a href={href} aria-current={l.code === lang ? 'true' : undefined}>{l.label}</a>;
   })}
 </nav>
