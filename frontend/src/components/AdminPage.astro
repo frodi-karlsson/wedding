@@ -1,0 +1,12 @@
+---
+import Layout from './Layout.astro';
+import AdminPanel from './AdminPanel.astro';
+import { translate, type Lang } from '../scripts/i18n';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<Layout title={translate('admin_title', lang)} lang={lang}>
+  <h1>{translate('admin_title', lang)}</h1>
+  <AdminPanel lang={lang} />
+</Layout>

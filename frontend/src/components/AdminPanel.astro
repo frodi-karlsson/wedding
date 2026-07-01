@@ -1,0 +1,16 @@
+---
+import { translate, type Lang } from '../scripts/i18n';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<div id="admin-root" data-lang={lang}>
+  <p class="loading">{translate('loading', lang)}</p>
+</div>
+<script type="module">
+  const root = document.getElementById('admin-root');
+  if (root) {
+    const { mountAdmin } = await import('../scripts/admin');
+    const lang = root.dataset.lang as import('../scripts/i18n').Lang;
+    mountAdmin(root, lang);
+  }
+</script>

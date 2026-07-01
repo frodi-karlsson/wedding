@@ -1,0 +1,12 @@
+---
+import AdminPage from '../../components/AdminPage.astro';
+import { langFromPath, type Lang } from '../../scripts/i18n';
+
+export function getStaticPaths() {
+  const locales: Lang[] = ['en', 'is', 'de', 'sv'];
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const lang = langFromPath(Astro.url.pathname) as Lang;
+---
+<AdminPage lang={lang} />
