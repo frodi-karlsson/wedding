@@ -27,9 +27,11 @@
 - golangci-lint v2 (strict config at `backend/.golangci.yml`). No `//nolint` — fix the code.
 - govulncheck for vulnerability scanning.
 - TDD: failing test first, implement, pass, commit.
+- `make check` (in `backend/`) runs golangci-lint + go vet + govulncheck + go mod tidy check + go test.
 
 ## General
 
 - TDD throughout (test-first).
 - No secrets committed or in plain text.
 - Versions pinned to verified-latest (see spec).
+- **`make check`** at the repo root runs all static analysis + tests for both backend and frontend. Run it before handing over work.

@@ -21,16 +21,17 @@ test('should fall back to English when a key is missing in a non-default locale'
 
 test('should fall back to the English value when a key is missing from a specific locale', () => {
   const key = 'thank_you';
-  const original = is[key];
+  const dict = is as Record<string, string | undefined>;
+  const original = dict[key];
 
-  delete is[key];
+  delete dict[key];
 
   try {
     const result = translate(key, 'is');
 
     expect(result).toBe('Thank you!');
   } finally {
-    is[key] = original;
+    dict[key] = original;
   }
 });
 

@@ -10,7 +10,7 @@ const { lang } = Astro.props;
   const root = document.getElementById('admin-root');
   if (root) {
     const { mountAdmin } = await import('../scripts/admin');
-    const lang = root.dataset.lang as import('../scripts/i18n').Lang;
+    const lang = /** @type {import('../scripts/i18n').Lang} */ (root.dataset.lang);
     mountAdmin(root, lang);
   }
 </script>
