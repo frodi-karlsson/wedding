@@ -43,6 +43,7 @@ export default [
     rules: {
       ...vitest.configs.recommended.rules,
       'vitest/consistent-test-it': ['error', { fn: 'test', withinDescribe: 'test' }],
+      'vitest/valid-expect': ['error', { maxArgs: 2 }],
     },
   },
 ];
