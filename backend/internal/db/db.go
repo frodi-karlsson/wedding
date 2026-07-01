@@ -16,6 +16,10 @@ func Open(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	// SQLite pragmas set with Exec are connection-local. Restrict the pool to
+	// a single connection so WAL, busy timeout, and foreign key settings always
+	// apply to every query on this *sql.DB.
+	d.SetMaxOpenConns(1)
 	if _, err := d.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;"); err != nil {
 		d.Close()
 		return nil, err
