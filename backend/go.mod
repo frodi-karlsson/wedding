@@ -2,7 +2,10 @@ module wedding/backend
 
 go 1.26.4
 
-require modernc.org/sqlite v1.53.0
+require (
+	github.com/resend/resend-go/v3 v3.9.2
+	modernc.org/sqlite v1.53.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
