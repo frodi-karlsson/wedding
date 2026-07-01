@@ -1,0 +1,19 @@
+---
+import type { Lang } from '../scripts/i18n';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const locales: { code: Lang; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'is', label: 'ÍS' },
+  { code: 'de', label: 'DE' },
+  { code: 'sv', label: 'SV' },
+];
+const url = new URL(Astro.url.href);
+const id = url.searchParams.get('id');
+---
+<nav class="lang-picker">
+  {locales.map((l) => {
+    const href = (l.code === 'en' ? '/' : `/${l.code}`) + (id ? `?id=${id}` : '');
+    return <a href={href} aria-current={l.code === lang ? 'true' : undefined}>{l.label}</a>;
+  })}
+</nav>
