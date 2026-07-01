@@ -5,8 +5,9 @@ resource "digitalocean_ssh_key" "default" {
 }
 
 # --- Container registry ---
+# DO registry names are globally unique across ALL accounts. Use a specific name.
 resource "digitalocean_container_registry" "wedding" {
-  name                   = "wedding"
+  name                   = "carlaochfrodi"
   region                 = var.do_region
   subscription_tier_slug = "starter"
 }
