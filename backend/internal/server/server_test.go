@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -167,6 +168,25 @@ func TestAdminDeleteInvite(t *testing.T) {
 	}
 }
 
+func TestAdminDeleteInvite_NotFound(t *testing.T) {
+	srv, _ := newTestServer(t)
+	rec := jsonRequest(t, srv, http.MethodDelete, "/admin/invites/999", nil, true)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
+	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
+	a := auth.New("admin-pw", "session-secret")
+	srv := New(svc, a, []string{"https://example.com"})
+	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/1",
+		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1}, true)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
 // --- helpers ---
 
 var adminCookies []*http.Cookie
@@ -214,6 +234,40 @@ func jsonRequest(t *testing.T, srv http.Handler, method, path string, body inter
 		cookies = adminCookies
 	}
 	return jsonRequestWithCookies(t, srv, method, path, body, cookies)
+}
+
+type updateFetchNotFoundStore struct{}
+
+func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (db.Invite, error) {
+	return db.Invite{}, nil
+}
+
+func (s *updateFetchNotFoundStore) GetInvite(ctx context.Context, id int64) (db.Invite, error) {
+	return db.Invite{}, db.ErrNotFound
+}
+
+func (s *updateFetchNotFoundStore) GetInviteWithGuests(ctx context.Context, id int64) (db.Invite, []db.Guest, error) {
+	return db.Invite{}, nil, db.ErrNotFound
+}
+
+func (s *updateFetchNotFoundStore) ListInvites(ctx context.Context) ([]db.Invite, error) {
+	return nil, nil
+}
+
+func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (db.Invite, error) {
+	return db.Invite{ID: id, Name: name, MinPlus: minPlus, MaxPlus: maxPlus}, nil
+}
+
+func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id int64) error {
+	return nil
+}
+
+func (s *updateFetchNotFoundStore) UpsertGuests(ctx context.Context, inviteID int64, guests []db.Guest) ([]db.Guest, error) {
+	return guests, nil
+}
+
+func (s *updateFetchNotFoundStore) SetSubmitted(ctx context.Context, id int64, submitted bool) error {
+	return nil
 }
 
 func jsonRequestWithCookies(t *testing.T, srv http.Handler, method, path string, body interface{}, cookies []*http.Cookie) *httptest.ResponseRecorder {

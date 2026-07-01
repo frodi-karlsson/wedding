@@ -112,3 +112,28 @@ func TestSetSubmitted(t *testing.T) {
 		t.Errorf("Submitted = false, want true")
 	}
 }
+
+func TestDeleteInvite_RemovesInvite(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	inv, err := store.CreateInvite(ctx, "To Delete", 0, 1)
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+	if err := store.DeleteInvite(ctx, inv.ID); err != nil {
+		t.Errorf("DeleteInvite() error: %v", err)
+	}
+	_, err = store.GetInvite(ctx, inv.ID)
+	if err != ErrNotFound {
+		t.Errorf("after delete, GetInvite err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestDeleteInvite_NotFound(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	if err := store.DeleteInvite(context.Background(), 999); err != ErrNotFound {
+		t.Errorf("DeleteInvite(999) err = %v, want ErrNotFound", err)
+	}
+}

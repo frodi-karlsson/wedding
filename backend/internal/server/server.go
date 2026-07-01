@@ -256,6 +256,10 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 		}
 		_, guests, err := svc.GetInvite(r.Context(), inv.ID)
 		if err != nil {
+			if errors.Is(err, db.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "invite not found")
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "internal error")
 			return
 		}
@@ -274,6 +278,10 @@ func handleDeleteInvite(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		if err := svc.DeleteInvite(r.Context(), id); err != nil {
+			if errors.Is(err, db.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "invite not found")
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "internal error")
 			return
 		}

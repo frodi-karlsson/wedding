@@ -167,8 +167,18 @@ func (s *SQLiteStore) DeleteInvite(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, "DELETE FROM invites WHERE id=?", id)
-	return err
+	res, err := s.db.ExecContext(ctx, "DELETE FROM invites WHERE id=?", id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *SQLiteStore) UpsertGuests(ctx context.Context, inviteID int64, guests []Guest) ([]Guest, error) {
