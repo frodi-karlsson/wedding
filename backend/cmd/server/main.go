@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -25,11 +26,14 @@ func main() {
 
 	d, err := db.Open(cfg.DBPath)
 	if err != nil {
+		if d != nil {
+			d.Close()
+		}
 		log.Fatalf("open db: %v", err)
 	}
-	defer d.Close()
 
 	if err := db.Migrate(d); err != nil {
+		d.Close()
 		log.Fatalf("migrate: %v", err)
 	}
 
@@ -46,7 +50,8 @@ func main() {
 
 	go func() {
 		log.Printf("listening on :%s", cfg.Port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			d.Close()
 			log.Fatalf("server: %v", err)
 		}
 	}()
@@ -59,5 +64,8 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("shutdown: %v", err)
+	}
+	if err := d.Close(); err != nil {
+		log.Printf("close db: %v", err)
 	}
 }

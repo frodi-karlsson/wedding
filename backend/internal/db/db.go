@@ -20,7 +20,7 @@ func Open(path string) (*sql.DB, error) {
 	// a single connection so WAL, busy timeout, and foreign key settings always
 	// apply to every query on this *sql.DB.
 	d.SetMaxOpenConns(1)
-	if _, err := d.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;"); err != nil {
+	if _, err := d.ExecContext(context.Background(), "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;"); err != nil {
 		d.Close()
 		return nil, err
 	}
@@ -29,6 +29,9 @@ func Open(path string) (*sql.DB, error) {
 
 // ErrNotFound is returned when a query finds no row.
 var ErrNotFound = errors.New("not found")
+
+// ErrNoGuestNames is returned when creating or updating an invite with no guest names.
+var ErrNoGuestNames = errors.New("at least one guest name is required")
 
 // Invite is the persisted invite record.
 type Invite struct {
@@ -75,13 +78,13 @@ func NewSQLiteStore(d *sql.DB) *SQLiteStore {
 
 func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
 	if len(guestNames) == 0 {
-		return Invite{}, errors.New("at least one guest name is required")
+		return Invite{}, ErrNoGuestNames
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Invite{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	res, err := tx.ExecContext(ctx,
 		"INSERT INTO invites (name, min_plus, max_plus) VALUES (?, ?, ?)",
@@ -114,7 +117,7 @@ func (s *SQLiteStore) GetInvite(ctx context.Context, id int64) (Invite, error) {
 	err := s.db.QueryRowContext(ctx,
 		"SELECT id, name, min_plus, max_plus, submitted, created_at, updated_at FROM invites WHERE id=?",
 		id).Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.CreatedAt, &inv.UpdatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return Invite{}, ErrNotFound
 	}
 	if err != nil {
@@ -174,13 +177,13 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 
 func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
 	if len(guestNames) == 0 {
-		return Invite{}, errors.New("at least one guest name is required")
+		return Invite{}, ErrNoGuestNames
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Invite{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	res, err := tx.ExecContext(ctx,
 		"UPDATE invites SET name=?, min_plus=?, max_plus=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -197,16 +200,19 @@ func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, m
 	if err != nil {
 		return Invite{}, err
 	}
+	defer rows.Close()
+
 	var existingIDs []int64
 	for rows.Next() {
 		var gid int64
 		if err := rows.Scan(&gid); err != nil {
-			rows.Close()
 			return Invite{}, err
 		}
 		existingIDs = append(existingIDs, gid)
 	}
-	rows.Close()
+	if err := rows.Err(); err != nil {
+		return Invite{}, err
+	}
 
 	// Reconcile existing guest rows by position; insert new rows for extra names;
 	// delete trailing extras. This preserves dietary_preference/alcohol_free on retained rows.
@@ -267,7 +273,7 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID int64, guests []G
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM guests WHERE invite_id=?", inviteID); err != nil {
 		return nil, err

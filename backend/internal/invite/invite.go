@@ -66,12 +66,12 @@ func (s *Service) SubmitRSVP(ctx context.Context, id int64, guests []db.Guest) (
 		return db.Invite{}, nil, err
 	}
 
-	if err := validate(inv, guests); err != nil {
+	if err := validate(&inv, guests); err != nil {
 		return db.Invite{}, nil, err
 	}
 
 	// Send email BEFORE persisting so a send failure leaves the DB untouched.
-	body := buildRSVPEmailBody(inv, guests)
+	body := buildRSVPEmailBody(&inv, guests)
 	if err := s.email.Send(ctx, "New RSVP for "+inv.Name, body); err != nil {
 		return db.Invite{}, nil, fmt.Errorf("send email: %w", err)
 	}
@@ -87,7 +87,7 @@ func (s *Service) SubmitRSVP(ctx context.Context, id int64, guests []db.Guest) (
 	return inv, saved, nil
 }
 
-func validate(inv db.Invite, guests []db.Guest) error {
+func validate(inv *db.Invite, guests []db.Guest) error {
 	primaryCount := 0
 	var nonPrimary []db.Guest
 	for _, g := range guests {
@@ -112,7 +112,7 @@ func validate(inv db.Invite, guests []db.Guest) error {
 	return nil
 }
 
-func buildRSVPEmailBody(inv db.Invite, guests []db.Guest) string {
+func buildRSVPEmailBody(inv *db.Invite, guests []db.Guest) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "RSVP submitted for %s\n\n", inv.Name)
 	for _, g := range guests {

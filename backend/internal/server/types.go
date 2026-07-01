@@ -61,7 +61,7 @@ type ListInvitesResponse struct {
 }
 
 // toGuestResponse converts a db.Guest to a GuestResponse.
-func toGuestResponse(g db.Guest) GuestResponse {
+func toGuestResponse(g *db.Guest) GuestResponse {
 	return GuestResponse{
 		ID:                g.ID,
 		Name:              g.Name,
@@ -71,7 +71,7 @@ func toGuestResponse(g db.Guest) GuestResponse {
 	}
 }
 
-func toInviteResponse(inv db.Invite) InviteResponse {
+func toInviteResponse(inv *db.Invite) InviteResponse {
 	return InviteResponse{
 		ID:        inv.ID,
 		Name:      inv.Name,

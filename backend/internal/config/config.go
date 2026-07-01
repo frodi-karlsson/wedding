@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,6 +20,9 @@ type Config struct {
 	Port               string
 	SecureCookie       bool
 }
+
+// ErrMissingEnvVars is returned when one or more required environment variables are absent.
+var ErrMissingEnvVars = errors.New("missing required env vars")
 
 // Load reads configuration from environment variables. Required vars are
 // ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY, RESEND_FROM, RESEND_TO,
@@ -57,7 +61,7 @@ func Load() (Config, error) {
 		missing = append(missing, "CORS_ALLOWED_ORIGINS")
 	}
 	if len(missing) > 0 {
-		return Config{}, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
+		return Config{}, fmt.Errorf("%w: %s", ErrMissingEnvVars, strings.Join(missing, ", "))
 	}
 	return cfg, nil
 }

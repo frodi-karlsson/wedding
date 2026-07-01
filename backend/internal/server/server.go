@@ -40,7 +40,7 @@ func New(svc *invite.Service, a *auth.Authenticator, allowedOrigins []string) ht
 
 // --- helpers ---
 
-func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -52,7 +52,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-func decodeJSON(r *http.Request, v interface{}) error {
+func decodeJSON(r *http.Request, v any) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)
@@ -86,7 +86,7 @@ func handleGetInvite(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		resp := InviteWithGuestsResponse{
-			Invite: toInviteResponse(inv),
+			Invite: toInviteResponse(&inv),
 			Guests: toGuestResponses(guests),
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -129,7 +129,7 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		resp := InviteWithGuestsResponse{
-			Invite: toInviteResponse(inv),
+			Invite: toInviteResponse(&inv),
 			Guests: toGuestResponses(saved),
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -198,7 +198,7 @@ func handleListInvites(svc *invite.Service) http.HandlerFunc {
 		}
 		resp := ListInvitesResponse{Invites: make([]InviteResponse, len(invites))}
 		for i, inv := range invites {
-			resp.Invites[i] = toInviteResponse(inv)
+			resp.Invites[i] = toInviteResponse(&inv)
 		}
 		writeJSON(w, http.StatusOK, resp)
 	}
@@ -226,7 +226,7 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusCreated, InviteWithGuestsResponse{
-			Invite: toInviteResponse(inv),
+			Invite: toInviteResponse(&inv),
 			Guests: toGuestResponses(guests),
 		})
 	}
@@ -249,7 +249,7 @@ func handleAdminGetInvite(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, InviteWithGuestsResponse{
-			Invite: toInviteResponse(inv),
+			Invite: toInviteResponse(&inv),
 			Guests: toGuestResponses(guests),
 		})
 	}
@@ -290,7 +290,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, InviteWithGuestsResponse{
-			Invite: toInviteResponse(inv),
+			Invite: toInviteResponse(&inv),
 			Guests: toGuestResponses(guests),
 		})
 	}
@@ -317,8 +317,8 @@ func handleDeleteInvite(svc *invite.Service) http.HandlerFunc {
 
 func toGuestResponses(guests []db.Guest) []GuestResponse {
 	out := make([]GuestResponse, len(guests))
-	for i, g := range guests {
-		out[i] = toGuestResponse(g)
+	for i := range guests {
+		out[i] = toGuestResponse(&guests[i])
 	}
 	return out
 }
