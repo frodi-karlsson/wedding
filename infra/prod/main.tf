@@ -110,3 +110,54 @@ resource "digitalocean_spaces_bucket_lifecycle" "backups" {
     }
   }
 }
+
+# --- Cloudflare: DNS zone lookup ---
+data "cloudflare_zone" "main" {
+  name = var.domain
+}
+
+# --- Cloudflare Pages project (direct upload, no git connection) ---
+resource "cloudflare_pages_project" "wedding" {
+  account_id = var.cloudflare_account_id
+  name       = var.pages_project_name
+
+  deployment_configs {
+    preview {
+      environment_variables = {
+        PUBLIC_API_URL = "https://api.${var.domain}"
+      }
+    }
+    production {
+      environment_variables = {
+        PUBLIC_API_URL = "https://api.${var.domain}"
+      }
+    }
+  }
+}
+
+# --- Bind custom domain (apex) to the Pages project ---
+resource "cloudflare_pages_domain" "main" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.wedding.name
+  domain       = var.domain
+}
+
+# --- DNS: api. subdomain → droplet (DNS-only so Caddy does TLS) ---
+resource "cloudflare_record" "api" {
+  zone_id = data.cloudflare_zone.main.zone_id
+  name    = "api"
+  value   = digitalocean_reserved_ip.wedding.ip_address
+  type    = "A"
+  proxied = false
+  ttl     = 1
+}
+
+# --- DNS: apex CNAME → pages.dev (Cloudflare Pages custom domain) ---
+resource "cloudflare_record" "apex" {
+  zone_id = data.cloudflare_zone.main.zone_id
+  name    = "@"
+  value   = "${var.pages_project_name}.pages.dev"
+  type    = "CNAME"
+  proxied = true
+  ttl     = 1
+}
