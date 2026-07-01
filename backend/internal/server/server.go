@@ -49,7 +49,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
+	writeJSON(w, status, ErrorResponse{Error: msg})
 }
 
 func decodeJSON(r *http.Request, v any) error {
@@ -150,14 +150,14 @@ func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 			return
 		}
 		a.SetSessionCookie(w)
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
 	}
 }
 
 func handleLogout(a *auth.Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		a.ClearSessionCookie(w)
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
 	}
 }
 

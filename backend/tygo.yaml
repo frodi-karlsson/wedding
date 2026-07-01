@@ -1,0 +1,18 @@
+# tygo config — generates TypeScript types from the Go API contract.
+# Source of truth: backend/internal/server/types.go
+# Output: frontend/src/scripts/types.gen.ts
+#
+# Run: cd backend && tygo generate
+
+# Default type mappings (apply to all packages).
+type_mappings:
+  time.Time: "string"
+
+packages:
+  - path: "wedding/backend/internal/server"
+    output_path: "../frontend/src/scripts/types.gen.ts"
+    indent: "  "
+    # Include only the package's exported structs that form the JSON API contract.
+    # The helper functions (toGuestResponse, toInviteResponse) are unexported
+    # and won't be emitted.
+    exclude_files: []

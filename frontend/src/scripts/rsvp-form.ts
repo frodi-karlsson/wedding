@@ -1,19 +1,19 @@
 import { api } from './api';
 import { translate, type Lang } from './i18n';
 import { escapeHtml } from './html';
-import type { Guest, GuestInput, Invite } from './types';
+import type { GuestResponse, GuestInput, InviteResponse } from './types.gen';
 
 export type RsvpStatus = 'loading' | 'ready' | 'submitting' | 'confirmed' | 'error';
 
 export interface RsvpState {
-  invite: Invite;
+  invite: InviteResponse;
   guests: GuestInput[];
   status: RsvpStatus;
   lang: Lang;
   errorMessage?: string;
 }
 
-export function createRsvpState(invite: Invite, guests: Guest[], lang: Lang): RsvpState {
+export function createRsvpState(invite: InviteResponse, guests: GuestResponse[], lang: Lang): RsvpState {
   const mapped = guests.map((guest) => ({
     name: guest.name,
     dietary_preference: guest.dietary_preference,

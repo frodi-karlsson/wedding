@@ -2,12 +2,12 @@ import { WebClient } from '@anabranch/web-client';
 import type { Task } from 'anabranch';
 import type { HttpError } from '@anabranch/web-client';
 import type {
-  AdminAuthResponse,
   CreateInviteRequest,
   GuestInput,
   InviteWithGuestsResponse,
   ListInvitesResponse,
-} from './types';
+  StatusResponse,
+} from './types.gen';
 
 const env = import.meta.env as unknown as ImportMetaEnv | undefined;
 const baseUrl = env?.PUBLIC_API_URL ?? 'http://localhost:8080';
@@ -33,12 +33,12 @@ export const api = {
       .map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  adminLogin(password: string): Task<AdminAuthResponse, HttpError> {
-    return client.post('admin/login', { password }).map((r) => r.data as AdminAuthResponse);
+  adminLogin(password: string): Task<StatusResponse, HttpError> {
+    return client.post('admin/login', { password }).map((r) => r.data as StatusResponse);
   },
 
-  adminLogout(): Task<AdminAuthResponse, HttpError> {
-    return client.post('admin/logout', {}).map((r) => r.data as AdminAuthResponse);
+  adminLogout(): Task<StatusResponse, HttpError> {
+    return client.post('admin/logout', {}).map((r) => r.data as StatusResponse);
   },
 
   listInvites(): Task<ListInvitesResponse, HttpError> {

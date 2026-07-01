@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import type { Invite, Guest } from '../src/scripts/types';
+import type { InviteResponse, GuestResponse } from '../src/scripts/types.gen';
 import {
   createRsvpState,
   addGuest,
@@ -9,11 +9,11 @@ import {
   guestsToInput,
 } from '../src/scripts/rsvp-form';
 
-function mockInvite(overrides: Partial<Invite> = {}): Invite {
+function mockInvite(overrides: Partial<InviteResponse> = {}): InviteResponse {
   return { id: 1, name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, ...overrides };
 }
 
-function mockGuest(overrides: Partial<Guest> = {}): Guest {
+function mockGuest(overrides: Partial<GuestResponse> = {}): GuestResponse {
   return { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, ...overrides };
 }
 

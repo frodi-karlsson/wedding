@@ -1,6 +1,6 @@
 import { api } from './api';
 import { translate, type Lang } from './i18n';
-import type { Guest, Invite } from './types';
+import type { GuestResponse, InviteResponse } from './types.gen';
 import { escapeHtml } from './html';
 
 export interface InviteForm {
@@ -17,7 +17,7 @@ type AdminView = 'login' | 'dashboard' | 'form';
 export interface AdminState {
   view: AdminView;
   lang: Lang;
-  invites: Invite[];
+  invites: InviteResponse[];
   error?: string;
   formError?: string;
   form?: InviteForm;
@@ -44,7 +44,7 @@ export function createEmptyForm(lang: Lang): InviteForm {
   };
 }
 
-export function formFromInvite(invite: Invite, guests: Guest[], lang: Lang): InviteForm {
+export function formFromInvite(invite: InviteResponse, guests: GuestResponse[], lang: Lang): InviteForm {
   const names =
     guests.length > 0
       ? guests

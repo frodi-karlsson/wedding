@@ -33,6 +33,16 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+// --- Generic responses ---
+
+type StatusResponse struct {
+	Status string `json:"status"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 // --- Responses ---
 
 type GuestResponse struct {
