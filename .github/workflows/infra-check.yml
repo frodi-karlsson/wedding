@@ -1,0 +1,38 @@
+name: Infra Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenTofu
+        run: |
+          curl -fsSL https://get.opentofu.org/install-opentofu.sh | bash -s -- --install-method deb
+          tofu version
+
+      - name: fmt check
+        working-directory: infra/prod
+        run: tofu fmt -check -recursive
+
+      - name: init
+        working-directory: infra/prod
+        env:
+          DO_TOKEN: dummy
+          CLOUDFLARE_API_TOKEN: dummy
+        run: tofu init -backend=false -input=false
+
+      - name: validate
+        working-directory: infra/prod
+        run: tofu validate
