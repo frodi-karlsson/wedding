@@ -1,0 +1,66 @@
+# Infrastructure
+
+OpenTofu-managed infrastructure for the wedding invite site, plus docker
+compose files for prod and local staging.
+
+## Resources provisioned
+
+**DigitalOcean:**
+- Droplet (runs Caddy + backend via docker compose)
+- Volume (1GB, mounted at `/mnt/data` for the SQLite file)
+- Firewall (ports 22, 80, 443)
+- Reserved IP (stable across droplet recreation)
+- Container Registry (private, for the backend image)
+- Spaces bucket + 30-day lifecycle (nightly SQLite backups)
+
+**Cloudflare:**
+- Pages project (direct-upload, no git connection)
+- Pages custom domain (apex → carlaochfrodi.wedding)
+- DNS: `api.` A record → droplet reserved IP (DNS-only)
+- DNS: apex CNAME → `<project>.pages.dev`
+
+## Prerequisites
+
+1. Install OpenTofu 1.12.3: https://opentofu.org/docs/intro/install/
+2. A DigitalOcean account + API token (`do_token`).
+3. A Cloudflare account + API token with Pages + DNS edit perms.
+4. Your SSH public key for droplet access.
+5. A Resend account + API key (domain `carlaochfrodi.wedding` verified in Resend).
+6. DO Spaces keys for the backup bucket.
+
+## Setup
+
+```sh
+cd infra/prod
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your real secrets.
+tofu init
+tofu plan
+tofu apply
+```
+
+`terraform.tfvars` is gitignored — never commit it.
+
+## Local staging
+
+```sh
+cd infra
+cp .env.staging.example .env.staging
+docker compose -f docker-compose.dev.yml up --build
+# Backend at http://localhost:8080
+```
+
+Optionally seed test data:
+```sh
+sqlite3 infra/data/wedding-staging.db < db/seed.staging.sql
+```
+
+## Backups
+
+A cron job on the droplet runs nightly at 03:00, backing up the SQLite file to
+the DO Spaces bucket via rclone. The bucket has a 30-day lifecycle rule.
+Installed by cloud-init.
+
+## CI
+
+See `../.github/workflows/` and `../.github/README.md`.
