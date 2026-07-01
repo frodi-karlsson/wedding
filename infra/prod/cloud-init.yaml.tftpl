@@ -1,0 +1,85 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - sqlite3
+  - cron
+  - rclone
+
+write_files:
+  - path: /opt/wedding/docker-compose.yml
+    content: |
+      services:
+        caddy:
+          image: caddy:2.11-alpine
+          restart: unless-stopped
+          ports:
+            - "80:80"
+            - "443:443"
+          volumes:
+            - /opt/wedding/Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy_data:/data
+            - caddy_config:/config
+          depends_on:
+            - backend
+        backend:
+          image: ${registry_server}/wedding-backend:latest
+          restart: unless-stopped
+          env_file:
+            - /opt/wedding/.env
+          volumes:
+            - /mnt/data:/data
+          expose:
+            - "8080"
+      volumes:
+        caddy_data:
+        caddy_config:
+
+  - path: /opt/wedding/Caddyfile
+    content: |
+      api.${domain} {
+        reverse_proxy backend:8080
+      }
+
+  - path: /opt/wedding/.env
+    permissions: '0600'
+    content: |
+      DB_PATH=/data/wedding.db
+      ADMIN_PASSWORD=${admin_password}
+      SESSION_SECRET=${session_secret}
+      RESEND_API_KEY=${resend_api_key}
+      RESEND_FROM=${resend_from}
+      RESEND_TO=${resend_to}
+      CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
+      PORT=8080
+
+  - path: /opt/wedding/backup.sh
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      set -e
+      TS=$$(date +%Y%m%d-%H%M%S)
+      sqlite3 /mnt/data/wedding.db ".backup '/tmp/wedding-backup-$$TS.db'"
+      rclone copy /tmp/wedding-backup-$$TS.db s3:${backup_bucket}/ --config /root/.rclone.conf
+      rm /tmp/wedding-backup-$$TS.db
+
+  - path: /root/.rclone.conf
+    permissions: '0600'
+    content: |
+      [s3]
+      type = s3
+      provider = DigitalOcean
+      env_auth = false
+      access_key_id = ${spaces_key}
+      secret_access_key = ${spaces_secret}
+      endpoint = ${backup_region}.digitaloceanspaces.com
+      acl = private
+
+runcmd:
+  - mkdir -p /mnt/data
+  - docker login ${registry_server} -u ${do_token} -p ${do_token}
+  - cd /opt/wedding
+  - docker compose pull || true
+  - docker compose up -d
+  - (crontab -l 2>/dev/null; echo "0 3 * * * /opt/wedding/backup.sh") | crontab -
