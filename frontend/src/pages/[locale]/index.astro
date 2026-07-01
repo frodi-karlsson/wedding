@@ -1,0 +1,16 @@
+---
+import Layout from '../../components/Layout.astro';
+import RsvpForm from '../../components/RsvpForm.astro';
+import { translate, langFromPath, type Lang } from '../../scripts/i18n';
+
+export function getStaticPaths() {
+  const locales: Lang[] = ['en', 'is', 'de', 'sv'];
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const lang = langFromPath(Astro.url.pathname) as Lang;
+---
+<Layout title={translate('site_title', lang)} lang={lang}>
+  <h1>{translate('rsvp_title', lang)}</h1>
+  <RsvpForm lang={lang} />
+</Layout>

@@ -1,0 +1,17 @@
+---
+import { translate, type Lang } from '../scripts/i18n';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<div id="rsvp-root" data-lang={lang}>
+  <p class="error">{translate('no_id_error', lang)}</p>
+</div>
+<script type="module">
+  const root = document.getElementById('rsvp-root');
+  if (root) {
+    const { mountRsvpForm } = await import('../scripts/rsvp-form');
+    const lang = root.dataset.lang as import('../scripts/i18n').Lang;
+    const id = Number(new URLSearchParams(location.search).get('id'));
+    if (id) mountRsvpForm(root, id, lang);
+  }
+</script>

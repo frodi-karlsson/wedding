@@ -1,0 +1,229 @@
+import { api } from './api';
+import { translate, type Lang } from './i18n';
+import type { Guest, GuestInput, Invite } from './types';
+
+export type RsvpStatus = 'loading' | 'ready' | 'submitting' | 'confirmed' | 'error';
+
+export interface RsvpState {
+  invite: Invite;
+  guests: GuestInput[];
+  status: RsvpStatus;
+  lang: Lang;
+  errorMessage?: string;
+}
+
+export function createRsvpState(invite: Invite, guests: Guest[], lang: Lang): RsvpState {
+  const mapped = guests.map((guest) => ({
+    name: guest.name,
+    dietary_preference: guest.dietary_preference,
+    alcohol_free: guest.alcohol_free,
+    is_primary: guest.is_primary,
+  }));
+  mapped.sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+  return { invite, guests: mapped, status: 'ready', lang };
+}
+
+export function addGuest(state: RsvpState): RsvpState {
+  const plusCount = state.guests.filter((guest) => !guest.is_primary).length;
+  if (plusCount >= state.invite.max_plus) {
+    return state;
+  }
+  return {
+    ...state,
+    guests: [
+      ...state.guests,
+      { name: '', dietary_preference: '', alcohol_free: false, is_primary: false },
+    ],
+  };
+}
+
+export function removeGuest(state: RsvpState, index: number): RsvpState {
+  if (state.guests[index]?.is_primary) {
+    return state;
+  }
+  return {
+    ...state,
+    guests: state.guests.filter((_, i) => i !== index),
+  };
+}
+
+export function updateGuest(state: RsvpState, index: number, patch: Partial<GuestInput>): RsvpState {
+  return {
+    ...state,
+    guests: state.guests.map((guest, i) => (i === index ? { ...guest, ...patch } : guest)),
+  };
+}
+
+export function canSubmit(state: RsvpState): boolean {
+  const plusCount = state.guests.filter((guest) => !guest.is_primary).length;
+  if (plusCount < state.invite.min_plus || plusCount > state.invite.max_plus) {
+    return false;
+  }
+  return state.guests.every((guest) => guest.name.trim().length > 0);
+}
+
+export function guestsToInput(state: RsvpState): GuestInput[] {
+  return state.guests;
+}
+
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function render(root: HTMLElement, state: RsvpState): void {
+  const { lang } = state;
+
+  if (state.status === 'loading') {
+    root.innerHTML = `<p class="loading">${escapeHtml(translate('loading', lang))}</p>`;
+    return;
+  }
+
+  if (state.status === 'error') {
+    root.innerHTML = `<p class="error">${escapeHtml(state.errorMessage ?? translate('load_error', lang))}</p>`;
+    return;
+  }
+
+  if (state.status === 'confirmed') {
+    root.innerHTML = `
+      <div class="confirmed">
+        <h2>${escapeHtml(translate('thank_you', lang))}</h2>
+        <p>${escapeHtml(translate('thank_you_body', lang))}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const plusCount = state.guests.filter((guest) => !guest.is_primary).length;
+  const canAdd = plusCount < state.invite.max_plus;
+  const submitDisabled = state.status === 'submitting' || !canSubmit(state);
+  const minClause =
+    state.invite.min_plus > 0
+      ? escapeHtml(
+          translate('min_clause', lang).replace('{min}', String(state.invite.min_plus)),
+        )
+      : '';
+  const intro = escapeHtml(translate('rsvp_intro', lang))
+    .replace('{max}', String(state.invite.max_plus))
+    .replace('{min_clause}', minClause);
+
+  const rows = state.guests
+    .map((guest, index) => {
+      const nameLabel = escapeHtml(translate(guest.is_primary ? 'name_you_label' : 'name_label', lang));
+      const legend = guest.is_primary
+        ? escapeHtml(translate('name_you_label', lang))
+        : `${escapeHtml(translate('guest_label', lang))} ${index}`;
+      const removeButton = guest.is_primary
+        ? ''
+        : `<button type="button" class="remove" data-action="remove" data-index="${index}">${escapeHtml(translate('remove_guest', lang))}</button>`;
+      return `
+        <fieldset class="guest-row" data-index="${index}">
+          <legend>${legend}</legend>
+          <label>
+            <span>${nameLabel}</span>
+            <input type="text" value="${escapeHtml(guest.name)}" data-action="update" data-index="${index}" data-field="name" required>
+          </label>
+          <label>
+            <span>${escapeHtml(translate('dietary_label', lang))}</span>
+            <input type="text" value="${escapeHtml(guest.dietary_preference)}" data-action="update" data-index="${index}" data-field="dietary">
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" ${guest.alcohol_free ? 'checked' : ''} data-action="update" data-index="${index}" data-field="alcohol_free">
+            <span>${escapeHtml(translate('alcohol_free_label', lang))}</span>
+          </label>
+          ${removeButton}
+        </fieldset>
+      `;
+    })
+    .join('');
+
+  const addButton = canAdd
+    ? `<button type="button" class="add" data-action="add">${escapeHtml(translate('add_guest', lang))}</button>`
+    : '';
+  const submitLabel =
+    state.status === 'submitting'
+      ? escapeHtml(translate('submitting', lang))
+      : escapeHtml(translate('submit', lang));
+
+  root.innerHTML = `
+    <form class="rsvp-form" data-action="submit">
+      <h2 class="invite-heading">${escapeHtml(state.invite.name)}</h2>
+      <p class="intro">${intro}</p>
+      <div class="guests">${rows}</div>
+      <div class="actions">
+        ${addButton}
+        <button type="submit" class="submit" ${submitDisabled ? 'disabled' : ''}>${submitLabel}</button>
+      </div>
+    </form>
+  `;
+}
+
+export async function mountRsvpForm(root: HTMLElement, inviteId: number, lang: Lang): Promise<void> {
+  let state: RsvpState = {
+    invite: { id: 0, name: '', min_plus: 0, max_plus: 0, submitted: false },
+    guests: [],
+    status: 'loading',
+    lang,
+  };
+
+  const update = (next: RsvpState) => {
+    state = next;
+    render(root, state);
+  };
+
+  root.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    const action = target.dataset.action;
+    if (action === 'add') {
+      event.preventDefault();
+      update(addGuest(state));
+    } else if (action === 'remove') {
+      event.preventDefault();
+      const index = Number(target.dataset.index);
+      update(removeGuest(state, index));
+    }
+  });
+
+  root.addEventListener('input', (event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.dataset.action !== 'update') return;
+    const index = Number(target.dataset.index);
+    const field = target.dataset.field as 'name' | 'dietary' | 'alcohol_free';
+    const patch: Partial<GuestInput> = {};
+    if (field === 'alcohol_free') {
+      patch.alcohol_free = target.checked;
+    } else if (field === 'dietary') {
+      patch.dietary_preference = target.value;
+    } else if (field === 'name') {
+      patch.name = target.value;
+    }
+    update(updateGuest(state, index, patch));
+  });
+
+  root.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!canSubmit(state)) return;
+    const guests = guestsToInput(state);
+    update({ ...state, status: 'submitting' });
+    api
+      .rsvp(inviteId, guests)
+      .run()
+      .then(() => update({ ...state, status: 'confirmed' }))
+      .catch(() =>
+        update({ ...state, status: 'error', errorMessage: translate('submit_error', lang) }),
+      );
+  });
+
+  render(root, state);
+
+  try {
+    const response = await api.getInvite(inviteId).run();
+    update(createRsvpState(response.invite, response.guests, lang));
+  } catch {
+    update({ ...state, status: 'error', errorMessage: translate('load_error', lang) });
+  }
+}

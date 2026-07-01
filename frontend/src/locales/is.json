@@ -1,5 +1,7 @@
 {
   "site_title": "Carla & Frodi",
+  "loading": "Hleður…",
+  "min_clause": " (að minnsta kosti {min})",
   "rsvp_title": "Þú ert boðið!",
   "rsvp_intro": "Segðu okkur frá því hver kemur. Þú getur fært með þér allt að {max} gesti{min_clause}.",
   "add_guest": "+ Bæta við gesti",

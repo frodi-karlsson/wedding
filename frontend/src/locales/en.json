@@ -1,5 +1,7 @@
 {
   "site_title": "Carla & Frodi",
+  "loading": "Loading…",
+  "min_clause": " (at least {min})",
   "rsvp_title": "You're invited!",
   "rsvp_intro": "Tell us who's coming. You can bring up to {max} guest(s){min_clause}.",
   "add_guest": "+ Add guest",

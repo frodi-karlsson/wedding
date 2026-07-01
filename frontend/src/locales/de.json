@@ -1,5 +1,7 @@
 {
   "site_title": "Carla & Frodi",
+  "loading": "Lädt…",
+  "min_clause": " (mindestens {min})",
   "rsvp_title": "Du bist eingeladen!",
   "rsvp_intro": "Sag uns, wer kommt. Du kannst bis zu {max} Gäste mitbringen{min_clause}.",
   "add_guest": "+ Gast hinzufügen",
