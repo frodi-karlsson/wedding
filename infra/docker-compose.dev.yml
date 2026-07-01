@@ -8,6 +8,9 @@ services:
     env_file:
       - .env.staging
     volumes:
-      - ./data:/data
+      - wedding-staging-data:/data
     environment:
       - DB_PATH=/data/wedding-staging.db
+
+volumes:
+  wedding-staging-data:

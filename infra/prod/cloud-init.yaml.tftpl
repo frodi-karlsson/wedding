@@ -78,8 +78,10 @@ write_files:
 
 runcmd:
   - mkdir -p /mnt/data
-  - docker login ${registry_server} -u ${do_token} -p ${do_token}
+  - docker login ${registry_server_url} -u ${do_token} -p ${do_token}
   - cd /opt/wedding
-  - docker compose pull || true
+  - docker compose pull
   - docker compose up -d
+  - systemctl enable cron || systemctl enable crond
+  - systemctl start cron || systemctl start crond
   - (crontab -l 2>/dev/null; echo "0 3 * * * /opt/wedding/backup.sh") | crontab -

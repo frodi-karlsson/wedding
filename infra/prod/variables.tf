@@ -10,12 +10,6 @@ variable "ssh_public_key" {
   description = "SSH public key to authorize on the droplet."
 }
 
-variable "ssh_private_key" {
-  type        = string
-  sensitive   = true
-  description = "SSH private key for provisioner access (file path or content)."
-}
-
 # --- Cloudflare ---
 variable "cloudflare_api_token" {
   type        = string

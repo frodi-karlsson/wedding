@@ -50,6 +50,9 @@ docker compose -f docker-compose.dev.yml up --build
 # Backend at http://localhost:8080
 ```
 
+The staging backend uses a named Docker volume (`wedding-staging-data`) for its
+SQLite file, so no host permission fixes are needed.
+
 Optionally seed test data:
 ```sh
 sqlite3 infra/data/wedding-staging.db < db/seed.staging.sql

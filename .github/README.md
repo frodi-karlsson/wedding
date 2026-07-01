@@ -16,7 +16,7 @@
 | Secret | Used by | Purpose |
 |--------|---------|---------|
 | `DO_TOKEN` | backend, infra | DigitalOcean API token |
-| `DO_REGISTRY_ENDPOINT` | backend | DO Container Registry endpoint (e.g. `registry.ams3.digitaloceanspaces.com` or the DO registry URL) |
+| `DO_REGISTRY_ENDPOINT` | backend | DO Container Registry endpoint, e.g. `registry.digitalocean.com/wedding` — must include the registry name (the `registry_endpoint` OpenTofu output) |
 | `DROPLET_IP` | backend | Droplet public/reserved IP for SSH deploy |
 | `DROPLET_SSH_KEY` | backend | SSH private key for droplet access |
 | `CLOUDFLARE_API_TOKEN` | frontend | Cloudflare API token (Pages deploy) |

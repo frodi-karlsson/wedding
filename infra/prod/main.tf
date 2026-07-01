@@ -16,7 +16,7 @@ resource "digitalocean_droplet" "wedding" {
   name     = "wedding-backend"
   region   = var.do_region
   size     = var.droplet_size
-  image    = "docker-20-04" # Docker preinstalled; verify this slug exists, else use "ubuntu-24-04" and install docker via cloud-init
+  image    = "ubuntu-24-04"
   ssh_keys = [digitalocean_ssh_key.default.fingerprint]
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     do_token             = var.do_token
@@ -28,6 +28,7 @@ resource "digitalocean_droplet" "wedding" {
     cors_allowed_origins = var.cors_allowed_origins
     domain               = var.domain
     registry_server      = digitalocean_container_registry.wedding.endpoint
+    registry_server_url  = digitalocean_container_registry.wedding.server_url
     spaces_key           = var.backup_spaces_key
     spaces_secret        = var.backup_spaces_secret
     backup_bucket        = digitalocean_spaces_bucket.backups.name
@@ -140,6 +141,8 @@ resource "cloudflare_pages_domain" "main" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.wedding.name
   domain       = var.domain
+
+  depends_on = [cloudflare_record.apex]
 }
 
 # --- DNS: api. subdomain → droplet (DNS-only so Caddy does TLS) ---
@@ -160,4 +163,6 @@ resource "cloudflare_record" "apex" {
   type    = "CNAME"
   proxied = true
   ttl     = 1
+
+  depends_on = [cloudflare_pages_project.wedding]
 }
