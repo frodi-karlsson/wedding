@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"testing"
 )
 
@@ -35,5 +36,62 @@ func TestOpen_AppliesWALAndBusyTimeout(t *testing.T) {
 	}
 	if busyTimeout != 5000 {
 		t.Errorf("busy_timeout = %d, want 5000", busyTimeout)
+	}
+}
+
+func newTestStore(t *testing.T) (*SQLiteStore, func()) {
+	t.Helper()
+	d, err := Open(":memory:")
+	if err != nil {
+		t.Fatalf("Open() error: %v", err)
+	}
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate() error: %v", err)
+	}
+	store := NewSQLiteStore(d)
+	return store, func() { d.Close() }
+}
+
+func TestCreateInvite_AutoCreatesPrimaryGuest(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2)
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+	if inv.Name != "Frodi & Carla" {
+		t.Errorf("Name = %q", inv.Name)
+	}
+	if inv.MinPlus != 0 || inv.MaxPlus != 2 {
+		t.Errorf("Min/Max = %d/%d, want 0/2", inv.MinPlus, inv.MaxPlus)
+	}
+	if inv.Submitted {
+		t.Errorf("Submitted = true, want false")
+	}
+
+	_, guests, err := store.GetInviteWithGuests(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
+	}
+	if len(guests) != 1 {
+		t.Fatalf("len(guests) = %d, want 1 (primary)", len(guests))
+	}
+	if !guests[0].IsPrimary {
+		t.Errorf("primary guest IsPrimary = false")
+	}
+	if guests[0].Name != "Frodi & Carla" {
+		t.Errorf("primary guest Name = %q, want %q", guests[0].Name, "Frodi & Carla")
+	}
+}
+
+func TestGetInvite_NotFound(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+
+	_, err := store.GetInvite(context.Background(), 999)
+	if err != ErrNotFound {
+		t.Errorf("GetInvite(999) err = %v, want ErrNotFound", err)
 	}
 }
