@@ -272,7 +272,8 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
 
         await refreshDashboard();
       } catch (err) {
-        const formError = err instanceof Error ? err.message : translate('admin_error', state.lang);
+        console.error('admin submit failed:', err);
+        const formError = translate('admin_error', state.lang);
         update({ ...state, formError });
       }
     }
