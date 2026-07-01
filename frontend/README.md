@@ -1,43 +1,83 @@
-# Astro Starter Kit: Minimal
+# Wedding Invite Frontend
+
+Astro static site for the wedding invite RSVP + admin pages. Deployed to
+Cloudflare Pages. Localized in English, Icelandic, German, and Swedish.
+
+## Requirements
+
+- Node.js 22+
+- pnpm (never npm/npx)
+
+## Development
 
 ```sh
-npm create astro@latest -- --template minimal
+pnpm install
+cp .env.example .env    # set PUBLIC_API_URL to your local backend
+pnpm run dev            # http://localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Start the backend first (see `../backend/README.md`).
 
-## 🚀 Project Structure
+## Testing
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+pnpm exec vitest run        # all tests
+pnpm exec vitest run tests/i18n.test.ts --silent=false   # single file
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Linting
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```sh
+pnpm exec eslint .
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Build
 
-## 🧞 Commands
+```sh
+pnpm run build           # outputs dist/
+```
 
-All commands are run from the root of the project, from a terminal:
+## Environment
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+| Var | Purpose |
+|-----|---------|
+| `PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:8080` dev, `https://api.carlaochfrodi.wedding` prod) |
 
-## 👀 Want to learn more?
+Set in `.env` for local dev, and as a Cloudflare Pages build-time env var for prod.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Internationalization (i18n)
+
+Four languages: English (`en`), Icelandic (`is`), German (`de`), Swedish (`sv`).
+
+- **Routing:** Astro i18n routing (`astro.config.mjs`). English is at `/` (no
+  prefix); the others at `/is`, `/de`, `/sv`. Pages live under
+  `src/pages/[locale]/` with a root `src/pages/` copy for the English routes
+  (since `prefixDefaultLocale: false` doesn't generate a root page from a
+  `[locale]` dynamic route).
+- **Translations:** plain JSON at `src/locales/{en,is,de,sv}.json`. A single
+  `translate(key, lang)` utility (`src/scripts/i18n.ts`) imports all four and
+  falls back to English, then the key string. It runs both at build time (in
+  `.astro` frontmatter) and at runtime (in client islands).
+- **Language picker:** `src/components/LangPicker.astro` — navigates between
+  locale paths, preserving the current path and query string.
+- **Adding/updating translations:** edit `src/locales/<lang>.json`. The key set
+  must be identical across all four files (a key-completeness test is planned).
+
+## Pages
+
+- `/` (and `/<lang>`) — RSVP form. Pass `?id=<inviteId>` to load a specific
+  invitation. The form prefills the invite's preset guests and lets the invitee
+  add/remove pluses up to `max_plus`, fill names/dietary/alcohol-free, and
+  submit.
+- `/admin` (and `/<lang>/admin`) — Admin panel (password-protected via the
+  backend). Manage invites: create with preset guest names + a link-language
+  picker, edit, delete, copy shareable links.
+
+## Conventions
+
+See `../AGENTS.md` for testing, linting, and coding conventions.
+
+## Deployment
+
+Deployed to Cloudflare Pages via `pnpm exec wrangler pages deploy dist` in CI.
+See `../infra/` and the CI workflow for details.
