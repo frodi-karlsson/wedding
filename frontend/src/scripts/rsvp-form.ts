@@ -75,6 +75,20 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function updateSubmitDisabled(root: HTMLElement, state: RsvpState): void {
+  const submitBtn = root.querySelector('.rsvp-form .submit') as HTMLButtonElement | null;
+  if (submitBtn) {
+    submitBtn.disabled = !canSubmit(state) || state.status === 'submitting';
+  }
+}
+
+function clearInlineError(root: HTMLElement): void {
+  const errorEl = root.querySelector('.rsvp-form > .error') as HTMLElement | null;
+  if (errorEl) {
+    errorEl.remove();
+  }
+}
+
 export function render(root: HTMLElement, state: RsvpState): void {
   const { lang } = state;
 
@@ -149,6 +163,11 @@ export function render(root: HTMLElement, state: RsvpState): void {
       ? escapeHtml(translate('submitting', lang))
       : escapeHtml(translate('submit', lang));
 
+  const submitError =
+    state.status === 'ready' && state.errorMessage
+      ? `<p class="error">${escapeHtml(state.errorMessage)}</p>`
+      : '';
+
   root.innerHTML = `
     <form class="rsvp-form" data-action="submit">
       <h2 class="invite-heading">${escapeHtml(state.invite.name)}</h2>
@@ -158,6 +177,7 @@ export function render(root: HTMLElement, state: RsvpState): void {
         ${addButton}
         <button type="submit" class="submit" ${submitDisabled ? 'disabled' : ''}>${submitLabel}</button>
       </div>
+      ${submitError}
     </form>
   `;
 }
@@ -180,11 +200,13 @@ export async function mountRsvpForm(root: HTMLElement, inviteId: number, lang: L
     const action = target.dataset.action;
     if (action === 'add') {
       event.preventDefault();
-      update(addGuest(state));
+      state = { ...addGuest(state), errorMessage: undefined };
+      render(root, state);
     } else if (action === 'remove') {
       event.preventDefault();
       const index = Number(target.dataset.index);
-      update(removeGuest(state, index));
+      state = { ...removeGuest(state, index), errorMessage: undefined };
+      render(root, state);
     }
   });
 
@@ -201,21 +223,33 @@ export async function mountRsvpForm(root: HTMLElement, inviteId: number, lang: L
     } else if (field === 'name') {
       patch.name = target.value;
     }
-    update(updateGuest(state, index, patch));
+    state = updateGuest(state, index, patch);
+    if (state.errorMessage) {
+      state = { ...state, errorMessage: undefined };
+      clearInlineError(root);
+    }
+    if (field === 'name') {
+      updateSubmitDisabled(root, state);
+    }
   });
 
   root.addEventListener('submit', (event) => {
     event.preventDefault();
     if (!canSubmit(state)) return;
     const guests = guestsToInput(state);
-    update({ ...state, status: 'submitting' });
+    state = { ...state, status: 'submitting', errorMessage: undefined };
+    render(root, state);
     api
       .rsvp(inviteId, guests)
       .run()
-      .then(() => update({ ...state, status: 'confirmed' }))
-      .catch(() =>
-        update({ ...state, status: 'error', errorMessage: translate('submit_error', lang) }),
-      );
+      .then(() => {
+        state = { ...state, status: 'confirmed' };
+        render(root, state);
+      })
+      .catch(() => {
+        state = { ...state, status: 'ready', errorMessage: translate('submit_error', state.lang) };
+        render(root, state);
+      });
   });
 
   render(root, state);
