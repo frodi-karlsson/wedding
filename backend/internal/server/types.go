@@ -16,15 +16,17 @@ type RSVPRequest struct {
 }
 
 type CreateInviteRequest struct {
-	Name    string `json:"name"`
-	MinPlus int    `json:"min_plus"`
-	MaxPlus int    `json:"max_plus"`
+	Name       string   `json:"name"`
+	MinPlus    int      `json:"min_plus"`
+	MaxPlus    int      `json:"max_plus"`
+	GuestNames []string `json:"guest_names"`
 }
 
 type UpdateInviteRequest struct {
-	Name    string `json:"name"`
-	MinPlus int    `json:"min_plus"`
-	MaxPlus int    `json:"max_plus"`
+	Name       string   `json:"name"`
+	MinPlus    int      `json:"min_plus"`
+	MaxPlus    int      `json:"max_plus"`
+	GuestNames []string `json:"guest_names"`
 }
 
 type LoginRequest struct {

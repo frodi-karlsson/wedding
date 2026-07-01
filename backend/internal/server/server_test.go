@@ -135,7 +135,7 @@ func TestAdminRoutes_RequireAuth(t *testing.T) {
 func TestAdminCreateInvite(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites",
-		CreateInviteRequest{Name: "New Couple", MinPlus: 0, MaxPlus: 1}, true)
+		CreateInviteRequest{Name: "New Couple", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"New Couple"}}, true)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want 200 or 201; body: %s", rec.Code, rec.Body.String())
 	}
@@ -176,12 +176,61 @@ func TestAdminDeleteInvite_NotFound(t *testing.T) {
 	}
 }
 
+func TestAdminCreateInvite_WithPresetGuests(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, GuestNames: []string{"Frodi & Carla", "Friend"}}
+	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
+	if rec.Code != http.StatusCreated {
+		t.Errorf("status = %d, want 201; body: %s", rec.Code, rec.Body.String())
+	}
+	var resp InviteWithGuestsResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(resp.Guests) != 2 {
+		t.Errorf("len(Guests) = %d, want 2", len(resp.Guests))
+	}
+	if !resp.Guests[0].IsPrimary || resp.Guests[0].Name != "Frodi & Carla" {
+		t.Errorf("Guests[0] = %+v", resp.Guests[0])
+	}
+	if resp.Guests[1].Name != "Friend" {
+		t.Errorf("Guests[1].Name = %q", resp.Guests[1].Name)
+	}
+}
+
+func TestAdminCreateInvite_GuestNamesMissing(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: nil}
+	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestAdminCreateInvite_FirstNameMismatch(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"Y"}}
+	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestAdminCreateInvite_InvalidMinMax(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := CreateInviteRequest{Name: "X", MinPlus: 3, MaxPlus: 1, GuestNames: []string{"X"}}
+	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+}
+
 func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
 	a := auth.New("admin-pw", "session-secret", false)
 	srv := New(svc, a, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/1",
-		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1}, true)
+		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"X"}}, true)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
 	}
@@ -205,7 +254,7 @@ func createAndLogin(t *testing.T, srv http.Handler) {
 	cookies := loginAndGetCookies(t, srv)
 	adminCookies = cookies
 	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/invites",
-		CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2}, cookies)
+		CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, GuestNames: []string{"Frodi & Carla"}}, cookies)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
 		t.Fatalf("create invite status = %d; body: %s", rec.Code, rec.Body.String())
 	}

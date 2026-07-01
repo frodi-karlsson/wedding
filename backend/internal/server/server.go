@@ -189,7 +189,19 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "name is required")
 			return
 		}
-		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, []string{req.Name})
+		if len(req.GuestNames) == 0 {
+			writeError(w, http.StatusBadRequest, "at least one guest name is required")
+			return
+		}
+		if req.GuestNames[0] != req.Name {
+			writeError(w, http.StatusBadRequest, "first guest name must match the invite name")
+			return
+		}
+		if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
+			writeError(w, http.StatusBadRequest, "min_plus and max_plus must be non-negative with min <= max")
+			return
+		}
+		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal error")
 			return
@@ -245,7 +257,19 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "name is required")
 			return
 		}
-		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, []string{req.Name})
+		if len(req.GuestNames) == 0 {
+			writeError(w, http.StatusBadRequest, "at least one guest name is required")
+			return
+		}
+		if req.GuestNames[0] != req.Name {
+			writeError(w, http.StatusBadRequest, "first guest name must match the invite name")
+			return
+		}
+		if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
+			writeError(w, http.StatusBadRequest, "min_plus and max_plus must be non-negative with min <= max")
+			return
+		}
+		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
 				writeError(w, http.StatusNotFound, "invite not found")
