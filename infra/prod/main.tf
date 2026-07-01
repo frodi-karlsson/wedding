@@ -16,7 +16,7 @@ resource "digitalocean_droplet" "wedding" {
   name     = "wedding-backend"
   region   = var.do_region
   size     = var.droplet_size
-  image    = "ubuntu-24-04"
+  image    = "ubuntu-24-04-x64"
   ssh_keys = [digitalocean_ssh_key.default.fingerprint]
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     do_token             = var.do_token
@@ -34,16 +34,17 @@ resource "digitalocean_droplet" "wedding" {
 
 # --- Reserved IP (stable across droplet recreation) ---
 resource "digitalocean_reserved_ip" "wedding" {
+  region     = var.do_region
   droplet_id = digitalocean_droplet.wedding.id
 }
 
 # --- Volume for SQLite persistence ---
 resource "digitalocean_volume" "data" {
-  name               = "wedding-data"
-  region             = var.do_region
-  size_gigabytes     = 1
-  initial_filesystem = "ext4"
-  description        = "SQLite data volume for wedding backend"
+  region                  = var.do_region
+  name                    = "wedding-data"
+  size                    = 1
+  initial_filesystem_type = "ext4"
+  description             = "SQLite data volume for wedding backend"
 }
 
 resource "digitalocean_volume_attachment" "data" {
@@ -87,57 +88,59 @@ resource "digitalocean_firewall" "wedding" {
   }
 }
 
-# --- Cloudflare: DNS zone lookup ---
-data "cloudflare_zone" "main" {
-  name = var.domain
-}
-
 # --- Cloudflare Pages project (direct upload, no git connection) ---
 resource "cloudflare_pages_project" "wedding" {
-  account_id = var.cloudflare_account_id
-  name       = var.pages_project_name
+  account_id        = var.cloudflare_account_id
+  name              = var.pages_project_name
+  production_branch = "main"
 
-  deployment_configs {
-    preview {
-      environment_variables = {
-        PUBLIC_API_URL = "https://api.${var.domain}"
+  deployment_configs = {
+    preview = {
+      env_vars = {
+        PUBLIC_API_URL = {
+          type  = "plain_text"
+          value = "https://api.${var.domain}"
+        }
       }
     }
-    production {
-      environment_variables = {
-        PUBLIC_API_URL = "https://api.${var.domain}"
+    production = {
+      env_vars = {
+        PUBLIC_API_URL = {
+          type  = "plain_text"
+          value = "https://api.${var.domain}"
+        }
       }
     }
   }
+}
+
+# --- DNS: apex CNAME → pages.dev (Cloudflare Pages custom domain) ---
+resource "cloudflare_dns_record" "apex" {
+  zone_id = var.cloudflare_zone_id
+  name    = "@"
+  content = "${var.pages_project_name}.pages.dev"
+  type    = "CNAME"
+  proxied = true
+  ttl     = 1
+
+  depends_on = [cloudflare_pages_project.wedding]
 }
 
 # --- Bind custom domain (apex) to the Pages project ---
 resource "cloudflare_pages_domain" "main" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.wedding.name
-  domain       = var.domain
+  name         = var.domain
 
-  depends_on = [cloudflare_record.apex]
+  depends_on = [cloudflare_dns_record.apex]
 }
 
 # --- DNS: api. subdomain → droplet (DNS-only so Caddy does TLS) ---
-resource "cloudflare_record" "api" {
-  zone_id = data.cloudflare_zone.main.zone_id
+resource "cloudflare_dns_record" "api" {
+  zone_id = var.cloudflare_zone_id
   name    = "api"
-  value   = digitalocean_reserved_ip.wedding.ip_address
+  content = digitalocean_reserved_ip.wedding.ip_address
   type    = "A"
   proxied = false
   ttl     = 1
-}
-
-# --- DNS: apex CNAME → pages.dev (Cloudflare Pages custom domain) ---
-resource "cloudflare_record" "apex" {
-  zone_id = data.cloudflare_zone.main.zone_id
-  name    = "@"
-  value   = "${var.pages_project_name}.pages.dev"
-  type    = "CNAME"
-  proxied = true
-  ttl     = 1
-
-  depends_on = [cloudflare_pages_project.wedding]
 }

@@ -23,6 +23,12 @@ variable "cloudflare_account_id" {
   description = "Cloudflare account ID."
 }
 
+variable "cloudflare_zone_id" {
+  type        = string
+  sensitive   = true
+  description = "Cloudflare zone ID for the domain (find in Cloudflare dashboard → domain → Overview → API section on the right)."
+}
+
 # --- App secrets (written to droplet .env via cloud-init) ---
 variable "resend_api_key" {
   type      = string

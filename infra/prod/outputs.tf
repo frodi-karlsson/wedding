@@ -12,5 +12,5 @@ output "registry_endpoint" {
 }
 
 output "pages_domain" {
-  value = cloudflare_pages_domain.main.hostname
+  value = cloudflare_pages_domain.main.name
 }
