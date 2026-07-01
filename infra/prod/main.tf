@@ -34,9 +34,18 @@ resource "digitalocean_droplet" "wedding" {
 }
 
 # --- Reserved IP (stable across droplet recreation) ---
+# Decoupled into IP + assignment so the assignment waits for the droplet to be
+# idle (volume attach pending event) before assigning. The assignment resource
+# has built-in retry/wait logic; the combined resource does not.
 resource "digitalocean_reserved_ip" "wedding" {
-  region     = var.do_region
+  region = var.do_region
+}
+
+resource "digitalocean_reserved_ip_assignment" "wedding" {
+  ip_address = digitalocean_reserved_ip.wedding.ip_address
   droplet_id = digitalocean_droplet.wedding.id
+
+  depends_on = [digitalocean_volume_attachment.data]
 }
 
 # --- Volume for SQLite persistence ---
