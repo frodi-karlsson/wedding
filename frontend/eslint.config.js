@@ -1,5 +1,6 @@
 import tseslint from 'typescript-eslint';
 import astro from 'eslint-plugin-astro';
+import vitest from 'eslint-plugin-vitest';
 
 const windowBan = [
   'error',
@@ -34,6 +35,14 @@ export default [
     files: ['src/env.d.ts'],
     rules: {
       '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
+  {
+    files: ['**/*.test.ts', 'tests/**'],
+    ...vitest.configs.recommended,
+    rules: {
+      ...vitest.configs.recommended.rules,
+      'vitest/consistent-test-it': ['error', { fn: 'test', withinDescribe: 'test' }],
     },
   },
 ];

@@ -1,14 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { translate, langFromPath, type Lang } from '../src/scripts/i18n';
 
 describe('translate', () => {
-  it('should return the string for the given lang', () => {
+  test('should return the string for the given lang', () => {
     const result = translate('thank_you', 'en');
 
     expect(result).toBe('Thank you!');
   });
 
-  it('should fall back to English when key missing in lang', () => {
+  test('should fall back to English when key missing in lang', () => {
     const langs: Lang[] = ['is', 'de', 'sv'];
 
     langs.forEach((l) => {
@@ -19,7 +19,7 @@ describe('translate', () => {
     });
   });
 
-  it('should fall back to the key when missing everywhere', () => {
+  test('should fall back to the key when missing everywhere', () => {
     const result = translate('nonexistent_key_xyz', 'en');
 
     expect(result).toBe('nonexistent_key_xyz');
@@ -27,37 +27,37 @@ describe('translate', () => {
 });
 
 describe('langFromPath', () => {
-  it('should return en for /', () => {
+  test('should return en for /', () => {
     const result = langFromPath('/');
 
     expect(result).toBe('en');
   });
 
-  it('should return is for /is', () => {
+  test('should return is for /is', () => {
     const result = langFromPath('/is');
 
     expect(result).toBe('is');
   });
 
-  it('should return de for /de', () => {
+  test('should return de for /de', () => {
     const result = langFromPath('/de');
 
     expect(result).toBe('de');
   });
 
-  it('should return sv for /sv', () => {
+  test('should return sv for /sv', () => {
     const result = langFromPath('/sv');
 
     expect(result).toBe('sv');
   });
 
-  it('should return is for a deeper path under the lang prefix', () => {
+  test('should return is for a deeper path under the lang prefix', () => {
     const result = langFromPath('/is/admin');
 
     expect(result).toBe('is');
   });
 
-  it('should return en for an unknown prefix', () => {
+  test('should return en for an unknown prefix', () => {
     const result = langFromPath('/xyz');
 
     expect(result).toBe('en');

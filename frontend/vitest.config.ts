@@ -2,5 +2,5 @@
 import { getViteConfig } from 'astro/config';
 
 export default getViteConfig({
-  test: { environment: 'jsdom', globals: true, isolate: false },
+  test: { environment: 'happy-dom', globals: true, isolate: false },
 });

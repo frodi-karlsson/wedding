@@ -12,3 +12,5 @@ allowBuilds:
   '@parcel/watcher': true
   esbuild: true
 trustLockfile: true
+overrides:
+  eslint-plugin-vitest>@typescript-eslint/utils: 8.62.1

@@ -1,4 +1,4 @@
-import { it, expect } from 'vitest';
+import { test, expect } from 'vitest';
 import type { Invite, Guest } from '../src/scripts/types';
 import {
   createRsvpState,
@@ -17,7 +17,7 @@ function mockGuest(overrides: Partial<Guest> = {}): Guest {
   return { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, ...overrides };
 }
 
-it('should create state with the primary guest first and status ready', () => {
+test('should create state with the primary guest first and status ready', () => {
   const invite = mockInvite({ max_plus: 2 });
   const primary = mockGuest({ name: 'Ada', is_primary: true });
   const plus = mockGuest({ id: 2, name: 'Guest', is_primary: false });
@@ -42,7 +42,7 @@ it('should create state with the primary guest first and status ready', () => {
   });
 });
 
-it('should create state mapping existing guest data into GuestInput', () => {
+test('should create state mapping existing guest data into GuestInput', () => {
   const invite = mockInvite({ max_plus: 1 });
   const guest = mockGuest({
     name: 'Bob',
@@ -61,7 +61,7 @@ it('should create state mapping existing guest data into GuestInput', () => {
   });
 });
 
-it('should add a non-primary empty guest row when under max_plus', () => {
+test('should add a non-primary empty guest row when under max_plus', () => {
   const state = createRsvpState(mockInvite({ max_plus: 1 }), [mockGuest()], 'en');
 
   const next = addGuest(state);
@@ -75,7 +75,7 @@ it('should add a non-primary empty guest row when under max_plus', () => {
   });
 });
 
-it('should not add a guest when the non-primary count is already at max_plus', () => {
+test('should not add a guest when the non-primary count is already at max_plus', () => {
   const state = createRsvpState(mockInvite({ max_plus: 0 }), [mockGuest()], 'en');
 
   const next = addGuest(state);
@@ -84,7 +84,7 @@ it('should not add a guest when the non-primary count is already at max_plus', (
   expect(next.guests[0].is_primary).toBe(true);
 });
 
-it('should remove a non-primary guest row', () => {
+test('should remove a non-primary guest row', () => {
   const state = createRsvpState(
     mockInvite({ max_plus: 1 }),
     [mockGuest(), mockGuest({ id: 2, name: 'Plus', is_primary: false })],
@@ -97,7 +97,7 @@ it('should remove a non-primary guest row', () => {
   expect(next.guests[0].is_primary).toBe(true);
 });
 
-it('should not remove the primary guest', () => {
+test('should not remove the primary guest', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
 
   const next = removeGuest(state, 0);
@@ -106,7 +106,7 @@ it('should not remove the primary guest', () => {
   expect(next.guests[0].is_primary).toBe(true);
 });
 
-it('should update a guest field immutably', () => {
+test('should update a guest field immutably', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
 
   const next = updateGuest(state, 0, { name: 'Ada Updated', dietary_preference: 'vegetarian' });
@@ -116,7 +116,7 @@ it('should update a guest field immutably', () => {
   expect(state.guests[0].name).toBe('Ada');
 });
 
-it('should not allow submit when the plus count is below min_plus', () => {
+test('should not allow submit when the plus count is below min_plus', () => {
   const state = createRsvpState(mockInvite({ min_plus: 1, max_plus: 2 }), [mockGuest()], 'en');
 
   const result = canSubmit(state);
@@ -124,7 +124,7 @@ it('should not allow submit when the plus count is below min_plus', () => {
   expect(result).toBe(false);
 });
 
-it('should allow submit when the plus count is at min_plus and all names are non-empty', () => {
+test('should allow submit when the plus count is at min_plus and all names are non-empty', () => {
   const state = createRsvpState(
     mockInvite({ min_plus: 1, max_plus: 2 }),
     [mockGuest({ name: 'Ada' }), mockGuest({ id: 2, name: 'Bob', is_primary: false })],
@@ -136,7 +136,7 @@ it('should allow submit when the plus count is at min_plus and all names are non
   expect(result).toBe(true);
 });
 
-it('should not allow submit when any name is empty or only whitespace', () => {
+test('should not allow submit when any name is empty or only whitespace', () => {
   const state = createRsvpState(
     mockInvite({ min_plus: 1, max_plus: 2 }),
     [mockGuest({ name: 'Ada' }), mockGuest({ id: 2, name: '   ', is_primary: false })],
@@ -148,7 +148,7 @@ it('should not allow submit when any name is empty or only whitespace', () => {
   expect(result).toBe(false);
 });
 
-it('should return the guests array from guestsToInput', () => {
+test('should return the guests array from guestsToInput', () => {
   const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
 
   const result = guestsToInput(state);
