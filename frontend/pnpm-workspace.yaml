@@ -1,0 +1,14 @@
+minimumReleaseAgeExclude:
+  - astro
+  - '@anabranch/*'
+  - anabranch
+  - vitest
+  - '@vitest/*'
+  - oxfmt
+  - '@oxfmt/*'
+  - oxlint
+  - '@oxlint/*'
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+trustLockfile: true
