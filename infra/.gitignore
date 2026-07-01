@@ -7,3 +7,5 @@ crash.log
 cloud-init.yaml
 .env
 .env.*
+!.env.staging.example
+data/
