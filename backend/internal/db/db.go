@@ -55,11 +55,11 @@ type Guest struct {
 
 // Store is the storage contract used by the invite service and handlers.
 type Store interface {
-	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (Invite, error)
+	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
 	GetInvite(ctx context.Context, id int64) (Invite, error)
 	GetInviteWithGuests(ctx context.Context, id int64) (Invite, []Guest, error)
 	ListInvites(ctx context.Context) ([]Invite, error)
-	UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (Invite, error)
+	UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
 	DeleteInvite(ctx context.Context, id int64) error
 	SubmitRSVP(ctx context.Context, inviteID int64, guests []Guest, submitted bool) ([]Guest, error)
 }
@@ -73,7 +73,10 @@ func NewSQLiteStore(d *sql.DB) *SQLiteStore {
 	return &SQLiteStore{db: d}
 }
 
-func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (Invite, error) {
+func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
+	if len(guestNames) == 0 {
+		return Invite{}, errors.New("at least one guest name is required")
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Invite{}, err
@@ -87,11 +90,16 @@ func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, ma
 		return Invite{}, err
 	}
 	id, _ := res.LastInsertId()
-	// Auto-create primary guest row.
-	if _, err := tx.ExecContext(ctx,
-		"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, 1)",
-		id, name); err != nil {
-		return Invite{}, err
+	for i, gname := range guestNames {
+		var isPrimary int
+		if i == 0 {
+			isPrimary = 1
+		}
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, ?)",
+			id, gname, isPrimary); err != nil {
+			return Invite{}, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -164,22 +172,66 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	return invites, rows.Err()
 }
 
-func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (Invite, error) {
+func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Invite{}, err
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx,
+	res, err := tx.ExecContext(ctx,
 		"UPDATE invites SET name=?, min_plus=?, max_plus=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-		name, minPlus, maxPlus, id); err != nil {
+		name, minPlus, maxPlus, id)
+	if err != nil {
 		return Invite{}, err
 	}
-	if _, err := tx.ExecContext(ctx,
-		"UPDATE guests SET name=?, updated_at=CURRENT_TIMESTAMP WHERE invite_id=? AND is_primary=1",
-		name, id); err != nil {
+	if n, _ := res.RowsAffected(); n == 0 {
+		return Invite{}, ErrNotFound
+	}
+
+	rows, err := tx.QueryContext(ctx,
+		"SELECT id FROM guests WHERE invite_id=? ORDER BY is_primary DESC, id ASC", id)
+	if err != nil {
 		return Invite{}, err
+	}
+	var existingIDs []int64
+	for rows.Next() {
+		var gid int64
+		if err := rows.Scan(&gid); err != nil {
+			rows.Close()
+			return Invite{}, err
+		}
+		existingIDs = append(existingIDs, gid)
+	}
+	rows.Close()
+
+	// Reconcile existing guest rows by position; insert new rows for extra names;
+	// delete trailing extras. This preserves dietary_preference/alcohol_free on retained rows.
+	for i, gname := range guestNames {
+		var isPrimary int
+		if i == 0 {
+			isPrimary = 1
+		}
+		if i < len(existingIDs) {
+			if _, err := tx.ExecContext(ctx,
+				"UPDATE guests SET name=?, is_primary=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+				gname, isPrimary, existingIDs[i]); err != nil {
+				return Invite{}, err
+			}
+		} else {
+			if _, err := tx.ExecContext(ctx,
+				"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, ?)",
+				id, gname, isPrimary); err != nil {
+				return Invite{}, err
+			}
+		}
+	}
+	if len(guestNames) < len(existingIDs) {
+		for _, gid := range existingIDs[len(guestNames):] {
+			if _, err := tx.ExecContext(ctx, "DELETE FROM guests WHERE id=?", gid); err != nil {
+				return Invite{}, err
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
