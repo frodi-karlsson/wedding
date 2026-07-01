@@ -58,6 +58,7 @@ type Store interface {
 	UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (Invite, error)
 	DeleteInvite(ctx context.Context, id int64) error
 	UpsertGuests(ctx context.Context, inviteID int64, guests []Guest) ([]Guest, error)
+	SetSubmitted(ctx context.Context, id int64, submitted bool) error
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -207,4 +208,13 @@ func (s *SQLiteStore) UpsertGuests(ctx context.Context, inviteID int64, guests [
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *SQLiteStore) SetSubmitted(ctx context.Context, id int64, submitted bool) error {
+	var v int
+	if submitted {
+		v = 1
+	}
+	_, err := s.db.ExecContext(ctx, "UPDATE invites SET submitted=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", v, id)
+	return err
 }

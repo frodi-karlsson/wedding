@@ -95,3 +95,20 @@ func TestGetInvite_NotFound(t *testing.T) {
 		t.Errorf("GetInvite(999) err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestSetSubmitted(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	inv, _ := store.CreateInvite(ctx, "Test", 0, 1)
+	if err := store.SetSubmitted(ctx, inv.ID, true); err != nil {
+		t.Fatalf("SetSubmitted() error: %v", err)
+	}
+	inv2, err := store.GetInvite(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInvite() error: %v", err)
+	}
+	if !inv2.Submitted {
+		t.Errorf("Submitted = false, want true")
+	}
+}
