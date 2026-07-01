@@ -1,0 +1,9 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.*
+crash.log
+cloud-init.yaml
+.env
+.env.*
