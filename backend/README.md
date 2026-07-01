@@ -22,6 +22,7 @@ All config comes from environment variables:
 | `RESEND_TO` | yes | — | Destination email (`frodi.carla@gmail.com`) |
 | `CORS_ALLOWED_ORIGINS` | yes | — | Comma-separated allowed origins |
 | `PORT` | no | `8080` | Listen port |
+| `SECURE_COOKIE` | no | `true` | Set `Secure` flag on admin session cookies (set `false` for local HTTP testing) |
 
 Never commit secrets. Use a `.env` file (gitignored) for local runs.
 

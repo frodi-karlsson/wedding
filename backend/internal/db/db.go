@@ -16,7 +16,7 @@ func Open(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := d.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;"); err != nil {
+	if _, err := d.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;"); err != nil {
 		d.Close()
 		return nil, err
 	}
@@ -57,8 +57,7 @@ type Store interface {
 	ListInvites(ctx context.Context) ([]Invite, error)
 	UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (Invite, error)
 	DeleteInvite(ctx context.Context, id int64) error
-	UpsertGuests(ctx context.Context, inviteID int64, guests []Guest) ([]Guest, error)
-	SetSubmitted(ctx context.Context, id int64, submitted bool) error
+	SubmitRSVP(ctx context.Context, inviteID int64, guests []Guest, submitted bool) ([]Guest, error)
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -71,7 +70,13 @@ func NewSQLiteStore(d *sql.DB) *SQLiteStore {
 }
 
 func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int) (Invite, error) {
-	res, err := s.db.ExecContext(ctx,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Invite{}, err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx,
 		"INSERT INTO invites (name, min_plus, max_plus) VALUES (?, ?, ?)",
 		name, minPlus, maxPlus)
 	if err != nil {
@@ -79,10 +84,13 @@ func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, ma
 	}
 	id, _ := res.LastInsertId()
 	// Auto-create primary guest row.
-	_, err = s.db.ExecContext(ctx,
+	if _, err := tx.ExecContext(ctx,
 		"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, 1)",
-		id, name)
-	if err != nil {
+		id, name); err != nil {
+		return Invite{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return Invite{}, err
 	}
 	return s.GetInvite(ctx, id)
@@ -153,10 +161,24 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 }
 
 func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int) (Invite, error) {
-	_, err := s.db.ExecContext(ctx,
-		"UPDATE invites SET name=?, min_plus=?, max_plus=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-		name, minPlus, maxPlus, id)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return Invite{}, err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE invites SET name=?, min_plus=?, max_plus=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+		name, minPlus, maxPlus, id); err != nil {
+		return Invite{}, err
+	}
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE guests SET name=?, updated_at=CURRENT_TIMESTAMP WHERE invite_id=? AND is_primary=1",
+		name, id); err != nil {
+		return Invite{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return Invite{}, err
 	}
 	return s.GetInvite(ctx, id)
@@ -181,7 +203,7 @@ func (s *SQLiteStore) DeleteInvite(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *SQLiteStore) UpsertGuests(ctx context.Context, inviteID int64, guests []Guest) ([]Guest, error) {
+func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID int64, guests []Guest, submitted bool) ([]Guest, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -214,17 +236,18 @@ func (s *SQLiteStore) UpsertGuests(ctx context.Context, inviteID int64, guests [
 		result = append(result, g)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (s *SQLiteStore) SetSubmitted(ctx context.Context, id int64, submitted bool) error {
 	var v int
 	if submitted {
 		v = 1
 	}
-	_, err := s.db.ExecContext(ctx, "UPDATE invites SET submitted=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", v, id)
-	return err
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE invites SET submitted=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+		v, inviteID); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }

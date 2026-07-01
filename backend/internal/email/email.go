@@ -49,6 +49,6 @@ func (r *Resend) Send(ctx context.Context, subject, body string) error {
 		Subject: subject,
 		Text:    body,
 	}
-	_, err := r.client.Emails.Send(req)
+	_, err := r.client.Emails.SendWithContext(ctx, req)
 	return err
 }

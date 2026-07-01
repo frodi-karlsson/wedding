@@ -13,6 +13,7 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 	t.Setenv("RESEND_TO", "frodi.carla@gmail.com")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://carlaochfrodi.wedding,https://staging.carlaochfrodi.wedding")
 	t.Setenv("PORT", "9090")
+	t.Setenv("SECURE_COOKIE", "false")
 
 	cfg, err := Load()
 	if err != nil {
@@ -48,6 +49,9 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 	if cfg.Port != "9090" {
 		t.Errorf("Port = %q, want %q", cfg.Port, "9090")
 	}
+	if cfg.SecureCookie {
+		t.Errorf("SecureCookie = true, want false")
+	}
 }
 
 func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
@@ -69,6 +73,9 @@ func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
 	}
 	if cfg.DBPath != "/data/wedding.db" {
 		t.Errorf("DBPath default = %q, want /data/wedding.db", cfg.DBPath)
+	}
+	if !cfg.SecureCookie {
+		t.Errorf("SecureCookie default = false, want true")
 	}
 }
 

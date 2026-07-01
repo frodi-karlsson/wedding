@@ -19,12 +19,14 @@ const (
 type Authenticator struct {
 	password      string
 	sessionSecret []byte
+	secure        bool
 }
 
-func New(password, sessionSecret string) *Authenticator {
+func New(password, sessionSecret string, secure bool) *Authenticator {
 	return &Authenticator{
 		password:      password,
 		sessionSecret: []byte(sessionSecret),
+		secure:        secure,
 	}
 }
 
@@ -42,7 +44,7 @@ func (a *Authenticator) SetSessionCookie(w http.ResponseWriter) {
 		Value:    value,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   a.secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(sessionMaxAge.Seconds()),
 		Expires:  time.Now().Add(sessionMaxAge),
@@ -56,7 +58,7 @@ func (a *Authenticator) ClearSessionCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   a.secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),

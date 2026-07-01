@@ -36,7 +36,7 @@ func main() {
 	store := db.NewSQLiteStore(d)
 	sender := email.NewResend(cfg.ResendAPIKey, cfg.ResendFrom, cfg.ResendTo)
 	svc := invite.NewService(store, sender)
-	a := auth.New(cfg.AdminPassword, cfg.SessionSecret)
+	a := auth.New(cfg.AdminPassword, cfg.SessionSecret, cfg.SecureCookie)
 	handler := server.New(svc, a, cfg.CORSAllowedOrigins)
 
 	srv := &http.Server{

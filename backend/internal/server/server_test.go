@@ -28,7 +28,7 @@ func newTestServer(t *testing.T) (http.Handler, *email.Fake) {
 	store := db.NewSQLiteStore(d)
 	fakeEmail := &email.Fake{}
 	svc := invite.NewService(store, fakeEmail)
-	a := auth.New("admin-pw", "session-secret")
+	a := auth.New("admin-pw", "session-secret", false)
 	return New(svc, a, []string{"https://carlaochfrodi.wedding"}), fakeEmail
 }
 
@@ -178,7 +178,7 @@ func TestAdminDeleteInvite_NotFound(t *testing.T) {
 
 func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
-	a := auth.New("admin-pw", "session-secret")
+	a := auth.New("admin-pw", "session-secret", false)
 	srv := New(svc, a, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/1",
 		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1}, true)
@@ -262,12 +262,8 @@ func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id int64) e
 	return nil
 }
 
-func (s *updateFetchNotFoundStore) UpsertGuests(ctx context.Context, inviteID int64, guests []db.Guest) ([]db.Guest, error) {
+func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID int64, guests []db.Guest, submitted bool) ([]db.Guest, error) {
 	return guests, nil
-}
-
-func (s *updateFetchNotFoundStore) SetSubmitted(ctx context.Context, id int64, submitted bool) error {
-	return nil
 }
 
 func jsonRequestWithCookies(t *testing.T, srv http.Handler, method, path string, body interface{}, cookies []*http.Cookie) *httptest.ResponseRecorder {

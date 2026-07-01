@@ -96,20 +96,99 @@ func TestGetInvite_NotFound(t *testing.T) {
 	}
 }
 
-func TestSetSubmitted(t *testing.T) {
+func TestSubmitRSVP_Atomic(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
 	ctx := context.Background()
-	inv, _ := store.CreateInvite(ctx, "Test", 0, 1)
-	if err := store.SetSubmitted(ctx, inv.ID, true); err != nil {
-		t.Fatalf("SetSubmitted() error: %v", err)
-	}
-	inv2, err := store.GetInvite(ctx, inv.ID)
+
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2)
 	if err != nil {
-		t.Fatalf("GetInvite() error: %v", err)
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+
+	guests := []Guest{
+		{Name: "Frodi", IsPrimary: true},
+		{Name: "Carla", DietaryPreference: "vegetarian"},
+	}
+	saved, err := store.SubmitRSVP(ctx, inv.ID, guests, true)
+	if err != nil {
+		t.Fatalf("SubmitRSVP() error: %v", err)
+	}
+	if len(saved) != 2 {
+		t.Errorf("len(saved) = %d, want 2", len(saved))
+	}
+
+	inv2, guests2, err := store.GetInviteWithGuests(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
 	}
 	if !inv2.Submitted {
 		t.Errorf("Submitted = false, want true")
+	}
+	if len(guests2) != 2 {
+		t.Fatalf("len(guests2) = %d, want 2", len(guests2))
+	}
+	if !guests2[0].IsPrimary || guests2[0].Name != "Frodi" {
+		t.Errorf("primary guest = %+v, want Frodi primary", guests2[0])
+	}
+	if guests2[1].Name != "Carla" {
+		t.Errorf("second guest Name = %q, want Carla", guests2[1].Name)
+	}
+}
+
+func TestUpdateInvite_UpdatesPrimaryGuestName(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := store.CreateInvite(ctx, "Old Name", 0, 1)
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+
+	if _, err := store.UpdateInvite(ctx, inv.ID, "New Name", 0, 1); err != nil {
+		t.Fatalf("UpdateInvite() error: %v", err)
+	}
+
+	_, guests, err := store.GetInviteWithGuests(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
+	}
+	if len(guests) != 1 {
+		t.Fatalf("len(guests) = %d, want 1", len(guests))
+	}
+	if guests[0].Name != "New Name" {
+		t.Errorf("primary guest Name = %q, want %q", guests[0].Name, "New Name")
+	}
+	if !guests[0].IsPrimary {
+		t.Errorf("primary guest IsPrimary = false, want true")
+	}
+}
+
+func TestForeignKeys_Cascade(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := store.CreateInvite(ctx, "Cascade", 0, 1)
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+
+	if _, err := store.db.ExecContext(ctx, "DELETE FROM invites WHERE id=?", inv.ID); err != nil {
+		t.Fatalf("DELETE invite error: %v", err)
+	}
+
+	if _, err := store.GetInvite(ctx, inv.ID); err != ErrNotFound {
+		t.Errorf("GetInvite after delete err = %v, want ErrNotFound", err)
+	}
+
+	var guestCount int
+	if err := store.db.QueryRowContext(ctx, "SELECT count(*) FROM guests WHERE invite_id=?", inv.ID).Scan(&guestCount); err != nil {
+		t.Fatalf("count guests error: %v", err)
+	}
+	if guestCount != 0 {
+		t.Errorf("guestCount = %d, want 0 (cascade)", guestCount)
 	}
 }
 

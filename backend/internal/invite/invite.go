@@ -76,12 +76,8 @@ func (s *Service) SubmitRSVP(ctx context.Context, id int64, guests []db.Guest) (
 		return db.Invite{}, nil, fmt.Errorf("send email: %w", err)
 	}
 
-	saved, err := s.store.UpsertGuests(ctx, id, guests)
+	saved, err := s.store.SubmitRSVP(ctx, id, guests, true)
 	if err != nil {
-		return db.Invite{}, nil, err
-	}
-
-	if err := s.store.SetSubmitted(ctx, id, true); err != nil {
 		return db.Invite{}, nil, err
 	}
 	inv, err = s.store.GetInvite(ctx, id)

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	ResendTo           string
 	CORSAllowedOrigins []string
 	Port               string
+	SecureCookie       bool
 }
 
 // Load reads configuration from environment variables. Required vars are
@@ -32,6 +34,7 @@ func Load() (Config, error) {
 		ResendTo:           os.Getenv("RESEND_TO"),
 		CORSAllowedOrigins: splitCSV(os.Getenv("CORS_ALLOWED_ORIGINS")),
 		Port:               envOr("PORT", "8080"),
+		SecureCookie:       envOrBool("SECURE_COOKIE", true),
 	}
 
 	var missing []string
@@ -65,6 +68,18 @@ func envOr(key, def string) string {
 		return def
 	}
 	return v
+}
+
+func envOrBool(key string, def bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 func splitCSV(s string) []string {
