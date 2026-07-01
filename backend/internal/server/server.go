@@ -163,6 +163,32 @@ func handleLogout(a *auth.Authenticator) http.HandlerFunc {
 
 // --- admin invite handlers ---
 
+// inviteRequest holds the common fields validated for Create/Update invite requests.
+type inviteRequest struct {
+	Name       string
+	GuestNames []string
+	MinPlus    int
+	MaxPlus    int
+}
+
+// validateInviteRequest returns a non-empty error message string on failure
+// and "" on success.
+func validateInviteRequest(req inviteRequest) string {
+	if strings.TrimSpace(req.Name) == "" {
+		return "name is required"
+	}
+	if len(req.GuestNames) == 0 {
+		return "at least one guest name is required"
+	}
+	if req.GuestNames[0] != req.Name {
+		return "first guest name must match the invite name"
+	}
+	if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
+		return "min_plus and max_plus must be non-negative with min <= max"
+	}
+	return ""
+}
+
 func handleListInvites(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		invites, err := svc.ListInvites(r.Context())
@@ -185,20 +211,8 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if strings.TrimSpace(req.Name) == "" {
-			writeError(w, http.StatusBadRequest, "name is required")
-			return
-		}
-		if len(req.GuestNames) == 0 {
-			writeError(w, http.StatusBadRequest, "at least one guest name is required")
-			return
-		}
-		if req.GuestNames[0] != req.Name {
-			writeError(w, http.StatusBadRequest, "first guest name must match the invite name")
-			return
-		}
-		if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
-			writeError(w, http.StatusBadRequest, "min_plus and max_plus must be non-negative with min <= max")
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus}); msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
 		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
@@ -253,20 +267,8 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if strings.TrimSpace(req.Name) == "" {
-			writeError(w, http.StatusBadRequest, "name is required")
-			return
-		}
-		if len(req.GuestNames) == 0 {
-			writeError(w, http.StatusBadRequest, "at least one guest name is required")
-			return
-		}
-		if req.GuestNames[0] != req.Name {
-			writeError(w, http.StatusBadRequest, "first guest name must match the invite name")
-			return
-		}
-		if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
-			writeError(w, http.StatusBadRequest, "min_plus and max_plus must be non-negative with min <= max")
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus}); msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
 		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)

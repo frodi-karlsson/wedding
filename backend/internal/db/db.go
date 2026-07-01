@@ -173,6 +173,9 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 }
 
 func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
+	if len(guestNames) == 0 {
+		return Invite{}, errors.New("at least one guest name is required")
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return Invite{}, err

@@ -262,7 +262,9 @@ func TestUpdateInvite_ReconcilesGuestNamesByPosition(t *testing.T) {
 		t.Fatalf("Get() error: %v", err)
 	}
 	// Mutate B's dietary pref to verify it's preserved on rename.
-	store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"}) // no-op rename first to get stable ids
+	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"}); err != nil { // no-op rename first to get stable ids
+		t.Fatalf("no-op UpdateInvite() error: %v", err)
+	}
 	// Set dietary on guest B directly via SubmitRSVP-like path is overkill; instead test rename + add + remove.
 	updated, err := store.UpdateInvite(ctx, inv.ID, "A2", 0, 3, []string{"A2", "B2"})
 	if err != nil {
@@ -306,6 +308,32 @@ func TestUpdateInvite_AddsGuestNames(t *testing.T) {
 	}
 	if !after[0].IsPrimary {
 		t.Errorf("after[0] not primary")
+	}
+}
+
+func TestUpdateInvite_NoGuestNamesErrorsAndLeavesGuestsIntact(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := store.CreateInvite(ctx, "A", 0, 3, []string{"A", "B"})
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+
+	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{}); err == nil {
+		t.Fatal("UpdateInvite with empty guestNames should error")
+	}
+
+	_, guests, err := store.GetInviteWithGuests(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
+	}
+	if len(guests) != 2 {
+		t.Fatalf("len(guests) = %d, want 2", len(guests))
+	}
+	if guests[0].Name != "A" || guests[1].Name != "B" {
+		t.Errorf("guests changed: got %q, want [A B]", []string{guests[0].Name, guests[1].Name})
 	}
 }
 
