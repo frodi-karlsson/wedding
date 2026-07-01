@@ -1,5 +1,6 @@
 import { api } from './api';
 import { translate, type Lang } from './i18n';
+import { escapeHtml } from './html';
 import type { Guest, GuestInput, Invite } from './types';
 
 export type RsvpStatus = 'loading' | 'ready' | 'submitting' | 'confirmed' | 'error';
@@ -64,15 +65,6 @@ export function canSubmit(state: RsvpState): boolean {
 
 export function guestsToInput(state: RsvpState): GuestInput[] {
   return state.guests;
-}
-
-export function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function updateSubmitDisabled(root: HTMLElement, state: RsvpState): void {

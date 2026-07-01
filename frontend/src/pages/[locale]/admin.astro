@@ -7,6 +7,6 @@ export function getStaticPaths() {
   return locales.map((locale) => ({ params: { locale } }));
 }
 
-const lang = langFromPath(Astro.url.pathname) as Lang;
+const lang = langFromPath(Astro.url.pathname);
 ---
 <AdminPage lang={lang} />

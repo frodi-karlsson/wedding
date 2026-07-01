@@ -1,6 +1,7 @@
 import { api } from './api';
 import { translate, type Lang } from './i18n';
 import type { Guest, Invite } from './types';
+import { escapeHtml } from './html';
 
 export interface InviteForm {
   id?: number;
@@ -18,6 +19,7 @@ export interface AdminState {
   lang: Lang;
   invites: Invite[];
   error?: string;
+  formError?: string;
   form?: InviteForm;
 }
 
@@ -26,22 +28,13 @@ export function buildShareLink(id: number, lang: Lang): string {
   return `${globalThis.location.origin}/${prefix}?id=${id}`;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 const ALL_LANGS: Lang[] = ['en', 'is', 'de', 'sv'];
 
 function langOptions(selected: Lang): string {
   return ALL_LANGS.map((l) => `<option value="${l}" ${l === selected ? 'selected' : ''}>${l}</option>`).join('');
 }
 
-function createEmptyForm(lang: Lang): InviteForm {
+export function createEmptyForm(lang: Lang): InviteForm {
   return {
     name: '',
     min_plus: 0,
@@ -51,7 +44,7 @@ function createEmptyForm(lang: Lang): InviteForm {
   };
 }
 
-function formFromInvite(invite: Invite, guests: Guest[], lang: Lang): InviteForm {
+export function formFromInvite(invite: Invite, guests: Guest[], lang: Lang): InviteForm {
   const names =
     guests.length > 0
       ? guests
@@ -185,6 +178,7 @@ function renderForm(root: HTMLElement, state: AdminState): void {
         <button type="button" data-action="add-name">${escapeHtml(translate('admin_add_name', state.lang))}</button>
       </div>
       ${linkLangField}
+      ${state.formError ? `<p class="error">${escapeHtml(state.formError)}</p>` : ''}
       <div class="form-actions">
         <button type="submit">${escapeHtml(submitLabel)}</button>
         <button type="button" data-action="cancel">${escapeHtml(translate('admin_cancel', state.lang))}</button>
@@ -219,9 +213,9 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
   const refreshDashboard = async (): Promise<void> => {
     try {
       const response = await api.listInvites().run();
-      update({ ...state, view: 'dashboard', invites: response.invites, error: undefined });
+      update({ ...state, view: 'dashboard', invites: response.invites, error: undefined, formError: undefined });
     } catch {
-      update({ ...state, view: 'login', error: undefined });
+      update({ ...state, view: 'login', error: undefined, formError: undefined });
     }
   };
 
@@ -277,8 +271,9 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
         }
 
         await refreshDashboard();
-      } catch {
-        // Error swallowed; UI could be extended with a form-level error.
+      } catch (err) {
+        const formError = err instanceof Error ? err.message : translate('admin_error', state.lang);
+        update({ ...state, formError });
       }
     }
   });
@@ -290,7 +285,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
 
     switch (action) {
       case 'new-invite': {
-        update({ ...state, view: 'form', form: createEmptyForm(state.lang) });
+        update({ ...state, view: 'form', form: createEmptyForm(state.lang), formError: undefined });
         break;
       }
       case 'logout': {
@@ -334,6 +329,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
             ...state,
             view: 'form',
             form: formFromInvite(response.invite, response.guests, state.lang),
+            formError: undefined,
           });
         } catch {
           // ignore load error

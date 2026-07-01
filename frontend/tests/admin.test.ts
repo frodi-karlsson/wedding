@@ -1,5 +1,6 @@
 import { test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildShareLink } from '../src/scripts/admin';
+import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/admin';
+import type { Guest, Invite } from '../src/scripts/types';
 
 beforeEach(() => {
   vi.stubGlobal('location', { origin: 'https://example.com' });
@@ -27,4 +28,39 @@ test('should build share link for de and sv', () => {
 
   expect(de).toBe('https://example.com/de?id=1');
   expect(sv).toBe('https://example.com/sv?id=2');
+});
+
+test('should create an empty form with the given language', () => {
+  const result = createEmptyForm('de');
+
+  expect(result).toEqual({
+    name: '',
+    min_plus: 0,
+    max_plus: 1,
+    guest_names: [''],
+    link_lang: 'de',
+  });
+});
+
+test('should derive the primary guest name from the invite when no guests exist', () => {
+  const invite: Invite = { id: 5, name: 'Ada', min_plus: 0, max_plus: 2, submitted: false };
+
+  const result = formFromInvite(invite, [], 'en');
+
+  expect(result.guest_names).toEqual(['Ada']);
+  expect(result.link_lang).toBe('en');
+});
+
+test('should sort guest names with the primary guest first', () => {
+  const invite: Invite = { id: 6, name: 'Ada', min_plus: 1, max_plus: 3, submitted: false };
+  const guests: Guest[] = [
+    { id: 2, name: 'Bob', dietary_preference: '', alcohol_free: false, is_primary: false },
+    { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true },
+    { id: 3, name: 'Cid', dietary_preference: '', alcohol_free: false, is_primary: false },
+  ];
+
+  const result = formFromInvite(invite, guests, 'is');
+
+  expect(result.guest_names).toEqual(['Ada', 'Bob', 'Cid']);
+  expect(result.link_lang).toBe('is');
 });

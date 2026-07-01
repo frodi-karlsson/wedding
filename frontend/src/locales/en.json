@@ -42,5 +42,6 @@
   "admin_link_lang_label": "Link language",
   "admin_id": "ID",
   "admin_submitted": "Submitted",
-  "admin_actions": "Actions"
+  "admin_actions": "Actions",
+  "admin_error": "Could not save the invite. Please try again."
 }

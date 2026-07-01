@@ -5,6 +5,7 @@ export default defineConfig({
   i18n: {
     locales: ['en', 'is', 'de', 'sv'],
     defaultLocale: 'en',
+    prefixDefaultLocale: false,
   },
   vite: {
     css: { preprocessorOptions: { scss: {} } },
