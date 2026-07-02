@@ -3,6 +3,7 @@
 *.tfstate.*
 *.tfvars
 *.tfvars.*
+!*.tfvars.example
 crash.log
 cloud-init.yaml
 .env
