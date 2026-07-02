@@ -72,7 +72,7 @@ R2 lifecycle expires backups after 30 days.
 2. List backups: `rclone ls r2:wedding-backups/`
 3. Pull the latest: `rclone copy r2:wedding-backups/wedding-backup-<TS>.db ./`
 4. Verify it opens: `sqlite3 wedding-backup-<TS>.db "SELECT count(*) FROM invites;"`
-5. SSH into the droplet, stop the backend: `docker compose stop backend`
+5. SSH into the droplet, stop the backend: `cd /opt/wedding && docker compose stop backend`
 6. **Delete the WAL + SHM files** (critical — the DB runs in WAL mode; stale WAL/SHM left beside the restored file will replay old frames and silently corrupt or revert the restore):
    ```sh
    rm -f /mnt/data/wedding.db-wal /mnt/data/wedding.db-shm

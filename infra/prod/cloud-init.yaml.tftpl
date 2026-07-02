@@ -78,10 +78,11 @@ write_files:
       PORT=8080
 
   - path: /opt/wedding/backup.sh
-    permissions: '0755'
+    permissions: '0700'
     content: |
       #!/bin/sh
       set -e
+      trap 'rm -f /tmp/wedding-backup-$$TS.db' EXIT
       DB=/mnt/data/wedding.db
       [ -f "$DB" ] || { echo "no db at $DB"; exit 1; }
       TS=$$(date +%Y%m%d-%H%M%S)
@@ -93,7 +94,6 @@ write_files:
           -d "{\"from\":\"${resend_from}\",\"to\":\"${resend_to}\",\"subject\":\"Wedding backup FAILED\",\"text\":\"Backup failed at $$TS. Check the droplet.\"}"
         exit 1
       fi
-      rm "/tmp/wedding-backup-$$TS.db"
       # Dead-man's switch: ping healthchecks.io on success.
       # If this ping is missed, healthchecks.io emails you.
       curl -s -m 10 "${healthchecks_ping_url}" >/dev/null || true
@@ -150,5 +150,7 @@ runcmd:
   - docker compose pull || true
   - docker compose up -d
   - systemctl restart sshd
+  - systemctl enable --now fail2ban
+  - systemctl enable --now unattended-upgrades
   - systemctl enable --now wedding-pull.timer
   - systemctl enable --now wedding-backup.timer
