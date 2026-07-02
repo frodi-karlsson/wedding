@@ -45,5 +45,9 @@
   "submit_error": "Sending mistókst. Vinsamlegast reyndu aftur.",
   "submitting": "Sendir…",
   "thank_you": "Takk fyrir!",
-  "thank_you_body": "Svarið þitt hefur verið sent. Sjáumst á brúðkaupinu!"
+  "thank_you_body": "Svarið þitt hefur verið sent. Sjáumst á brúðkaupinu!",
+  "hero_eyebrow": "Þér er boðið",
+  "hero_date": "5. september 2026",
+  "hero_location": "Reykjavík",
+  "hero_cta": "Svara boði"
 }

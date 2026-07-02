@@ -20,6 +20,7 @@ const { title, lang } = Astro.props;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
+    <slot name="hero" />
     <Container>
       <LangPicker lang={lang} />
       <slot />

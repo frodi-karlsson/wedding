@@ -45,5 +45,9 @@
   "admin_id": "ID",
   "admin_submitted": "Submitted",
   "admin_actions": "Actions",
-  "admin_error": "Could not save the invite. Please try again."
+  "admin_error": "Could not save the invite. Please try again.",
+  "hero_eyebrow": "Please join us",
+  "hero_date": "5 September 2026",
+  "hero_location": "Reykjavík",
+  "hero_cta": "RSVP"
 }
