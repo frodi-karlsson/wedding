@@ -136,14 +136,15 @@ func TestIsAuthenticated_TamperedCookie(t *testing.T) {
 	if len(cookies) != 1 {
 		t.Fatalf("expected 1 cookie, got %d", len(cookies))
 	}
-	// Tamper: flip the last char of the value.
+	// Tamper: replace the last char with a guaranteed-different one. Compare the
+	// original last char (not the one before it) so the result always differs —
+	// otherwise it can reconstruct the valid value and still verify (flaky).
 	c := cookies[0]
-	tampered := c.Value[:len(c.Value)-1]
-	if tampered[len(tampered)-1] == 'a' {
-		tampered += "b"
-	} else {
-		tampered += "a"
+	repl := byte('a')
+	if c.Value[len(c.Value)-1] == 'a' {
+		repl = 'b'
 	}
+	tampered := c.Value[:len(c.Value)-1] + string(repl)
 	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
 	req.AddCookie(&http.Cookie{Name: c.Name, Value: tampered})
 	if a.IsAuthenticated(req) {
