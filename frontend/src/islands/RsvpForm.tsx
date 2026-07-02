@@ -18,7 +18,6 @@ import {
   removeGuest,
   updateGuest,
   canSubmit,
-  guestsToInput,
   type RsvpState,
 } from '../scripts/rsvp.service';
 import type { GuestInput } from '../scripts/types.gen';
@@ -100,7 +99,7 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
     const id = inviteId();
     if (!id) return;
 
-    const guests = guestsToInput(state());
+    const guests = state().guests;
     setState((prev) => ({ ...prev, status: 'submitting', errorMessage: undefined }));
 
     api

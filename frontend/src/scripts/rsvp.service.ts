@@ -68,7 +68,3 @@ export function canSubmit(state: RsvpState): boolean {
   }
   return state.guests.every((guest) => guest.name.trim().length > 0);
 }
-
-export function guestsToInput(state: RsvpState): GuestInput[] {
-  return state.guests;
-}

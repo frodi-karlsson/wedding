@@ -6,7 +6,6 @@ import {
   removeGuest,
   updateGuest,
   canSubmit,
-  guestsToInput,
 } from '../src/scripts/rsvp.service';
 
 function mockInvite(overrides: Partial<InviteResponse> = {}): InviteResponse {
@@ -146,12 +145,4 @@ test('should not allow submit when any name is empty or only whitespace', () => 
   const result = canSubmit(state);
 
   expect(result).toBe(false);
-});
-
-test('should return the guests array from guestsToInput', () => {
-  const state = createRsvpState(mockInvite(), [mockGuest()], 'en');
-
-  const result = guestsToInput(state);
-
-  expect(result).toBe(state.guests);
 });

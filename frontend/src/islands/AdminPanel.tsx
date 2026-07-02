@@ -96,7 +96,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
   }
 
   async function onCopyLink(id: string, linkLang: Lang, button: HTMLButtonElement): Promise<void> {
-    const link = buildShareLink(id, linkLang);
+    const link = buildShareLink(globalThis.location.origin, id, linkLang);
     try {
       await navigator.clipboard.writeText(link);
       const original = button.textContent ?? '';
@@ -120,7 +120,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     try {
       if (form.id === undefined) {
         const response = await api.createInvite(body).run();
-        const shareLink = buildShareLink(response.invite.id, form.link_lang);
+        const shareLink = buildShareLink(globalThis.location.origin, response.invite.id, form.link_lang);
         globalThis.alert(shareLink);
       } else {
         await api.updateInvite(form.id, body).run();

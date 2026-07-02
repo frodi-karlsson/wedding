@@ -21,9 +21,9 @@ export interface AdminState {
   form?: InviteForm;
 }
 
-export function buildShareLink(id: string, lang: Lang): string {
+export function buildShareLink(origin: string, id: string, lang: Lang): string {
   const prefix = lang === 'en' ? '' : lang;
-  return `${globalThis.location.origin}/${prefix}?id=${id}`;
+  return `${origin}/${prefix}?id=${id}`;
 }
 
 export function createEmptyForm(lang: Lang): InviteForm {

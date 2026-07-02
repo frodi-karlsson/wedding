@@ -49,7 +49,7 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
                 <td>{invite.max_plus}</td>
                 <td>{invite.submitted ? '✓' : '—'}</td>
                 <td>
-                  <a href={buildShareLink(invite.id, props.lang)}>{buildShareLink(invite.id, props.lang)}</a>
+                  <a href={buildShareLink(globalThis.location.origin, invite.id, props.lang)}>{buildShareLink(globalThis.location.origin, invite.id, props.lang)}</a>
                 </td>
                 <td class="actions">
                   <select class="link-lang" data-id={invite.id}>

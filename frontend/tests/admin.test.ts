@@ -1,30 +1,22 @@
-import { test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { test, expect } from 'vitest';
 import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/admin.service';
 import type { GuestResponse, InviteResponse } from '../src/scripts/types.gen';
 
-beforeEach(() => {
-  vi.stubGlobal('location', { origin: 'https://example.com' });
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 test('should build share link for en without a language prefix', () => {
-  const result = buildShareLink('abc123', 'en');
+  const result = buildShareLink('https://example.com', 'abc123', 'en');
 
   expect(result).toBe('https://example.com/?id=abc123');
 });
 
 test('should build share link for is with the language prefix', () => {
-  const result = buildShareLink('abc123', 'is');
+  const result = buildShareLink('https://example.com', 'abc123', 'is');
 
   expect(result).toBe('https://example.com/is?id=abc123');
 });
 
 test('should build share link for de and sv', () => {
-  const de = buildShareLink('1', 'de');
-  const sv = buildShareLink('2', 'sv');
+  const de = buildShareLink('https://example.com', '1', 'de');
+  const sv = buildShareLink('https://example.com', '2', 'sv');
 
   expect(de).toBe('https://example.com/de?id=1');
   expect(sv).toBe('https://example.com/sv?id=2');

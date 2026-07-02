@@ -1,6 +1,5 @@
 ---
 import LangPicker from './LangPicker.astro';
-import { NavToggle } from '../islands/NavToggle';
 import { InviteeView } from '../islands/InviteeView';
 import { translate, type Lang } from '../scripts/i18n';
 
@@ -51,8 +50,24 @@ const links = [
     </div>
   </div>
 
-  <NavToggle client:load />
 </nav>
+
+<script>
+  const toggle = document.querySelector('[data-nav-toggle]');
+  const panel = document.querySelector('[data-nav-panel]');
+  function setOpen(open: boolean) {
+    panel?.toggleAttribute('data-open', open);
+    toggle?.setAttribute('aria-expanded', String(open));
+    toggle?.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+  }
+  toggle?.addEventListener('click', () => setOpen(!panel?.hasAttribute('data-open')));
+  panel?.querySelectorAll('[data-nav-link]').forEach((link) => {
+    link.addEventListener('click', () => setOpen(false));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
+  });
+</script>
 
 <style>
   /* ── Base ─────────────────────────────────────────────────────── */

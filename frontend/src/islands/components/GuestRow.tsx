@@ -20,19 +20,16 @@ export function GuestRow(props: GuestRowProps): JSX.Element {
   const nameLabel = () =>
     translate(props.guest.is_primary ? 'name_you_label' : 'name_label', props.lang);
 
-  function onNameInput(e: InputEvent) {
-    const target = e.target as HTMLInputElement;
-    props.onUpdate(props.index, { name: target.value });
+  function onNameInput(e: InputEvent & { currentTarget: HTMLInputElement }) {
+    props.onUpdate(props.index, { name: e.currentTarget.value });
   }
 
-  function onDietaryInput(e: InputEvent) {
-    const target = e.target as HTMLInputElement;
-    props.onUpdate(props.index, { dietary_preference: target.value });
+  function onDietaryInput(e: InputEvent & { currentTarget: HTMLInputElement }) {
+    props.onUpdate(props.index, { dietary_preference: e.currentTarget.value });
   }
 
-  function onAlcoholFreeChange(e: Event) {
-    const target = e.target as HTMLInputElement;
-    props.onUpdate(props.index, { alcohol_free: target.checked });
+  function onAlcoholFreeChange(e: Event & { currentTarget: HTMLInputElement }) {
+    props.onUpdate(props.index, { alcohol_free: e.currentTarget.checked });
   }
 
   function onRemoveClick() {
