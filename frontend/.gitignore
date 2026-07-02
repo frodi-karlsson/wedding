@@ -3,3 +3,5 @@ dist/
 .astro/
 node_modules/
 .superpowers/
+playwright-report/
+test-results/

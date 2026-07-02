@@ -13,5 +13,7 @@ export default getViteConfig({
     globals: true,
     isolate: false,
     setupFiles: ['./tests/setup.ts'],
+    // Playwright specs live in e2e/ and are run by `pnpm test:e2e`, not Vitest.
+    include: ['tests/**/*.{test,spec}.{ts,tsx}'],
   },
 });

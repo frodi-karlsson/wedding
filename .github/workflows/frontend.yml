@@ -44,6 +44,14 @@ jobs:
           PUBLIC_API_URL: https://api.carlaochfrodi.wedding
         run: pnpm run build
 
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        working-directory: frontend
+        run: pnpm exec playwright test
+
       - name: Deploy to Cloudflare Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: frontend
