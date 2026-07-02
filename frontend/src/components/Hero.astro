@@ -1,0 +1,78 @@
+---
+import { Image } from 'astro:assets';
+import heroImg from '../assets/carla-frodi-hero.jpg';
+import { translate, type Lang } from '../scripts/i18n';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<header class="hero surface--inverse">
+  <div class="hero__media">
+    <Image
+      src={heroImg}
+      alt="Carla and Fróði"
+      widths={[600, 900, 1200]}
+      sizes="(max-width: 760px) 100vw, 50vw"
+      class="hero__img"
+    />
+  </div>
+  <div class="hero__panel">
+    <p class="hero__eyebrow">{translate('hero_eyebrow', lang)}</p>
+    <h1 class="hero__names">Carla <span class="hero__amp">&amp;</span> Fróði</h1>
+    <p class="hero__where">{translate('hero_date', lang)} · {translate('hero_location', lang)}</p>
+    <span class="hero__rule"></span>
+    <a class="btn btn--md btn--on-navy hero__cta" href="#rsvp-root">{translate('hero_cta', lang)}</a>
+  </div>
+</header>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: min(74vh, 640px);
+  }
+  .hero__media { position: relative; overflow: hidden; }
+  .hero__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 22%; /* crops high to keep faces */
+    display: block;
+  }
+  .hero__panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-6);
+    padding: clamp(2rem, 5vw, 4.5rem);
+  }
+  .hero__eyebrow {
+    font-family: var(--font-sans);
+    font-weight: var(--weight-medium);
+    font-size: var(--step--1);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-inverse-muted);
+  }
+  .hero__names {
+    font-family: var(--font-serif);
+    font-weight: var(--weight-semibold);
+    font-size: var(--step-4);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    color: #fff;
+  }
+  .hero__amp { font-style: italic; font-weight: var(--weight-medium); color: var(--color-inverse-accent); }
+  .hero__where {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    color: var(--color-inverse-text);
+  }
+  .hero__rule { width: 56px; height: 2px; background: var(--color-inverse-accent); }
+  .hero__cta { align-self: start; }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero__media { order: -1; min-height: 56vh; }
+  }
+</style>
