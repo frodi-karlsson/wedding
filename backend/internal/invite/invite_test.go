@@ -158,7 +158,7 @@ func TestCreateInvite_MultipleGuests(t *testing.T) {
 	}
 }
 
-func TestSubmitRSVP_EmailSendFailure_RollsBack(t *testing.T) {
+func TestSubmitRSVP_EmailSendFailure_StillPersists(t *testing.T) {
 	svc, emailer, cleanup := newTestService(t)
 	defer cleanup()
 	emailer.sendErr = errors.New("send failed")
@@ -167,21 +167,31 @@ func TestSubmitRSVP_EmailSendFailure_RollsBack(t *testing.T) {
 	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
 
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
-	if err == nil {
-		t.Fatal("SubmitRSVP should error when email send fails")
+	savedInv, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "hi")
+	if err != nil {
+		t.Fatalf("SubmitRSVP should succeed even when email fails: %v", err)
+	}
+	if !savedInv.Submitted {
+		t.Errorf("Submitted = false, want true (persisted despite email failure)")
 	}
 
-	// Verify nothing was persisted: invite should still be unsubmitted and
-	// only the original primary guest should remain.
+	// The RSVP must be persisted even though the notification email failed —
+	// email is best-effort, never a gate on the guest's response.
 	inv2, guests2, err := svc.GetInvite(ctx, inv.ID)
 	if err != nil {
 		t.Fatalf("GetInvite() error: %v", err)
 	}
-	if inv2.Submitted {
-		t.Errorf("Submitted = true, want false (rollback)")
+	if !inv2.Submitted {
+		t.Errorf("Submitted = false, want true (persisted)")
+	}
+	if inv2.Message != "hi" {
+		t.Errorf("Message = %q, want %q", inv2.Message, "hi")
 	}
 	if len(guests2) != 1 {
-		t.Errorf("len(guests2) = %d, want 1 (rollback kept primary)", len(guests2))
+		t.Errorf("len(guests2) = %d, want 1", len(guests2))
+	}
+	// The email should still have been attempted.
+	if emailer.lastSubject == "" {
+		t.Error("expected a notification email send attempt")
 	}
 }

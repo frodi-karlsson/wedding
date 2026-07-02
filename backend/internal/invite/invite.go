@@ -3,6 +3,7 @@ package invite
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"wedding/backend/internal/db"
@@ -55,11 +56,10 @@ func (s *Service) DeleteInvite(ctx context.Context, id string) error {
 	return s.store.DeleteInvite(ctx, id)
 }
 
-// SubmitRSVP validates the guests, transactionally upserts them, marks the
-// invite submitted, and sends the email. On email failure the persisted state
-// is reverted (the invite is marked unsubmitted and original guests restored
-// is NOT possible with a simple flag, so we instead send the email BEFORE
-// marking submitted — see implementation).
+// SubmitRSVP validates the guests, transactionally upserts them, and marks the
+// invite submitted. The notification email is best-effort: the RSVP is persisted
+// first so a mail outage can never lose or block a guest's response — a send
+// failure is logged, and the admin dashboard remains the source of truth.
 func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, message string) (db.Invite, []db.Guest, error) {
 	inv, err := s.store.GetInvite(ctx, id)
 	if err != nil {
@@ -70,16 +70,17 @@ func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, 
 		return db.Invite{}, nil, err
 	}
 
-	// Send email BEFORE persisting so a send failure leaves the DB untouched.
-	body := buildRSVPEmailBody(&inv, guests, message)
-	if err := s.email.Send(ctx, "New RSVP for "+inv.Name, body); err != nil {
-		return db.Invite{}, nil, fmt.Errorf("send email: %w", err)
-	}
-
 	saved, err := s.store.SubmitRSVP(ctx, id, guests, true, message)
 	if err != nil {
 		return db.Invite{}, nil, err
 	}
+
+	// Best-effort notification — never fail the RSVP because email failed.
+	body := buildRSVPEmailBody(&inv, guests, message)
+	if err := s.email.Send(ctx, "New RSVP for "+inv.Name, body); err != nil {
+		log.Printf("rsvp notification email failed for invite %s: %v", id, err)
+	}
+
 	inv, err = s.store.GetInvite(ctx, id)
 	if err != nil {
 		return db.Invite{}, nil, err
