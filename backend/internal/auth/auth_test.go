@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestLoginLimiter_Allows5Failures_Blocks6th(t *testing.T) {
@@ -44,6 +45,37 @@ func TestLoginLimiter_ResetsOnSuccess(t *testing.T) {
 	}
 	if !l.Allow("1.2.3.4") {
 		t.Error("after reset + 5 failures, IP should still be allowed (6th blocks)")
+	}
+}
+
+func TestLoginLimiter_FreshBudgetAfterBlockExpires(t *testing.T) {
+	l := newLoginLimiter()
+	// Exhaust the 5-attempt budget and trigger a block.
+	for i := 0; i < 6; i++ {
+		l.RecordFailure("1.2.3.4")
+	}
+	if l.Allow("1.2.3.4") {
+		t.Fatal("IP should be blocked after 6 failures")
+	}
+	// Simulate block expiry by manually advancing the blockTill timestamp.
+	l.mu.Lock()
+	l.blockTill["1.2.3.4"] = time.Now().Add(-time.Second)
+	l.mu.Unlock()
+	// Allow should return true and reset the failure count.
+	if !l.Allow("1.2.3.4") {
+		t.Fatal("after block expires, IP should be allowed again")
+	}
+	// Should have a fresh 5-attempt budget, not immediately re-block.
+	for i := 0; i < 5; i++ {
+		l.RecordFailure("1.2.3.4")
+		if !l.Allow("1.2.3.4") {
+			t.Fatalf("after expiry + %d failures, IP should still be allowed (fresh budget)", i+1)
+		}
+	}
+	// 6th failure after expiry: blocked again.
+	l.RecordFailure("1.2.3.4")
+	if l.Allow("1.2.3.4") {
+		t.Error("after expiry + 6 failures, IP should be blocked")
 	}
 }
 

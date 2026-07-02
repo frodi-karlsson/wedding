@@ -40,8 +40,13 @@ func (l *loginLimiter) Allow(ip string) bool {
 	defer l.mu.Unlock()
 	l.lastSeen[ip] = time.Now()
 	l.evictIfNeeded()
-	if block, ok := l.blockTill[ip]; ok && time.Now().Before(block) {
-		return false
+	if block, ok := l.blockTill[ip]; ok {
+		if time.Now().Before(block) {
+			return false
+		}
+		// Block expired — give the IP a fresh 5-attempt budget.
+		delete(l.failures, ip)
+		delete(l.blockTill, ip)
 	}
 	return true
 }
