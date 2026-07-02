@@ -9,15 +9,10 @@ const { lang } = Astro.props;
   if (root) {
     const lang = /** @type {import('../scripts/i18n').Lang} */ (root.dataset.lang);
     const id = new URLSearchParams(globalThis.location.search).get('id');
-    const heading = document.querySelector('[data-rsvp-heading]');
-    const { translate } = await import('../scripts/i18n');
-    if (!id) {
-      if (heading) {
-        heading.textContent = translate('rsvp_error_title', lang);
-        heading.removeAttribute('hidden');
-      }
-      root.innerHTML = `<p class="error">${translate('no_id_error', lang)}</p>`;
-    } else {
+    // Only render the RSVP form when an invite id is present (guests arrive via
+    // their personal link). With no id we render nothing — no error.
+    if (id) {
+      const heading = document.querySelector('[data-rsvp-heading]');
       if (heading) heading.removeAttribute('hidden');
       const { mountRsvpForm } = await import('../scripts/rsvp-form');
       mountRsvpForm(root, id, lang);
