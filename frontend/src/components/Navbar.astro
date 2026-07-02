@@ -39,7 +39,6 @@ const links = [
         </li>
       ))}
       <li hidden data-rsvp-navlink>
-        <span class="nav__rsvp-sep" aria-hidden="true">·</span>
         <a href="#rsvp" class="nav__link nav__link--rsvp" data-nav-link>{translate('nav_rsvp', lang)}</a>
       </li>
     </ul>
@@ -93,10 +92,18 @@ const links = [
   .nav__links {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 0;
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  /* Dot separators between header items */
+  .nav__links li + li::before {
+    content: "·";
+    margin-inline: var(--space-3);
+    opacity: 0.45;
+    color: inherit;
   }
 
   .nav__link {
@@ -118,13 +125,6 @@ const links = [
   .nav__link:hover,
   .nav__link:focus-visible {
     border-bottom-color: currentColor;
-  }
-
-  .nav__rsvp-sep {
-    color: inherit;
-    opacity: 0.45;
-    margin-inline-end: var(--space-2);
-    font-size: var(--step--1);
   }
 
   /* ── Hamburger ────────────────────────────────────────────────── */
@@ -223,7 +223,7 @@ const links = [
       letter-spacing: 0.01em;
     }
 
-    .nav__rsvp-sep {
+    .nav__links li + li::before {
       display: none;
     }
   }
