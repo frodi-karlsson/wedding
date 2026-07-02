@@ -35,6 +35,14 @@ resource "digitalocean_droplet" "wedding" {
     r2_account_id         = var.r2_account_id
     healthchecks_ping_url = var.healthchecks_ping_url
   })
+
+  lifecycle {
+    # The running droplet is already correctly provisioned (volume mounted at
+    # /mnt/data, pull timer, backups). Don't let later cloud-init text edits
+    # force a destroy/recreate of prod as a side-effect of an unrelated apply.
+    # Apply a genuine cloud-init change deliberately: tofu apply -replace=... .
+    ignore_changes = [user_data]
+  }
 }
 
 # --- Reserved IP (stable across droplet recreation) ---
