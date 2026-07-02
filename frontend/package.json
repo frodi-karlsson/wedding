@@ -19,7 +19,8 @@
     "@fontsource/cormorant": "^5",
     "@fontsource/work-sans": "^5",
     "anabranch": "^0",
-    "astro": "^7"
+    "astro": "^7",
+    "sharp": "^0"
   },
   "devDependencies": {
     "@astrojs/check": "^0",

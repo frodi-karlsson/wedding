@@ -1,15 +1,15 @@
 ---
 import Layout from './Layout.astro';
 import Hero from './Hero.astro';
-import RsvpForm from './RsvpForm.astro';
-import Heading from './Heading.astro';
+import Navbar from './Navbar.astro';
+import Sections from './Sections.astro';
 import { translate, type Lang } from '../scripts/i18n';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
 <Layout title={translate('site_title', lang)} lang={lang}>
+  <Navbar slot="topbar" lang={lang} />
   <Hero slot="hero" lang={lang} />
-  <Heading size="2xl" class="rsvp-heading" data-rsvp-heading hidden>{translate('rsvp_title', lang)}</Heading>
-  <RsvpForm lang={lang} />
+  <Sections lang={lang} />
 </Layout>

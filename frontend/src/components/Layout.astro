@@ -29,7 +29,7 @@ const { title, lang } = Astro.props;
     <link rel="preload" href={workSans500Url} as="font" type="font/woff2" crossorigin />
   </head>
   <body>
-    <div class="topbar"><LangPicker lang={lang} /></div>
+    <slot name="topbar"><div class="topbar"><LangPicker lang={lang} /></div></slot>
     <slot name="hero" />
     <Container>
       <slot />
