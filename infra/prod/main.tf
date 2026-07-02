@@ -184,3 +184,43 @@ resource "cloudflare_dns_record" "api" {
   proxied = false
   ttl     = 1
 }
+
+# --- DNS: Resend (email) domain verification ---
+# Lets Resend send RSVP notifications from rsvp@carlaochfrodi.wedding.
+# MAIL FROM (MX) + SPF live on the "send" subdomain; DMARC on _dmarc.
+resource "cloudflare_dns_record" "resend_mx" {
+  zone_id  = var.cloudflare_zone_id
+  name     = "send"
+  type     = "MX"
+  content  = "feedback-smtp.eu-west-1.amazonses.com"
+  priority = 10
+  proxied  = false
+  ttl      = 1
+}
+
+resource "cloudflare_dns_record" "resend_spf" {
+  zone_id = var.cloudflare_zone_id
+  name    = "send"
+  type    = "TXT"
+  content = "v=spf1 include:amazonses.com ~all"
+  proxied = false
+  ttl     = 1
+}
+
+resource "cloudflare_dns_record" "resend_dkim" {
+  zone_id = var.cloudflare_zone_id
+  name    = "resend._domainkey"
+  type    = "TXT"
+  content = "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZnpEwv//6BROq5SExfXcjXOrGDrN6JQQZPmjsZmIAvvD7vYT0d7y4a0ZyD6z8Rxc06lMBfTZHBHSAGIPb4VvPWCeQsstyPsct1IdPgZy57ubaV5J/4jaH9pY4pJ6NS12mCB+v0ixfrM4BNKfr0xG5XiVmxZdtVRpaEnfMCm8oBQIDAQAB"
+  proxied = false
+  ttl     = 1
+}
+
+resource "cloudflare_dns_record" "resend_dmarc" {
+  zone_id = var.cloudflare_zone_id
+  name    = "_dmarc"
+  type    = "TXT"
+  content = "v=DMARC1; p=none;"
+  proxied = false
+  ttl     = 1
+}
