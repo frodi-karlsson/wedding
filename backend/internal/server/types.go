@@ -12,7 +12,8 @@ type GuestInput struct {
 }
 
 type RSVPRequest struct {
-	Guests []GuestInput `json:"guests"`
+	Guests  []GuestInput `json:"guests"`
+	Message string       `json:"message"`
 }
 
 type CreateInviteRequest struct {
@@ -59,6 +60,7 @@ type InviteResponse struct {
 	MinPlus   int    `json:"min_plus"`
 	MaxPlus   int    `json:"max_plus"`
 	Submitted bool   `json:"submitted"`
+	Message   string `json:"message"`
 }
 
 type InviteWithGuestsResponse struct {
@@ -88,5 +90,6 @@ func toInviteResponse(inv *db.Invite) InviteResponse {
 		MinPlus:   inv.MinPlus,
 		MaxPlus:   inv.MaxPlus,
 		Submitted: inv.Submitted,
+		Message:   inv.Message,
 	}
 }

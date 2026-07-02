@@ -42,6 +42,7 @@ type Invite struct {
 	MinPlus   int
 	MaxPlus   int
 	Submitted bool
+	Message   string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -66,7 +67,7 @@ type Store interface {
 	ListInvites(ctx context.Context) ([]Invite, error)
 	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
 	DeleteInvite(ctx context.Context, id string) error
-	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool) ([]Guest, error)
+	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) ([]Guest, error)
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -124,8 +125,8 @@ func (s *SQLiteStore) GetInvite(ctx context.Context, id string) (Invite, error) 
 	var inv Invite
 	var submitted int
 	err := s.db.QueryRowContext(ctx,
-		"SELECT id, name, min_plus, max_plus, submitted, created_at, updated_at FROM invites WHERE id=?",
-		id).Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.CreatedAt, &inv.UpdatedAt)
+		"SELECT id, name, min_plus, max_plus, submitted, message, created_at, updated_at FROM invites WHERE id=?",
+		id).Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.Message, &inv.CreatedAt, &inv.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Invite{}, ErrNotFound
 	}
@@ -165,7 +166,7 @@ func (s *SQLiteStore) GetInviteWithGuests(ctx context.Context, id string) (Invit
 
 func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, name, min_plus, max_plus, submitted, created_at, updated_at FROM invites ORDER BY id ASC")
+		"SELECT id, name, min_plus, max_plus, submitted, message, created_at, updated_at FROM invites ORDER BY id ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	for rows.Next() {
 		var inv Invite
 		var submitted int
-		if err := rows.Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
+		if err := rows.Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.Message, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
 			return nil, err
 		}
 		inv.Submitted = submitted == 1
@@ -270,7 +271,7 @@ func (s *SQLiteStore) DeleteInvite(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool) ([]Guest, error) {
+func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) ([]Guest, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -308,8 +309,8 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []
 		v = 1
 	}
 	if _, err := tx.ExecContext(ctx,
-		"UPDATE invites SET submitted=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-		v, inviteID); err != nil {
+		"UPDATE invites SET submitted=?, message=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+		v, message, inviteID); err != nil {
 		return nil, err
 	}
 

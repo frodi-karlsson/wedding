@@ -360,7 +360,7 @@ func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id string) 
 	return nil
 }
 
-func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID string, guests []db.Guest, submitted bool) ([]db.Guest, error) {
+func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID string, guests []db.Guest, submitted bool, message string) ([]db.Guest, error) {
 	return guests, nil
 }
 

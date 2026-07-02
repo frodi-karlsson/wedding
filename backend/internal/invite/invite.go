@@ -60,7 +60,7 @@ func (s *Service) DeleteInvite(ctx context.Context, id string) error {
 // is reverted (the invite is marked unsubmitted and original guests restored
 // is NOT possible with a simple flag, so we instead send the email BEFORE
 // marking submitted — see implementation).
-func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest) (db.Invite, []db.Guest, error) {
+func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, message string) (db.Invite, []db.Guest, error) {
 	inv, err := s.store.GetInvite(ctx, id)
 	if err != nil {
 		return db.Invite{}, nil, err
@@ -71,12 +71,12 @@ func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest) 
 	}
 
 	// Send email BEFORE persisting so a send failure leaves the DB untouched.
-	body := buildRSVPEmailBody(&inv, guests)
+	body := buildRSVPEmailBody(&inv, guests, message)
 	if err := s.email.Send(ctx, "New RSVP for "+inv.Name, body); err != nil {
 		return db.Invite{}, nil, fmt.Errorf("send email: %w", err)
 	}
 
-	saved, err := s.store.SubmitRSVP(ctx, id, guests, true)
+	saved, err := s.store.SubmitRSVP(ctx, id, guests, true, message)
 	if err != nil {
 		return db.Invite{}, nil, err
 	}
@@ -112,7 +112,7 @@ func validate(inv *db.Invite, guests []db.Guest) error {
 	return nil
 }
 
-func buildRSVPEmailBody(inv *db.Invite, guests []db.Guest) string {
+func buildRSVPEmailBody(inv *db.Invite, guests []db.Guest, message string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "RSVP submitted for %s\n\n", inv.Name)
 	for _, g := range guests {
@@ -127,6 +127,9 @@ func buildRSVPEmailBody(inv *db.Invite, guests []db.Guest) string {
 		if g.AlcoholFree {
 			fmt.Fprintf(&b, "  Alcohol-free: yes\n")
 		}
+	}
+	if message != "" {
+		fmt.Fprintf(&b, "\nMessage: %s\n", message)
 	}
 	return b.String()
 }

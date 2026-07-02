@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"wedding/backend/internal/auth"
 	"wedding/backend/internal/db"
@@ -88,6 +89,13 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, ErrorResponse{Error: msg})
 }
 
+// logInternalError logs the error cause and writes a generic 500 response.
+// Use this instead of writeError for internal errors so the cause is diagnosable.
+func logInternalError(w http.ResponseWriter, err error) {
+	log.Printf("internal error: %v", err)
+	writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "internal error"})
+}
+
 func decodeJSON(r *http.Request, v any) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -124,7 +132,7 @@ func handleGetInvite(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		resp := InviteWithGuestsResponse{
@@ -161,7 +169,11 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 				IsPrimary:         g.IsPrimary,
 			}
 		}
-		inv, saved, err := svc.SubmitRSVP(r.Context(), id, guests)
+		if utf8.RuneCountInString(req.Message) > 1000 {
+			writeError(w, http.StatusBadRequest, "message must be at most 1000 characters")
+			return
+		}
+		inv, saved, err := svc.SubmitRSVP(r.Context(), id, guests, req.Message)
 		if err != nil {
 			var ve *invite.ValidationError
 			if errors.As(err, &ve) {
@@ -172,7 +184,7 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		resp := InviteWithGuestsResponse{
@@ -256,7 +268,7 @@ func handleListInvites(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		invites, err := svc.ListInvites(r.Context())
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		resp := ListInvitesResponse{Invites: make([]InviteResponse, len(invites))}
@@ -285,12 +297,12 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 		}
 		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		_, guests, err := svc.GetInvite(r.Context(), inv.ID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, InviteWithGuestsResponse{
@@ -313,7 +325,7 @@ func handleAdminGetInvite(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, InviteWithGuestsResponse{
@@ -350,7 +362,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		_, guests, err := svc.GetInvite(r.Context(), inv.ID)
@@ -359,7 +371,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, InviteWithGuestsResponse{
@@ -381,7 +393,7 @@ func handleDeleteInvite(svc *invite.Service) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "invite not found")
 				return
 			}
-			writeError(w, http.StatusInternalServerError, "internal error")
+			logInternalError(w, err)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

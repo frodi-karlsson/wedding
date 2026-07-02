@@ -50,7 +50,7 @@ func TestSubmitRSVP_Valid(t *testing.T) {
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Carla", DietaryPreference: "vegetarian", AlcoholFree: true},
 	}
-	savedInv, savedGuests, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	savedInv, savedGuests, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err != nil {
 		t.Fatalf("SubmitRSVP() error: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestSubmitRSVP_NoPrimary(t *testing.T) {
 	guests := []db.Guest{
 		{Name: "Frodi"},
 	}
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when no primary guest")
 	}
@@ -91,7 +91,7 @@ func TestSubmitRSVP_TooManyPluses(t *testing.T) {
 		{Name: "Plus1"},
 		{Name: "Plus2"},
 	}
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when pluses exceed max_plus")
 	}
@@ -106,7 +106,7 @@ func TestSubmitRSVP_TooFewPluses(t *testing.T) {
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 	}
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when pluses below min_plus")
 	}
@@ -122,7 +122,7 @@ func TestSubmitRSVP_EmptyName(t *testing.T) {
 		{Name: "Frodi", IsPrimary: true},
 		{Name: ""},
 	}
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when a guest name is empty")
 	}
@@ -132,7 +132,7 @@ func TestSubmitRSVP_InviteNotFound(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
-	_, _, err := svc.SubmitRSVP(context.Background(), "nonexistent", guests)
+	_, _, err := svc.SubmitRSVP(context.Background(), "nonexistent", guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when invite not found")
 	}
@@ -167,7 +167,7 @@ func TestSubmitRSVP_EmailSendFailure_RollsBack(t *testing.T) {
 	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
 
-	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests)
+	_, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "")
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when email send fails")
 	}

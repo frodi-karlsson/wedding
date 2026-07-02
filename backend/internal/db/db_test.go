@@ -128,7 +128,7 @@ func TestSubmitRSVP_Atomic(t *testing.T) {
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Carla", DietaryPreference: "vegetarian"},
 	}
-	saved, err := store.SubmitRSVP(ctx, inv.ID, guests, true)
+	saved, err := store.SubmitRSVP(ctx, inv.ID, guests, true, "")
 	if err != nil {
 		t.Fatalf("SubmitRSVP() error: %v", err)
 	}

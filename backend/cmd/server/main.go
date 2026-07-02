@@ -38,7 +38,15 @@ func main() {
 	}
 
 	store := db.NewSQLiteStore(d)
-	sender := email.NewResend(cfg.ResendAPIKey, cfg.ResendFrom, cfg.ResendTo)
+
+	var sender email.Sender
+	if cfg.ResendAPIKey == "fake" {
+		log.Println("using fake email sender (staging)")
+		sender = &email.Fake{}
+	} else {
+		sender = email.NewResend(cfg.ResendAPIKey, cfg.ResendFrom, cfg.ResendTo)
+	}
+
 	svc := invite.NewService(store, sender)
 	a := auth.New(cfg.AdminPassword, cfg.SessionSecret, cfg.SecureCookie)
 	handler := server.New(svc, a, cfg.CORSAllowedOrigins)
