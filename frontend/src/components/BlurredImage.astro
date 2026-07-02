@@ -71,7 +71,7 @@ const placeholder = await generateLqip(lqipBuffer);
 
 <script>
   document.querySelectorAll('[data-blurred-image]').forEach((container) => {
-    const img = container.querySelector('.blurred-image__img');
+    const img = container.querySelector<HTMLImageElement>('.blurred-image__img');
     if (img?.complete) {
       container.classList.add('blurred-image--loaded');
     } else {
