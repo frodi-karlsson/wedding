@@ -85,23 +85,26 @@ const { lang } = Astro.props;
       min-height: 0;
       height: min(72vh, 600px);
     }
-    .hero__media { position: absolute; inset: 0; overflow: hidden; }
+    .hero__media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
     .hero__panel {
       position: absolute;
       inset: auto 0 0 0;
       z-index: 2;
       justify-content: flex-end;
       gap: var(--space-3);
-      padding: var(--space-12) clamp(1.5rem, 6vw, 2.5rem) var(--space-6);
+      padding: var(--space-16) clamp(1.5rem, 6vw, 2.5rem) var(--space-6);
       background: linear-gradient(
         to top,
-        rgb(27 46 74 / 0.94) 0%,
-        rgb(27 46 74 / 0.78) 38%,
-        rgb(27 46 74 / 0.4) 68%,
+        rgb(27 46 74 / 0.97) 0%,
+        rgb(27 46 74 / 0.88) 35%,
+        rgb(27 46 74 / 0.55) 65%,
         rgb(27 46 74 / 0) 100%
       );
     }
-    /* Brighter eyebrow so "coming soon" reads over the photo */
-    .hero__eyebrow { color: var(--color-inverse-accent); }
+    /* Clear "coming soon" over the photo: white + subtle shadow */
+    .hero__eyebrow {
+      color: #fff;
+      text-shadow: 0 1px 6px rgb(27 46 74 / 0.55);
+    }
   }
 </style>
