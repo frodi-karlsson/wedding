@@ -1,6 +1,7 @@
 ---
 import '../styles/global.scss';
 import LangPicker from './LangPicker.astro';
+import Container from './Container.astro';
 import type { Lang } from '../scripts/i18n';
 interface Props { title: string; lang: Lang; }
 const { title, lang } = Astro.props;
@@ -14,9 +15,9 @@ const { title, lang } = Astro.props;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <div class="container">
+    <Container>
       <LangPicker lang={lang} />
       <slot />
-    </div>
+    </Container>
   </body>
 </html>

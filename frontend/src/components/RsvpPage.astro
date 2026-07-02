@@ -1,12 +1,13 @@
 ---
 import Layout from './Layout.astro';
 import RsvpForm from './RsvpForm.astro';
+import Heading from './Heading.astro';
 import { translate, type Lang } from '../scripts/i18n';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
 <Layout title={translate('site_title', lang)} lang={lang}>
-  <h1>{translate('rsvp_title', lang)}</h1>
+  <Heading size="2xl">{translate('rsvp_title', lang)}</Heading>
   <RsvpForm lang={lang} />
 </Layout>
