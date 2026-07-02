@@ -93,12 +93,12 @@ export function LocationMap(props: LocationMapProps): JSX.Element {
         aria-label={translate('location_map_aria', lang)}
       />
       <a
-        class="btn btn--secondary btn--md venue-map__cta"
+        class="venue-map__cta"
         href={googleMapsDirectionsUrl(CEREMONY, RECEPTION)}
         target="_blank"
         rel="noopener"
       >
-        {translate('location_open_maps', lang)}
+        {translate('location_open_maps', lang)} ↗
       </a>
     </div>
   );

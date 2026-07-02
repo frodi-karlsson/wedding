@@ -122,7 +122,14 @@ input, textarea, select {
   overflow: hidden;
   isolation: isolate; // contain Leaflet's internal z-indexes below the sticky navbar
 }
-.venue-map__cta { align-self: flex-start; }
+.venue-map__cta {
+  align-self: flex-start;
+  font-size: var(--step--1);
+  font-weight: var(--weight-medium);
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
 .map-pin__dot {
   display: block;
   width: 16px;
