@@ -96,8 +96,8 @@ export function render(root: HTMLElement, state: RsvpState): void {
 
   if (state.status === 'confirmed') {
     root.innerHTML = `
-      <div class="confirmed">
-        <h2>${escapeHtml(translate('thank_you', lang))}</h2>
+      <div class="confirmed card">
+        <h2 class="heading heading--md">${escapeHtml(translate('thank_you', lang))}</h2>
         <p>${escapeHtml(translate('thank_you_body', lang))}</p>
       </div>
     `;
@@ -125,7 +125,7 @@ export function render(root: HTMLElement, state: RsvpState): void {
         : `${escapeHtml(translate('guest_label', lang))} ${index}`;
       const removeButton = guest.is_primary
         ? ''
-        : `<button type="button" class="remove" data-action="remove" data-index="${index}">${escapeHtml(translate('remove_guest', lang))}</button>`;
+        : `<button type="button" class="btn btn--ghost btn--sm remove" data-action="remove" data-index="${index}">${escapeHtml(translate('remove_guest', lang))}</button>`;
       return `
         <fieldset class="guest-row" data-index="${index}">
           <legend>${legend}</legend>
@@ -148,7 +148,7 @@ export function render(root: HTMLElement, state: RsvpState): void {
     .join('');
 
   const addButton = canAdd
-    ? `<button type="button" class="add" data-action="add">${escapeHtml(translate('add_guest', lang))}</button>`
+    ? `<button type="button" class="btn btn--secondary btn--md add" data-action="add">${escapeHtml(translate('add_guest', lang))}</button>`
     : '';
   const submitLabel =
     state.status === 'submitting'
@@ -161,13 +161,13 @@ export function render(root: HTMLElement, state: RsvpState): void {
       : '';
 
   root.innerHTML = `
-    <form class="rsvp-form" data-action="submit">
-      <h2 class="invite-heading">${escapeHtml(state.invite.name)}</h2>
+    <form class="rsvp-form card" data-action="submit">
+      <h2 class="heading heading--md">${escapeHtml(state.invite.name)}</h2>
       <p class="intro">${intro}</p>
       <div class="guests">${rows}</div>
       <div class="actions">
         ${addButton}
-        <button type="submit" class="submit" ${submitDisabled ? 'disabled' : ''}>${submitLabel}</button>
+        <button type="submit" class="btn btn--primary btn--md submit" ${submitDisabled ? 'disabled' : ''}>${submitLabel}</button>
       </div>
       ${submitError}
     </form>

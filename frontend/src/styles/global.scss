@@ -127,3 +127,86 @@ input, textarea, select {
   font-weight: var(--weight-medium);
   color: var(--color-text);
 }
+
+// RSVP form layout
+.rsvp-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.rsvp-form .intro { color: var(--color-text-muted); font-size: var(--text-sm); }
+.rsvp-form .guests { display: flex; flex-direction: column; gap: var(--space-3); }
+.rsvp-form .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.guest-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  legend {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--color-text);
+    padding: 0 var(--space-1);
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+  .checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+}
+.confirmed {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Admin layout
+.admin-login { display: flex; flex-direction: column; gap: var(--space-4); max-width: 360px; }
+.admin-login label, .admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.admin-dashboard { display: flex; flex-direction: column; gap: var(--space-4); }
+.admin-dashboard .toolbar { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  th, td {
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--text-sm);
+  }
+  th {
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+  }
+  td.actions {
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
+  }
+}
+.admin-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.admin-form .guest-names {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  > span { font-size: var(--text-sm); color: var(--color-text-muted); }
+}
+.guest-name-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.guest-names-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.form-actions { display: flex; gap: var(--space-2); }

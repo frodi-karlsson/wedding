@@ -73,7 +73,7 @@ function renderGuestNames(container: HTMLElement, form: InviteForm, lang: Lang):
       (name, i) => `
         <div class="guest-name-row">
           <input type="text" class="guest-name" data-index="${i + 1}" value="${escapeHtml(name)}">
-          <button type="button" data-action="remove-name" data-index="${i + 1}">${escapeHtml(translate('admin_remove_name', lang))}</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="remove-name" data-index="${i + 1}">${escapeHtml(translate('admin_remove_name', lang))}</button>
         </div>
       `,
     )
@@ -83,13 +83,13 @@ function renderGuestNames(container: HTMLElement, form: InviteForm, lang: Lang):
 function renderLogin(root: HTMLElement, state: AdminState): void {
   const error = state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : '';
   root.innerHTML = `
-    <form class="admin-login" data-action="login">
-      <h2>${escapeHtml(translate('admin_title', state.lang))}</h2>
+    <form class="admin-login card" data-action="login">
+      <h2 class="heading heading--md">${escapeHtml(translate('admin_title', state.lang))}</h2>
       <label>
         <span>${escapeHtml(translate('admin_password_label', state.lang))}</span>
         <input type="password" name="password" required>
       </label>
-      <button type="submit">${escapeHtml(translate('admin_login', state.lang))}</button>
+      <button type="submit" class="btn btn--primary btn--md">${escapeHtml(translate('admin_login', state.lang))}</button>
       ${error}
     </form>
   `;
@@ -121,10 +121,10 @@ function renderDashboard(root: HTMLElement, state: AdminState): void {
   root.innerHTML = `
     <div class="admin-dashboard">
       <div class="toolbar">
-        <button type="button" data-action="new-invite">${escapeHtml(translate('admin_new_invite', state.lang))}</button>
-        <button type="button" data-action="logout">${escapeHtml(translate('admin_logout', state.lang))}</button>
+        <button type="button" class="btn btn--primary btn--md" data-action="new-invite">${escapeHtml(translate('admin_new_invite', state.lang))}</button>
+        <button type="button" class="btn btn--ghost btn--md" data-action="logout">${escapeHtml(translate('admin_logout', state.lang))}</button>
       </div>
-      <table>
+      <table class="admin-table">
         <thead>
           <tr>
             <th>${escapeHtml(translate('admin_id', state.lang))}</th>
@@ -158,8 +158,8 @@ function renderForm(root: HTMLElement, state: AdminState): void {
     : '';
 
   root.innerHTML = `
-    <form class="admin-form" data-action="${isCreate ? 'create' : 'update'}">
-      <h2>${escapeHtml(heading)}</h2>
+    <form class="admin-form card" data-action="${isCreate ? 'create' : 'update'}">
+      <h2 class="heading heading--md">${escapeHtml(heading)}</h2>
       <label>
         <span>${escapeHtml(translate('admin_name_label', state.lang))}</span>
         <input type="text" name="name" value="${escapeHtml(form.guest_names[0])}" required>
@@ -175,13 +175,13 @@ function renderForm(root: HTMLElement, state: AdminState): void {
       <div class="guest-names">
         <span>${escapeHtml(translate('admin_guest_names_label', state.lang))}</span>
         <div class="guest-names-list"></div>
-        <button type="button" data-action="add-name">${escapeHtml(translate('admin_add_name', state.lang))}</button>
+        <button type="button" class="btn btn--secondary btn--sm" data-action="add-name">${escapeHtml(translate('admin_add_name', state.lang))}</button>
       </div>
       ${linkLangField}
       ${state.formError ? `<p class="error">${escapeHtml(state.formError)}</p>` : ''}
       <div class="form-actions">
-        <button type="submit">${escapeHtml(submitLabel)}</button>
-        <button type="button" data-action="cancel">${escapeHtml(translate('admin_cancel', state.lang))}</button>
+        <button type="submit" class="btn btn--primary btn--md">${escapeHtml(submitLabel)}</button>
+        <button type="button" class="btn btn--ghost btn--md" data-action="cancel">${escapeHtml(translate('admin_cancel', state.lang))}</button>
       </div>
     </form>
   `;
