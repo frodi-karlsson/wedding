@@ -48,8 +48,9 @@ docker compose -f docker-compose.dev.yml up --build
 # Backend at http://localhost:8080
 ```
 
-The staging backend uses a named Docker volume (`wedding-staging-data`) for its
-SQLite file, so no host permission fixes are needed.
+The staging backend uses a bind-mounted `./data` directory for its
+SQLite file. The directory is created with `chmod 777` so the distroless
+container's `nonroot` user can write to it.
 
 Optionally seed test data:
 ```sh
