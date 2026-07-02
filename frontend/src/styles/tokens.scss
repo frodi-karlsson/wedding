@@ -37,7 +37,11 @@
   --space-8:  2rem;
   --space-12: 3rem;
   --space-16: 4rem;
-  --space-section: clamp(4rem, 2.5rem + 6vw, 8rem);
+  --space-section: clamp(2.5rem, 1.5rem + 3vw, 4rem);
+
+  // Layout widths
+  --width-wide: 1400px; // hero + navbar content cap on extra-wide screens
+  --gutter: clamp(1.5rem, 5vw, 3.5rem); // page side gutter below the cap
 
   // Border radius — near-square, formal register
   --radius-0:    0;

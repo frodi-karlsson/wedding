@@ -41,7 +41,15 @@ const { lang } = Astro.props;
     grid-template-rows: 1fr;
     min-height: min(74vh, 640px);
     max-height: 80vh;
+    max-width: var(--width-wide);
+    margin-inline: auto;
     overflow: hidden;
+  }
+
+  /* On extra-wide screens the hero is boxed with side gutters — add a top gap
+     so it feels centered in its area rather than flush under the navbar. */
+  @media (min-width: 1400px) {
+    .hero { margin-block-start: var(--space-12); }
   }
   .hero__media { position: relative; overflow: hidden; display: flex; }
   /* .hero__img is BlurredImage's root, so it carries BlurredImage's scope id,

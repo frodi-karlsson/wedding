@@ -17,39 +17,40 @@ const links = [
 ---
 
 <nav class="nav" data-nav aria-label="Site navigation">
-  <a href="#" class="nav__brand">{translate('site_title', lang)}</a>
+  <div class="nav__inner">
+    <a href="#" class="nav__brand">{translate('site_title', lang)}</a>
 
-  <button
-    class="nav__toggle"
-    type="button"
-    data-nav-toggle
-    aria-expanded="false"
-    aria-label="Open navigation menu"
-    aria-controls="nav-panel"
-  >
-    <span class="nav__toggle-bar"></span>
-    <span class="nav__toggle-bar"></span>
-    <span class="nav__toggle-bar"></span>
-  </button>
+    <button
+      class="nav__toggle"
+      type="button"
+      data-nav-toggle
+      aria-expanded="false"
+      aria-label="Open navigation menu"
+      aria-controls="nav-panel"
+    >
+      <span class="nav__toggle-bar"></span>
+      <span class="nav__toggle-bar"></span>
+      <span class="nav__toggle-bar"></span>
+    </button>
 
-  <div class="nav__panel" id="nav-panel" data-nav-panel>
-    <ul class="nav__links" role="list">
-      {links.map(({ href, key }) => (
-        <li>
-          <a href={href} class="nav__link" data-nav-link>{translate(key, lang)}</a>
-        </li>
-      ))}
-      <InviteeView client:only="solid-js">
-        <li>
-          <a href="#rsvp" class="nav__link nav__link--rsvp" data-nav-link>{translate('nav_rsvp', lang)}</a>
-        </li>
-      </InviteeView>
-    </ul>
-    <div class="nav__lang">
-      <LangPicker lang={lang} />
+    <div class="nav__panel" id="nav-panel" data-nav-panel>
+      <ul class="nav__links" role="list">
+        {links.map(({ href, key }) => (
+          <li>
+            <a href={href} class="nav__link" data-nav-link>{translate(key, lang)}</a>
+          </li>
+        ))}
+        <InviteeView client:only="solid-js">
+          <li>
+            <a href="#rsvp" class="nav__link nav__link--rsvp" data-nav-link>{translate('nav_rsvp', lang)}</a>
+          </li>
+        </InviteeView>
+      </ul>
+      <div class="nav__lang">
+        <LangPicker lang={lang} />
+      </div>
     </div>
   </div>
-
 </nav>
 
 <script>
@@ -72,18 +73,25 @@ const links = [
 <style>
   /* ── Base ─────────────────────────────────────────────────────── */
   .nav {
-    /* Anchored above the hero; sticks to the top on scroll. Always solid. */
+    /* Full-bleed bar: anchored above the hero, sticks to the top on scroll. */
     position: sticky;
     inset-block-start: 0;
     z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
     padding-block: var(--space-3);
-    padding-inline: clamp(1.5rem, 5vw, 3.5rem);
     color: var(--color-ink);
     background: var(--color-bg);
     border-bottom: 1px solid var(--color-border);
+  }
+
+  /* Content capped to the page width; the bar itself stays full-bleed.
+     The gutter is folded into the width (not padding) so it never stacks with
+     the centering margin — this keeps the content edges aligned with the hero. */
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: min(100% - 2 * var(--gutter), var(--width-wide));
+    margin-inline: auto;
   }
 
   /* ── Brand ────────────────────────────────────────────────────── */
