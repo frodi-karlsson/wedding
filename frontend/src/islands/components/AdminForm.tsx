@@ -1,4 +1,4 @@
-import { createSignal, For, untrack, type JSX } from 'solid-js';
+import { createSignal, For, Index, untrack, type JSX } from 'solid-js';
 import type { Lang } from '../../scripts/i18n';
 import { translate } from '../../scripts/i18n';
 import type { InviteForm } from '../../scripts/admin.service';
@@ -100,26 +100,26 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
       <div class="guest-names">
         <span>{translate('admin_guest_names_label', props.lang)}</span>
         <div class="guest-names-list">
-          <For each={guestNames()}>
+          <Index each={guestNames()}>
             {(gname, index) => (
               <div class="guest-name-row">
                 <input
                   type="text"
                   class="guest-name"
-                  data-index={index()}
-                  value={gname}
-                  onInput={(e) => updateName(index(), e.currentTarget.value)}
+                  data-index={index}
+                  value={gname()}
+                  onInput={(e) => updateName(index, e.currentTarget.value)}
                 />
                 <button
                   type="button"
                   class="btn btn--ghost btn--sm"
-                  onClick={() => removeName(index())}
+                  onClick={() => removeName(index)}
                 >
                   {translate('admin_remove_name', props.lang)}
                 </button>
               </div>
             )}
-          </For>
+          </Index>
         </div>
         <button type="button" class="btn btn--secondary btn--sm" onClick={addName}>
           {translate('admin_add_name', props.lang)}

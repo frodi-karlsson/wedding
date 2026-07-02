@@ -1,7 +1,7 @@
 import {
   createSignal,
   createMemo,
-  For,
+  Index,
   Show,
   Switch,
   Match,
@@ -137,17 +137,17 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
             <h2 class="heading heading--md">{state().invite.name}</h2>
             <p class="intro">{intro()}</p>
             <div class="guests">
-              <For each={state().guests}>
+              <Index each={state().guests}>
                 {(guest, index) => (
                   <GuestRow
-                    guest={guest}
-                    index={index()}
+                    guest={guest()}
+                    index={index}
                     lang={lang}
                     onRemove={onRemoveGuest}
                     onUpdate={onUpdateGuest}
                   />
                 )}
-              </For>
+              </Index>
             </div>
             <div class="actions">
               <Show when={canAdd()}>
