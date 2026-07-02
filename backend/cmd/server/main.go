@@ -44,8 +44,12 @@ func main() {
 	handler := server.New(svc, a, cfg.CORSAllowedOrigins)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: handler,
+		Addr:              ":" + cfg.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

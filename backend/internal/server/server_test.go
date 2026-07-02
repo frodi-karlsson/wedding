@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"wedding/backend/internal/auth"
@@ -104,6 +105,18 @@ func TestSubmitRSVP_ValidationFails(t *testing.T) {
 	}
 }
 
+func TestPanicRecovery_Returns500(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/invites/test", nil)
+	panickingHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic")
+	})
+	recoveryMiddleware(panickingHandler).ServeHTTP(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500 after panic", rec.Code)
+	}
+}
+
 func TestAdminLogin_CorrectPassword(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "admin-pw"}, false)
@@ -121,6 +134,42 @@ func TestAdminLogin_WrongPassword(t *testing.T) {
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "wrong"}, false)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestAdminLogin_BodyLimit_Returns413(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := `{"password":"` + strings.Repeat("a", 64*1024) + `"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want 413", rec.Code)
+	}
+}
+
+func TestAdminLogin_RateLimitedAfter5Failures(t *testing.T) {
+	srv, _ := newTestServer(t)
+	// Set X-Forwarded-For so clientIP extracts a stable IP (simulating Caddy).
+	for i := 0; i < 5; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(`{"password":"wrong"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Forwarded-For", "1.2.3.4")
+		srv.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: status = %d, want 401", i+1, rec.Code)
+		}
+	}
+	// 6th attempt: blocked.
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(`{"password":"wrong"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", "1.2.3.4")
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("6th attempt: status = %d, want 429", rec.Code)
 	}
 }
 

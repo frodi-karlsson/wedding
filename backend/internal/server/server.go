@@ -13,7 +13,8 @@ import (
 	"wedding/backend/internal/invite"
 )
 
-// New returns an http.Handler with all routes wired and CORS + admin auth applied.
+// New returns an http.Handler with all routes wired, panic recovery (outermost),
+// CORS, body-size limit, and admin auth applied.
 func New(svc *invite.Service, a *auth.Authenticator, allowedOrigins []string) http.Handler {
 	mux := http.NewServeMux()
 
@@ -35,7 +36,43 @@ func New(svc *invite.Service, a *auth.Authenticator, allowedOrigins []string) ht
 	mux.Handle("/admin/invites", a.Middleware(adminMux))
 	mux.Handle("/admin/invites/", a.Middleware(adminMux))
 
-	return CORS(allowedOrigins)(mux)
+	return recoveryMiddleware(CORS(allowedOrigins)(bodyLimitMiddleware(64 * 1024)(mux)))
+}
+
+func recoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("panic: %v", rec)
+				writeError(w, http.StatusInternalServerError, "internal error")
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+func bodyLimitMiddleware(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// clientIP extracts the client's real IP from X-Forwarded-For.
+// SAFETY: This is only trustworthy because Caddy's Caddyfile uses
+// `header_up X-Forwarded-For {http.request.remote.host}` to OVERWRITE
+// (not append to) the XFF header with the real peer IP. Without that
+// Caddy config, the left-most XFF entry is attacker-controlled.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if first, _, ok := strings.Cut(xff, ","); ok {
+			return strings.TrimSpace(first)
+		}
+		return strings.TrimSpace(xff)
+	}
+	return r.RemoteAddr
 }
 
 // --- helpers ---
@@ -55,7 +92,14 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 func decodeJSON(r *http.Request, v any) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
-	return dec.Decode(v)
+	if err := dec.Decode(v); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return maxErr
+		}
+		return err
+	}
+	return nil
 }
 
 func idFromPath(r *http.Request) (int64, bool) {
@@ -102,6 +146,11 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 		}
 		var req RSVPRequest
 		if err := decodeJSON(r, &req); err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+				return
+			}
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -142,13 +191,29 @@ func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		if err := decodeJSON(r, &req); err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+				return
+			}
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+		ip := clientIP(r)
+		if !a.Allow(ip) {
+			writeError(w, http.StatusTooManyRequests, "too many failed attempts, try again later")
+			return
+		}
 		if !a.Login(req.Password) {
+			a.RecordFailure(ip)
+			if !a.Allow(ip) {
+				writeError(w, http.StatusTooManyRequests, "too many failed attempts, try again later")
+				return
+			}
 			writeError(w, http.StatusUnauthorized, "invalid password")
 			return
 		}
+		a.ResetLogin(ip)
 		a.SetSessionCookie(w)
 		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
 	}
@@ -208,6 +273,11 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateInviteRequest
 		if err := decodeJSON(r, &req); err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+				return
+			}
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
@@ -264,6 +334,11 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 		}
 		var req UpdateInviteRequest
 		if err := decodeJSON(r, &req); err != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+				return
+			}
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}

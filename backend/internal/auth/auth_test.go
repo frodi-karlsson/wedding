@@ -1,10 +1,64 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+func TestLoginLimiter_Allows5Failures_Blocks6th(t *testing.T) {
+	l := newLoginLimiter()
+	// 5 failures: still allowed
+	for i := 0; i < 5; i++ {
+		l.RecordFailure("1.2.3.4")
+		if !l.Allow("1.2.3.4") {
+			t.Fatalf("after %d failures, IP should still be allowed", i+1)
+		}
+	}
+	// 6th failure: now blocked
+	l.RecordFailure("1.2.3.4")
+	if l.Allow("1.2.3.4") {
+		t.Error("after 6 failures, IP should be blocked")
+	}
+}
+
+func TestLoginLimiter_AllowsOtherIPs(t *testing.T) {
+	l := newLoginLimiter()
+	for i := 0; i < 6; i++ {
+		l.RecordFailure("1.2.3.4")
+	}
+	if !l.Allow("5.6.7.8") {
+		t.Error("different IP should not be blocked")
+	}
+}
+
+func TestLoginLimiter_ResetsOnSuccess(t *testing.T) {
+	l := newLoginLimiter()
+	for i := 0; i < 4; i++ {
+		l.RecordFailure("1.2.3.4")
+	}
+	l.Reset("1.2.3.4")
+	for i := 0; i < 5; i++ {
+		l.RecordFailure("1.2.3.4")
+	}
+	if !l.Allow("1.2.3.4") {
+		t.Error("after reset + 5 failures, IP should still be allowed (6th blocks)")
+	}
+}
+
+func TestLoginLimiter_CapsEntries(t *testing.T) {
+	l := newLoginLimiter()
+	for i := 0; i < maxLimiterEntries+100; i++ {
+		l.Allow(fmt.Sprintf("10.0.0.%d", i))
+	}
+	l.mu.Lock()
+	count := len(l.lastSeen)
+	l.mu.Unlock()
+	if count > maxLimiterEntries {
+		t.Errorf("map size = %d, want <= %d", count, maxLimiterEntries)
+	}
+}
 
 func TestLogin_CorrectPassword(t *testing.T) {
 	a := New("correct-horse", "session-secret", true)
