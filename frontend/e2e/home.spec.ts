@@ -17,7 +17,7 @@ test('site is marked noindex', async ({ page }) => {
 
 test('all content sections are present', async ({ page }) => {
   await page.goto('/');
-  for (const id of ['#welcome', '#location', '#dress', '#speeches', '#gifts', '#contact']) {
+  for (const id of ['#welcome', '#location', '#dress', '#speeches', '#language', '#gifts', '#contact']) {
     await expect(page.locator(id)).toBeAttached();
   }
 });

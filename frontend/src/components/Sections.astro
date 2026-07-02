@@ -48,6 +48,10 @@ const contacts = [
       </div>
     </div>
     <LocationMap client:only="solid-js" lang={lang} />
+    <p class="tip-note">
+      {translate('location_tip', lang)}{' '}
+      <a href="https://www.kulturen.com/" target="_blank" rel="noopener" class="contact-link">{translate('location_tip_link', lang)}</a>
+    </p>
   </div>
 </section>
 
@@ -62,6 +66,7 @@ const contacts = [
       <li>{translate('dress_ex2', lang)}</li>
       <li>{translate('dress_ex3', lang)}</li>
       <li>{translate('dress_ex4', lang)}</li>
+      <li>{translate('dress_ex5', lang)}</li>
     </ul>
     <p class="muted-note">{translate('dress_avoid', lang)}</p>
   </div>
@@ -78,8 +83,16 @@ const contacts = [
   </div>
 </section>
 
+<!-- LANGUAGE -->
+<section class="section" id="language">
+  <div class="section__inner">
+    <h2 class="section__heading">{translate('language_eyebrow', lang)}</h2>
+    <p class="body-text">{translate('language_body', lang)}</p>
+  </div>
+</section>
+
 <!-- GIFTS -->
-<section class="section" id="gifts">
+<section class="section section--powder" id="gifts">
   <div class="section__inner section__inner--center">
     <h2 class="section__heading">{translate('gifts_eyebrow', lang)}</h2>
     <p class="body-text">{translate('gifts_body1', lang)}</p>
@@ -182,6 +195,14 @@ const contacts = [
     color: var(--color-text-muted);
     font-size: var(--step--1);
     margin: 0;
+  }
+
+  /* ── Tip note (below the venue map) ─────────────────────────────── */
+  .tip-note {
+    color: var(--color-text-muted);
+    font-size: var(--step--1);
+    line-height: var(--leading-normal);
+    margin: var(--space-4) 0 0;
   }
 
   /* ── Welcome section ────────────────────────────────────────────── */
