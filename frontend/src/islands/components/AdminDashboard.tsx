@@ -27,6 +27,7 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
           {translate('admin_logout', props.lang)}
         </button>
       </div>
+      <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
           <tr>
@@ -35,7 +36,6 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
             <th>{translate('admin_min_label', props.lang)}</th>
             <th>{translate('admin_max_label', props.lang)}</th>
             <th>{translate('admin_submitted', props.lang)}</th>
-            <th>{translate('admin_link', props.lang)}</th>
             <th>{translate('admin_actions', props.lang)}</th>
           </tr>
         </thead>
@@ -43,14 +43,13 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
           <For each={props.invites}>
             {(invite) => (
               <tr>
-                <td>{invite.id}</td>
+                <td>
+                  <a class="invite-id" href={buildShareLink(globalThis.location.origin, invite.id, props.lang)} title={invite.id}>{invite.id.slice(0, 8)}…</a>
+                </td>
                 <td>{invite.name}</td>
                 <td>{invite.min_plus}</td>
                 <td>{invite.max_plus}</td>
                 <td>{invite.submitted ? '✓' : '—'}</td>
-                <td>
-                  <a href={buildShareLink(globalThis.location.origin, invite.id, props.lang)}>{buildShareLink(globalThis.location.origin, invite.id, props.lang)}</a>
-                </td>
                 <td class="actions">
                   <select class="link-lang" data-id={invite.id}>
                     <For each={ALL_LANGS}>
@@ -90,6 +89,7 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
           </For>
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
