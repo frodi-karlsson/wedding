@@ -1,78 +1,129 @@
-/* Minimal clean global defaults for the wedding invite */
+@use 'tokens';
 
-* {
-  box-sizing: border-box;
-}
+// Reset
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
 
+// Base
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.6;
-  color: #333;
-  background: #fafafa;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
-.container {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 1rem;
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
 }
 
+// Form elements — consume tokens directly (used by TS islands)
+input, textarea, select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  &:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+    border-color: var(--color-accent);
+  }
+}
+
+// Utility classes (for TS-rendered HTML)
+.container { max-width: 720px; margin: 0 auto; padding: var(--space-4); }
+.error     { color: var(--color-error); font-size: var(--text-sm); }
+.loading   { color: var(--color-text-muted); }
+
+// Lang picker
 .lang-picker {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-1);
   justify-content: flex-end;
-  margin-bottom: 1rem;
-
+  margin-bottom: var(--space-4);
   a {
     text-decoration: none;
-    color: #555;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-
-    &:hover,
-    &[aria-current='true'] {
-      background: #e8e8e8;
-      color: #111;
+    color: var(--color-text-muted);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    &:hover, &[aria-current='true'] {
+      background: var(--color-surface-hover);
+      color: var(--color-text);
     }
   }
 }
 
-button {
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-  background: #fff;
+// Component classes (shared between Astro components and TS islands)
 
-  &:hover {
-    background: #f0f0f0;
-  }
+// Heading
+.heading {
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
 }
+.heading--sm   { font-size: var(--text-lg); }
+.heading--md   { font-size: var(--text-xl); }
+.heading--lg   { font-size: var(--text-2xl); }
+.heading--xl   { font-size: var(--text-2xl); }
+.heading--2xl  { font-size: var(--text-3xl); }
+.heading--3xl  { font-size: var(--text-3xl); }
 
-input,
-textarea,
-select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-  font: inherit;
-}
-
-.field {
-  margin-bottom: 1rem;
-
-  label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-  }
-}
-
-.guest-row {
-  display: flex;
-  gap: 0.5rem;
+// Button
+.btn {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 0.5rem;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+.btn--md { padding: var(--space-2) var(--space-4); }
+.btn--primary {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-color: var(--color-accent);
+  &:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+}
+.btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  &:hover { background: var(--color-surface-hover); }
+}
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+  &:hover { background: var(--color-surface-hover); color: var(--color-text); }
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+// Card
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+// Field
+.field { margin-bottom: var(--space-4); }
+.field__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
 }
