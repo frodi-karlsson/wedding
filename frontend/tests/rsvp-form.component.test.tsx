@@ -15,7 +15,7 @@ function mockFailingTask<T>(error: Error): Task<T, HttpError> {
 }
 
 const mockInviteResponse: InviteWithGuestsResponse = {
-  invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false },
+  invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false, message: '' },
   guests: [
     { id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true },
   ],
@@ -70,7 +70,7 @@ test('should add a guest row when clicking add guest', async () => {
 
 test('should disable submit when a guest name is empty', async () => {
   const emptyNameResponse: InviteWithGuestsResponse = {
-    invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false },
+    invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false, message: '' },
     guests: [
       { id: 1, name: '', dietary_preference: '', alcohol_free: false, is_primary: true },
     ],

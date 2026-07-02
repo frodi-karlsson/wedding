@@ -9,16 +9,18 @@ interface GuestRowProps {
   lang: Lang;
   onRemove: (index: number) => void;
   onUpdate: (index: number, patch: Partial<GuestInput>) => void;
+  // Per-RSVP message — only rendered inside the primary ("You") row.
+  message?: string;
+  onMessageInput?: (value: string) => void;
 }
 
 export function GuestRow(props: GuestRowProps): JSX.Element {
   const legend = () =>
     props.guest.is_primary
-      ? translate('name_you_label', props.lang)
+      ? translate('you_label', props.lang)
       : `${translate('guest_label', props.lang)} ${props.index}`;
 
-  const nameLabel = () =>
-    translate(props.guest.is_primary ? 'name_you_label' : 'name_label', props.lang);
+  const nameLabel = () => translate('name_label', props.lang);
 
   function onNameInput(e: InputEvent & { currentTarget: HTMLInputElement }) {
     props.onUpdate(props.index, { name: e.currentTarget.value });
@@ -59,6 +61,17 @@ export function GuestRow(props: GuestRowProps): JSX.Element {
         />
         <span>{translate('alcohol_free_label', props.lang)}</span>
       </label>
+      {props.guest.is_primary && (
+        <label class="message-field">
+          <span>{translate('message_label', props.lang)}</span>
+          <textarea
+            maxlength="1000"
+            rows="4"
+            value={props.message ?? ''}
+            onInput={(e) => props.onMessageInput?.(e.currentTarget.value)}
+          />
+        </label>
+      )}
       {!props.guest.is_primary && (
         <button
           type="button"

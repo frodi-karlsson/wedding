@@ -17,6 +17,7 @@ import {
   addGuest,
   removeGuest,
   updateGuest,
+  updateMessage,
   canSubmit,
   type RsvpState,
 } from '../scripts/rsvp.service';
@@ -31,8 +32,9 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
   const lang = untrack(() => props.lang);
 
   const [state, setState] = createSignal<RsvpState>({
-    invite: { id: '', name: '', min_plus: 0, max_plus: 0, submitted: false },
+    invite: { id: '', name: '', min_plus: 0, max_plus: 0, submitted: false, message: '' },
     guests: [],
+    message: '',
     status: 'loading',
     lang,
   });
@@ -93,6 +95,10 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
     setState((prev) => ({ ...updateGuest(prev, index, patch), errorMessage: undefined }));
   }
 
+  function onMessageInput(value: string) {
+    setState((prev) => ({ ...updateMessage(prev, value), errorMessage: undefined }));
+  }
+
   function onSubmit(e: Event) {
     e.preventDefault();
     if (!canSubmit(state())) return;
@@ -103,7 +109,7 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
     setState((prev) => ({ ...prev, status: 'submitting', errorMessage: undefined }));
 
     api
-      .rsvp(id, guests)
+      .rsvp(id, guests, state().message)
       .run()
       .then(() => {
         setState((prev) => ({ ...prev, status: 'confirmed' }));
@@ -145,6 +151,8 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
                     lang={lang}
                     onRemove={onRemoveGuest}
                     onUpdate={onUpdateGuest}
+                    message={state().message}
+                    onMessageInput={onMessageInput}
                   />
                 )}
               </Index>

@@ -31,9 +31,9 @@ export const api = {
     return client.get(`invites/${id}`).map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  rsvp(id: string, guests: GuestInput[]): Task<InviteWithGuestsResponse, HttpError> {
+  rsvp(id: string, guests: GuestInput[], message: string): Task<InviteWithGuestsResponse, HttpError> {
     return client
-      .post(`invites/${id}/rsvp`, { guests })
+      .post(`invites/${id}/rsvp`, { guests, message })
       .map((r) => r.data as InviteWithGuestsResponse);
   },
 

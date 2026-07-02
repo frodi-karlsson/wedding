@@ -48,7 +48,7 @@ afterEach(() => {
 
 test('should GET /invites/{id} and return the invite with guests', async () => {
   const response = {
-    invite: { id: 'test-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false },
+    invite: { id: 'test-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' },
     guests: [{ id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }],
   };
   const fetchMock = setupFetch(response);
@@ -66,19 +66,19 @@ test('should GET /invites/{id} and return the invite with guests', async () => {
 test('should POST /invites/{id}/rsvp with the guest list', async () => {
   const guests = [{ name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }];
   const response = {
-    invite: { id: 'rsvp-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: true },
+    invite: { id: 'rsvp-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: true, message: '' },
     guests: [{ id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }],
   };
   const fetchMock = setupFetch(response);
 
-  const result = await api.rsvp('rsvp-id', guests).run();
+  const result = await api.rsvp('rsvp-id', guests, '').run();
 
   const [url, init] = lastCall(fetchMock);
   expect(url).toBe(`${baseUrl}/invites/rsvp-id/rsvp`);
   expect(init.method).toBe('POST');
   expect(init.credentials).toBe('include');
   expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });
-  expect(JSON.parse(init.body as string)).toEqual({ guests });
+  expect(JSON.parse(init.body as string)).toEqual({ guests, message: '' });
   expect(result).toEqual(response);
 });
 
@@ -112,7 +112,7 @@ test('should POST /admin/logout', async () => {
 
 test('should GET /admin/invites', async () => {
   const response = {
-    invites: [{ id: 'list-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false }],
+    invites: [{ id: 'list-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' }],
   };
   const fetchMock = setupFetch(response);
 
@@ -134,7 +134,7 @@ test('should POST /admin/invites with the full CreateInviteRequest body includin
     guest_names: ['Ada'],
   };
   const response = {
-    invite: { id: 'created-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false },
+    invite: { id: 'created-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' },
     guests: [{ id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }],
   };
   const fetchMock = setupFetch(response);
@@ -152,7 +152,7 @@ test('should POST /admin/invites with the full CreateInviteRequest body includin
 
 test('should GET /admin/invites/{id} for an admin invite', async () => {
   const response = {
-    invite: { id: 'admin-id', name: 'Bob', min_plus: 1, max_plus: 2, submitted: false },
+    invite: { id: 'admin-id', name: 'Bob', min_plus: 1, max_plus: 2, submitted: false, message: '' },
     guests: [{ id: 2, name: 'Bob', dietary_preference: 'vegan', alcohol_free: true, is_primary: true }],
   };
   const fetchMock = setupFetch(response);
@@ -175,7 +175,7 @@ test('should PUT /admin/invites/{id} with the full update body including guest_n
     guest_names: ['Ada + Guest'],
   };
   const response = {
-    invite: { id: 'update-id', name: 'Ada + Guest', min_plus: 0, max_plus: 1, submitted: false },
+    invite: { id: 'update-id', name: 'Ada + Guest', min_plus: 0, max_plus: 1, submitted: false, message: '' },
     guests: [{ id: 1, name: 'Ada + Guest', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }],
   };
   const fetchMock = setupFetch(response);

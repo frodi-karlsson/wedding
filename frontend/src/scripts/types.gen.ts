@@ -15,6 +15,7 @@ export interface GuestInput {
 }
 export interface RSVPRequest {
   guests: GuestInput[];
+  message: string;
 }
 export interface CreateInviteRequest {
   name: string;
@@ -50,6 +51,7 @@ export interface InviteResponse {
   min_plus: number /* int */;
   max_plus: number /* int */;
   submitted: boolean;
+  message: string;
 }
 export interface InviteWithGuestsResponse {
   invite: InviteResponse;

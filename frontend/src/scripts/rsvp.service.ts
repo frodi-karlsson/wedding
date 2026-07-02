@@ -6,6 +6,7 @@ export type RsvpStatus = 'loading' | 'ready' | 'submitting' | 'confirmed' | 'err
 export interface RsvpState {
   invite: InviteResponse;
   guests: GuestInput[];
+  message: string;
   status: RsvpStatus;
   lang: Lang;
   errorMessage?: string;
@@ -23,7 +24,7 @@ export function createRsvpState(
     is_primary: guest.is_primary,
   }));
   mapped.sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
-  return { invite, guests: mapped, status: 'ready', lang };
+  return { invite, guests: mapped, message: '', status: 'ready', lang };
 }
 
 export function addGuest(state: RsvpState): RsvpState {
@@ -59,6 +60,10 @@ export function updateGuest(
     ...state,
     guests: state.guests.map((guest, i) => (i === index ? { ...guest, ...patch } : guest)),
   };
+}
+
+export function updateMessage(state: RsvpState, message: string): RsvpState {
+  return { ...state, message };
 }
 
 export function canSubmit(state: RsvpState): boolean {
