@@ -1,34 +1,33 @@
 // Design tokens — single source of truth for all styling.
-// Two tiers: reference (raw values, never used directly) and semantic
-// (meaning-based aliases, used by components and classes).
+// Two tiers: reference (raw ramps, never used directly) and semantic
+// (meaning-based aliases, consumed by components/classes).
+// Colours authored as OKLCH hue-locked ramps: warm neutrals ~H 90, blues ~H 255.
+// Committed hex equivalents in comments for reference.
 
 :root {
   // === REFERENCE TOKENS ===
 
-  // Color shades
-  --blue-50:  #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-900: #1e3a8a;
+  // Warm neutral ramp (hue ~90)
+  --sand-50:  oklch(98.5% 0.009 93.6);   // #FCFAF3
+  --sand-100: oklch(96.7% 0.011 89.7);   // #F7F4EC
+  --sand-200: oklch(94.3% 0.019 90.5);   // #F1ECDE
+  --sand-300: oklch(89.5% 0.024 88.2);   // #E3DCCB
+  --sand-600: oklch(49.7% 0.026 80.5);   // #6A6152
 
-  --gray-50:  #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
+  // Navy / blue ramp (hue ~255)
+  --blue-50:  oklch(95.7% 0.014 248.0);  // #EAF2FA
+  --blue-100: oklch(92.3% 0.021 236.8);  // #D9E8F2  (powder)
+  --blue-300: oklch(77.4% 0.051 253.1);  // #9FB8D6
+  --blue-600: oklch(38.3% 0.075 260.1);  // #2B436B  (navy)
+  --blue-800: oklch(32.2% 0.065 260.0);  // #1F3354
+  --blue-900: oklch(30.0% 0.057 258.0);  // #1B2E4A  (deep)
 
+  // Functional
   --green-600: #16a34a;
   --red-500:   #ef4444;
   --red-600:   #dc2626;
 
-  // Spacing (4px base)
+  // Spacing (4px base) + fluid section rhythm
   --space-0:  0;
   --space-1:  0.25rem;
   --space-2:  0.5rem;
@@ -38,57 +37,75 @@
   --space-8:  2rem;
   --space-12: 3rem;
   --space-16: 4rem;
+  --space-section: clamp(4rem, 2.5rem + 6vw, 8rem);
 
-  // Border radius
+  // Border radius — near-square, formal register
   --radius-0:    0;
-  --radius-sm:   0.25rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.75rem;
-  --radius-xl:   1rem;
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
   --radius-pill: 9999px;
 
-  // Typography
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  // Typography — self-hosted faces
+  --font-serif: 'Cormorant', Georgia, 'Times New Roman', serif;
+  --font-sans:  'Work Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --text-xs:   0.75rem;
-  --text-sm:   0.875rem;
-  --text-base: 1rem;
-  --text-lg:   1.125rem;
-  --text-xl:   clamp(1.25rem, 1rem + 1vw, 1.5rem);
-  --text-2xl:  clamp(1.5rem, 1rem + 2vw, 2rem);
-  --text-3xl:  clamp(2rem, 1rem + 4vw, 3rem);
+  // Fluid type scale (Utopia-style)
+  --step--1: clamp(0.83rem, 0.8rem + 0.15vw, 0.9rem);
+  --step-0:  clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-1:  clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --step-2:  clamp(1.6rem, 1.3rem + 1.4vw, 2.25rem);
+  --step-3:  clamp(2.2rem, 1.6rem + 3vw, 3.75rem);
+  --step-4:  clamp(3rem, 1.8rem + 6vw, 6.5rem);
 
-  --leading-tight:   1.25;
-  --leading-normal:  1.6;
+  // Back-compat aliases (existing global.scss selectors referenced --text-*)
+  --text-xs:   var(--step--1);
+  --text-sm:   var(--step--1);
+  --text-base: var(--step-0);
+  --text-lg:   var(--step-1);
+  --text-xl:   var(--step-1);
+  --text-2xl:  var(--step-2);
+  --text-3xl:  var(--step-3);
+
+  --leading-tight:   1.15;
+  --leading-normal:  1.65;
   --leading-relaxed: 1.75;
 
   --weight-normal:   400;
   --weight-medium:   500;
   --weight-semibold: 600;
-  --weight-bold:     700;
+  --weight-bold:     600;
 
-  // Shadows
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  // Shadows — single soft shadow, used sparingly
+  --shadow-sm: 0 1px 2px 0 rgb(27 46 74 / 0.05);
+  --shadow-md: 0 6px 20px -8px rgb(27 46 74 / 0.18);
+  --shadow-lg: 0 12px 30px -10px rgb(27 46 74 / 0.22);
 
-  // === SEMANTIC TOKENS ===
+  // === SEMANTIC TOKENS (the component contract) ===
 
-  --color-bg:            var(--gray-50);
-  --color-surface:       #ffffff;
-  --color-surface-hover: var(--gray-100);
-  --color-text:          var(--gray-900);
-  --color-text-muted:    var(--gray-500);
-  --color-border:        var(--gray-200);
-  --color-border-strong: var(--gray-300);
+  --color-bg:            var(--sand-100);   // warm cream ground
+  --color-surface:       var(--sand-50);
+  --color-surface-hover: var(--sand-200);
+  --color-ink:           var(--blue-600);
+  --color-text:          var(--blue-600);
+  --color-text-muted:    var(--sand-600);
+  --color-border:        var(--sand-300);
+  --color-border-strong: var(--blue-300);
 
-  --color-accent:           var(--blue-600);
-  --color-accent-hover:     var(--blue-700);
-  --color-accent-contrast:  #ffffff;
-  --color-accent-subtle:    var(--blue-50);
+  --color-accent:          var(--blue-600);
+  --color-accent-hover:    var(--blue-800);
+  --color-accent-contrast: #ffffff;
+  --color-accent-subtle:   var(--blue-100);
+
+  // Inverted deep-navy surfaces (hero + RSVP bookend)
+  --color-inverse-bg:     var(--blue-900);
+  --color-inverse-text:   var(--blue-50);
+  --color-inverse-muted:  var(--blue-300);
+  --color-inverse-accent: var(--blue-100);
 
   --color-error:       var(--red-500);
   --color-error-hover: var(--red-600);
   --color-success:     var(--green-600);
-}
 
+  color-scheme: light;
+}
