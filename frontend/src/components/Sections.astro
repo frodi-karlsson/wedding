@@ -1,0 +1,336 @@
+---
+import { translate, type Lang } from '../scripts/i18n';
+import RsvpForm from './RsvpForm.astro';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+const contacts = [
+  {
+    nameKey: 'contact_carla_name' as const,
+    phone: '+46 79-356 60 68',
+    email: '(email to be confirmed)',
+    emailHref: null,
+  },
+  {
+    nameKey: 'contact_frodi_name' as const,
+    phone: '+46 73-322 08 82',
+    email: 'frodikarlsson@gmail.com',
+    emailHref: 'mailto:frodikarlsson@gmail.com',
+  },
+];
+---
+
+<!-- WELCOME -->
+<section class="section" id="welcome">
+  <div class="section__inner section__inner--center">
+    <p class="eyebrow">{translate('welcome_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('welcome_title', lang)}</h2>
+    <p class="welcome-when">{translate('welcome_when', lang)}</p>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section class="section section--powder" id="location">
+  <div class="section__inner">
+    <p class="eyebrow">{translate('location_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('location_title', lang)}</h2>
+    <p class="body-text">{translate('location_body', lang)}</p>
+    <div class="venue-grid">
+      <div class="venue-card">
+        <span class="venue-tag">{translate('location_ceremony_tag', lang)}</span>
+        <p class="venue-name">{translate('location_ceremony_name', lang)}</p>
+        <p class="venue-addr">{translate('location_ceremony_addr', lang)}</p>
+      </div>
+      <div class="venue-card">
+        <span class="venue-tag">{translate('location_reception_tag', lang)}</span>
+        <p class="venue-name">{translate('location_reception_name', lang)}</p>
+        <p class="venue-addr">{translate('location_reception_addr', lang)}</p>
+      </div>
+    </div>
+    <div class="map-placeholder">
+      <p class="map-note">{translate('location_map_note', lang)}</p>
+    </div>
+  </div>
+</section>
+
+<!-- DRESS CODE -->
+<section class="section" id="dress">
+  <div class="section__inner">
+    <p class="eyebrow">{translate('dress_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('dress_title', lang)}</h2>
+    <p class="body-text">{translate('dress_body', lang)}</p>
+    <ul class="dress-list">
+      <li>{translate('dress_ex1', lang)}</li>
+      <li>{translate('dress_ex2', lang)}</li>
+      <li>{translate('dress_ex3', lang)}</li>
+      <li>{translate('dress_ex4', lang)}</li>
+    </ul>
+    <p class="muted-note">{translate('dress_avoid', lang)}</p>
+  </div>
+</section>
+
+<!-- SPEECHES -->
+<section class="section section--powder" id="speeches">
+  <div class="section__inner">
+    <p class="eyebrow">{translate('speeches_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('speeches_title', lang)}</h2>
+    <p class="body-text">{translate('speeches_body1', lang)}</p>
+    <p class="body-text">{translate('speeches_body2', lang)}</p>
+    <p class="body-text">{translate('speeches_body3', lang)}</p>
+    <!-- TODO: equipment/instruments info — awaiting final copy from couple -->
+  </div>
+</section>
+
+<!-- GIFTS -->
+<section class="section" id="gifts">
+  <div class="section__inner section__inner--center">
+    <p class="eyebrow">{translate('gifts_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('gifts_title', lang)}</h2>
+    <p class="body-text">{translate('gifts_body1', lang)}</p>
+    <p class="body-text">{translate('gifts_body2', lang)}</p>
+  </div>
+</section>
+
+<!-- RSVP / OSA -->
+<section class="section section--navy" id="rsvp">
+  <div class="section__inner section__inner--center">
+    <p class="eyebrow eyebrow--inverse">{translate('rsvp_eyebrow', lang)}</p>
+    <h2 class="section__heading section__heading--inverse">{translate('rsvp_section_title', lang)}</h2>
+    <p class="body-text body-text--inverse">{translate('rsvp_section_body', lang)}</p>
+    <RsvpForm lang={lang} />
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="section" id="contact">
+  <div class="section__inner">
+    <p class="eyebrow">{translate('contact_eyebrow', lang)}</p>
+    <h2 class="section__heading">{translate('contact_title', lang)}</h2>
+    <p class="body-text">{translate('contact_body', lang)}</p>
+    <div class="contact-grid">
+      {contacts.map((c) => (
+        <div class="contact-card">
+          <p class="contact-name">{translate(c.nameKey, lang)}</p>
+          <p class="contact-detail">
+            <a href={`tel:${c.phone.replace(/\s/g, '')}`} class="contact-link">{c.phone}</a>
+          </p>
+          <p class="contact-detail">
+            {c.emailHref
+              ? <a href={c.emailHref} class="contact-link">{c.email}</a>
+              : <span class="muted-note">{c.email}</span>
+            }
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ── Section base ─────────────────────────────────────────────── */
+  .section {
+    scroll-margin-top: 80px;
+  }
+
+  .section__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-section) clamp(1.25rem, 4vw, 2rem);
+  }
+
+  .section__inner--center {
+    text-align: center;
+  }
+
+  /* ── Background rhythm ──────────────────────────────────────────── */
+  .section--powder {
+    background: var(--color-accent-subtle);
+  }
+
+  .section--navy {
+    background: var(--color-inverse-bg);
+    color: var(--color-inverse-text);
+  }
+
+  /* ── Eyebrow ────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-3);
+  }
+
+  .eyebrow--inverse {
+    color: var(--color-inverse-muted);
+  }
+
+  /* ── Section heading ────────────────────────────────────────────── */
+  .section__heading {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: var(--step-2);
+    color: var(--color-ink);
+    margin: 0 0 var(--space-6);
+    line-height: var(--leading-tight);
+  }
+
+  .section__heading--inverse {
+    color: var(--color-inverse-text);
+  }
+
+  /* ── Body text ──────────────────────────────────────────────────── */
+  .body-text {
+    max-width: 60ch;
+    color: #3a5074;
+    line-height: var(--leading-relaxed);
+    margin: 0 0 var(--space-4);
+  }
+
+  .section__inner--center .body-text {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .body-text--inverse {
+    color: var(--color-inverse-text);
+  }
+
+  /* ── Muted note ─────────────────────────────────────────────────── */
+  .muted-note {
+    color: var(--color-text-muted);
+    font-size: var(--step--1);
+    margin: 0;
+  }
+
+  /* ── Welcome section ────────────────────────────────────────────── */
+  .welcome-when {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--step-1);
+    color: var(--color-ink);
+    margin: 0;
+  }
+
+  /* ── Venue cards (location) ─────────────────────────────────────── */
+  .venue-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin: var(--space-6) 0;
+  }
+
+  @media (max-width: 679px) {
+    .venue-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .venue-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.4rem;
+  }
+
+  .venue-tag {
+    display: block;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-2);
+  }
+
+  .venue-name {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    font-weight: 600;
+    color: var(--color-ink);
+    margin: 0 0 var(--space-2);
+  }
+
+  .venue-addr {
+    font-size: var(--step--1);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  /* ── Map placeholder ─────────────────────────────────────────────── */
+  .map-placeholder {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-8) var(--space-6);
+    text-align: center;
+  }
+
+  .map-note {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: var(--step--1);
+    margin: 0;
+  }
+
+  /* ── Dress code list ─────────────────────────────────────────────── */
+  .dress-list {
+    list-style: disc;
+    padding-left: var(--space-6);
+    margin: 0 0 var(--space-4);
+    color: #3a5074;
+  }
+
+  .dress-list li {
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-1);
+  }
+
+  /* ── Contact cards ───────────────────────────────────────────────── */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 679px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .contact-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.4rem;
+  }
+
+  .contact-name {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    font-weight: 600;
+    color: var(--color-ink);
+    margin: 0 0 var(--space-3);
+  }
+
+  .contact-detail {
+    font-size: var(--step--1);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-2);
+  }
+
+  .contact-link {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .contact-link:hover {
+    color: var(--color-accent-hover);
+  }
+</style>
