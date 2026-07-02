@@ -66,7 +66,14 @@ input, textarea, select {
   cursor: pointer;
   &:hover { background: var(--color-surface-hover); }
 }
-.lang-dropdown__flag { font-size: 1.1em; line-height: 1; }
+.lang-dropdown__flag {
+  width: 20px;
+  height: 15px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06);
+}
 .lang-dropdown__chevron { opacity: 0.6; transition: transform 0.15s; }
 .lang-dropdown__trigger[aria-expanded='true'] .lang-dropdown__chevron { transform: rotate(180deg); }
 .lang-dropdown__menu {

@@ -26,6 +26,7 @@
     "eslint": "^10",
     "eslint-plugin-astro": "^2",
     "eslint-plugin-vitest": "^0",
+    "flag-icons": "^7.5.0",
     "happy-dom": "^20",
     "sass": "^1",
     "typescript": "^6",

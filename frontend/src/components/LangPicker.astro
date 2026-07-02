@@ -2,11 +2,11 @@
 import type { Lang } from '../scripts/i18n';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
-const locales: { code: Lang; label: string; flag: string }[] = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'is', label: 'Íslenska', flag: '🇮🇸' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
+const locales: { code: Lang; label: string; icon: string }[] = [
+  { code: 'en', label: 'English', icon: 'gb' },
+  { code: 'is', label: 'Íslenska', icon: 'is' },
+  { code: 'de', label: 'Deutsch', icon: 'de' },
+  { code: 'sv', label: 'Svenska', icon: 'se' },
 ];
 
 const localeCodes: Lang[] = ['is', 'de', 'sv'];
@@ -27,7 +27,7 @@ function hrefFor(code: Lang): string {
 ---
 <div class="lang-dropdown" data-lang-dropdown>
   <button type="button" class="lang-dropdown__trigger" aria-haspopup="listbox" aria-expanded="false" data-lang-toggle>
-    <span class="lang-dropdown__flag">{current.flag}</span>
+    <img class="lang-dropdown__flag" src={`/flags/${current.icon}.svg`} width="20" height="15" alt="" aria-hidden="true" decoding="sync" />
     <span class="lang-dropdown__label">{current.label}</span>
     <svg class="lang-dropdown__chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
       <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -37,7 +37,7 @@ function hrefFor(code: Lang): string {
     {locales.map((l) => (
       <li role="option" aria-selected={l.code === lang ? 'true' : 'false'}>
         <a href={hrefFor(l.code)} class="lang-dropdown__item" aria-current={l.code === lang ? 'true' : undefined}>
-          <span class="lang-dropdown__flag">{l.flag}</span>
+          <img class="lang-dropdown__flag" src={`/flags/${l.icon}.svg`} width="20" height="15" alt="" aria-hidden="true" decoding="sync" />
           <span>{l.label}</span>
         </a>
       </li>
