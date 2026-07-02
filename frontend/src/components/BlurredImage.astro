@@ -43,7 +43,8 @@ const placeholder = await generateLqip(lqipBuffer);
 </div>
 
 <style>
-  .blurred-image { position: relative; }
+  /* isolate so the placeholder/img z-index can't render above sibling overlays (e.g. the hero panel) */
+  .blurred-image { position: relative; isolation: isolate; }
   .blurred-image__placeholder {
     position: absolute;
     inset: 0;

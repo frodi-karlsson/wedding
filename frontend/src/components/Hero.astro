@@ -92,13 +92,16 @@ const { lang } = Astro.props;
       z-index: 2;
       justify-content: flex-end;
       gap: var(--space-3);
-      padding: var(--space-8) clamp(1.5rem, 6vw, 2.5rem) var(--space-6);
+      padding: var(--space-12) clamp(1.5rem, 6vw, 2.5rem) var(--space-6);
       background: linear-gradient(
         to top,
-        rgb(27 46 74 / 0.9) 8%,
-        rgb(27 46 74 / 0.55) 45%,
+        rgb(27 46 74 / 0.94) 0%,
+        rgb(27 46 74 / 0.78) 38%,
+        rgb(27 46 74 / 0.4) 68%,
         rgb(27 46 74 / 0) 100%
       );
     }
+    /* Brighter eyebrow so "coming soon" reads over the photo */
+    .hero__eyebrow { color: var(--color-inverse-accent); }
   }
 </style>
