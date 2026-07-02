@@ -7,7 +7,7 @@
 // Base
 body {
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--step-0);
   line-height: var(--leading-normal);
   color: var(--color-text);
   background: var(--color-bg);
@@ -20,26 +20,30 @@ a {
   &:hover { text-decoration: underline; }
 }
 
-// Form elements — consume tokens directly (used by TS islands)
+// Form elements — underline style, sans values >=16px (consumed by TS islands)
 input, textarea, select {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
+  padding: var(--space-2) var(--space-1);
   font: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px solid var(--color-border);
+  border-radius: 0;
+  &::placeholder { color: color-mix(in oklch, var(--color-text-muted) 70%, transparent); }
   &:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -1px;
-    border-color: var(--color-accent);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-bottom-color: var(--color-accent);
   }
+  &:focus-visible { outline-color: var(--color-accent); }
 }
 
 // Utility classes (for TS-rendered HTML)
-.container { max-width: 720px; margin: 0 auto; padding: var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-6); }
+.container { max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-6); }
 .container > * { width: 100%; }
-.error     { color: var(--color-error); font-size: var(--text-sm); }
+.error     { color: var(--color-error); font-size: var(--step--1); }
 .loading   { color: var(--color-text-muted); }
 
 // Language dropdown
@@ -50,11 +54,11 @@ input, textarea, select {
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--step--1);
   cursor: pointer;
   &:hover { background: var(--color-surface-hover); }
 }
@@ -83,7 +87,7 @@ input, textarea, select {
   border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--color-text);
-  font-size: var(--text-sm);
+  font-size: var(--step--1);
   &:hover { background: var(--color-surface-hover); }
   &[aria-current='true'] {
     background: var(--color-accent-subtle);
@@ -91,54 +95,63 @@ input, textarea, select {
     font-weight: var(--weight-medium);
   }
 }
-.lang-dropdown__flag { font-size: 1.1em; line-height: 1; }
 
-// Component classes (shared between Astro components and TS islands)
-
-// Heading
+// Heading — Cormorant serif
 .heading {
+  font-family: var(--font-serif);
   line-height: var(--leading-tight);
-  font-weight: var(--weight-bold);
-  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
 }
-.heading--sm   { font-size: var(--text-lg); }
-.heading--md   { font-size: var(--text-xl); }
-.heading--lg   { font-size: var(--text-2xl); }
-.heading--xl   { font-size: var(--text-2xl); }
-.heading--2xl  { font-size: var(--text-3xl); }
-.heading--3xl  { font-size: var(--text-3xl); }
+.heading--sm   { font-size: var(--step-1); }
+.heading--md   { font-size: var(--step-2); }
+.heading--lg   { font-size: var(--step-2); }
+.heading--xl   { font-size: var(--step-3); }
+.heading--2xl  { font-size: var(--step-3); }
+.heading--3xl  { font-size: var(--step-4); }
 
-// Button
+// Button — engraved label
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font: inherit;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
   font-weight: var(--weight-medium);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
-.btn--md { padding: var(--space-2) var(--space-4); }
+.btn--sm { padding: 0.6em 1.2em; }
+.btn--md { padding: 0.85em 1.6em; }
 .btn--primary {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
   border-color: var(--color-accent);
-  &:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+  &:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); text-decoration: none; }
 }
 .btn--secondary {
   background: var(--color-surface);
   color: var(--color-text);
-  &:hover { background: var(--color-surface-hover); }
+  border-color: var(--color-border);
+  &:hover { background: var(--color-surface-hover); text-decoration: none; }
 }
 .btn--ghost {
   background: transparent;
   border-color: transparent;
   color: var(--color-text-muted);
-  &:hover { background: var(--color-surface-hover); color: var(--color-text); }
+  &:hover { border-color: var(--color-border-strong); color: var(--color-text); text-decoration: none; }
+}
+.btn--on-navy {
+  background: var(--color-inverse-accent);
+  color: var(--color-inverse-bg);
+  border-color: var(--color-inverse-accent);
+  &:hover { background: #fff; border-color: #fff; text-decoration: none; }
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -146,9 +159,19 @@ input, textarea, select {
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--space-6);
   box-shadow: var(--shadow-sm);
+}
+
+// Inverted deep-navy surface (hero, RSVP bookend)
+.surface--inverse {
+  background: var(--color-inverse-bg);
+  color: var(--color-inverse-text);
+  .heading, h1, h2, h3 { color: #fff; }
+  .field label { color: var(--color-inverse-accent); }
+  input, textarea, select { color: #fff; border-bottom-color: color-mix(in oklch, var(--color-inverse-accent) 40%, transparent); }
+  input:focus, textarea:focus, select:focus { border-bottom-color: var(--color-inverse-accent); }
 }
 
 // Field
@@ -156,14 +179,14 @@ input, textarea, select {
 .field__label {
   display: block;
   margin-bottom: var(--space-1);
-  font-size: var(--text-sm);
+  font-size: var(--step--1);
   font-weight: var(--weight-medium);
   color: var(--color-text);
 }
 
 // RSVP form layout
 .rsvp-form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
-.rsvp-form .intro { color: var(--color-text-muted); font-size: var(--text-sm); }
+.rsvp-form .intro { color: var(--color-text-muted); font-size: var(--step-0); }
 .rsvp-form .guests { display: flex; flex-direction: column; gap: var(--space-3); }
 .rsvp-form .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .guest-row {
@@ -174,16 +197,17 @@ input, textarea, select {
   flex-direction: column;
   gap: var(--space-2);
   legend {
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    color: var(--color-text);
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    font-weight: var(--weight-semibold);
+    color: var(--color-ink);
     padding: 0 var(--space-1);
   }
   label {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
-    font-size: var(--text-sm);
+    font-size: var(--step--1);
     color: var(--color-text-muted);
   }
   .checkbox {
@@ -191,6 +215,7 @@ input, textarea, select {
     align-items: center;
     gap: var(--space-2);
   }
+  .checkbox input { width: auto; }
 }
 .confirmed {
   text-align: center;
@@ -206,7 +231,7 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  font-size: var(--text-sm);
+  font-size: var(--step--1);
   color: var(--color-text-muted);
 }
 .admin-dashboard { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
@@ -218,7 +243,7 @@ input, textarea, select {
     padding: var(--space-2) var(--space-3);
     text-align: left;
     border-bottom: 1px solid var(--color-border);
-    font-size: var(--text-sm);
+    font-size: var(--step--1);
   }
   th {
     font-weight: var(--weight-medium);
@@ -236,13 +261,9 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  > span { font-size: var(--text-sm); color: var(--color-text-muted); }
+  > span { font-size: var(--step--1); color: var(--color-text-muted); }
 }
-.guest-name-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
+.guest-name-row { display: flex; gap: var(--space-2); align-items: center; }
 .guest-names-list { display: flex; flex-direction: column; gap: var(--space-2); }
 .form-actions { display: flex; gap: var(--space-2); }
 
@@ -256,3 +277,6 @@ input, textarea, select {
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fade-in 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
+}
