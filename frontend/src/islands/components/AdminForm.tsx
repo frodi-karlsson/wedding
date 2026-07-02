@@ -26,6 +26,18 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   const [maxPlus, setMaxPlus] = createSignal(String(form.max_plus));
   const [guestNames, setGuestNames] = createSignal<string[]>(form.guest_names.slice(1));
   const [linkLang, setLinkLang] = createSignal<Lang>(form.link_lang);
+  const [countError, setCountError] = createSignal('');
+
+  // Preset guest names are the "plus" guests, so their count must stay within
+  // [min_plus, max_plus]. Gate the add/remove controls accordingly.
+  const canAddName = () => {
+    const max = Number(maxPlus());
+    return !Number.isNaN(max) && guestNames().length < max;
+  };
+  const canRemoveName = () => {
+    const min = Number(minPlus());
+    return guestNames().length > (Number.isNaN(min) ? 0 : min);
+  };
 
   const heading = () =>
     translate(props.isCreate ? 'admin_new_invite' : 'admin_edit', props.lang);
@@ -33,10 +45,14 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
     translate(props.isCreate ? 'admin_create' : 'admin_save', props.lang);
 
   function addName() {
+    if (!canAddName()) return;
+    setCountError('');
     setGuestNames((prev) => [...prev, '']);
   }
 
   function removeName(index: number) {
+    if (!canRemoveName()) return;
+    setCountError('');
     setGuestNames((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -52,6 +68,17 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
     if (!trimmedName || Number.isNaN(min) || Number.isNaN(max) || min > max) return;
 
     const allNames = [trimmedName, ...guestNames().filter((n) => n.trim().length > 0)];
+    const plusCount = allNames.length - 1;
+    if (plusCount < min || plusCount > max) {
+      setCountError(
+        translate('admin_guest_count_error', props.lang)
+          .replace('{min}', String(min))
+          .replace('{max}', String(max)),
+      );
+      return;
+    }
+    setCountError('');
+
     props.onSubmit({
       id: props.form.id,
       name: trimmedName,
@@ -113,6 +140,7 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
                 <button
                   type="button"
                   class="btn btn--ghost btn--sm"
+                  disabled={!canRemoveName()}
                   onClick={() => removeName(index)}
                 >
                   {translate('admin_remove_name', props.lang)}
@@ -121,7 +149,12 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
             )}
           </Index>
         </div>
-        <button type="button" class="btn btn--secondary btn--sm" onClick={addName}>
+        <button
+          type="button"
+          class="btn btn--secondary btn--sm"
+          disabled={!canAddName()}
+          onClick={addName}
+        >
           {translate('admin_add_name', props.lang)}
         </button>
       </div>
@@ -135,7 +168,9 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
           </select>
         </label>
       )}
-      {props.formError && <p class="error">{props.formError}</p>}
+      {(countError() || props.formError) && (
+        <p class="error">{countError() || props.formError}</p>
+      )}
       <div class="form-actions">
         <button type="submit" class="btn btn--primary btn--md">{submitLabel()}</button>
         <button type="button" class="btn btn--ghost btn--md" onClick={() => props.onCancel()}>

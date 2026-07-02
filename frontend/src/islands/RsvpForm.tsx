@@ -151,12 +151,19 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
                     lang={lang}
                     onRemove={onRemoveGuest}
                     onUpdate={onUpdateGuest}
-                    message={state().message}
-                    onMessageInput={onMessageInput}
                   />
                 )}
               </Index>
             </div>
+            <label class="rsvp-message">
+              <span>{translate('message_label', lang)}</span>
+              <textarea
+                maxlength="1000"
+                rows="4"
+                value={state().message}
+                onInput={(e) => onMessageInput(e.currentTarget.value)}
+              />
+            </label>
             <div class="actions">
               <Show when={canAdd()}>
                 <button
