@@ -24,11 +24,13 @@
     "anabranch": "^0",
     "astro": "^7",
     "eslint-plugin-solid": "^0.14.5",
+    "leaflet": "^1.9.4",
     "sharp": "^0",
     "solid-js": "^1.9.13"
   },
   "devDependencies": {
     "@astrojs/check": "^0",
+    "@types/leaflet": "^1.9.21",
     "eslint": "^10",
     "eslint-plugin-astro": "^2",
     "eslint-plugin-vitest": "^0",

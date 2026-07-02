@@ -90,5 +90,7 @@
   "admin_submission": "Submission",
   "admin_not_submitted": "Not submitted yet",
   "admin_no_message": "No message",
-  "admin_back": "Back"
+  "admin_back": "Back",
+  "location_open_maps": "Open in Google Maps",
+  "location_map_aria": "Map of the wedding venues in Lund"
 }

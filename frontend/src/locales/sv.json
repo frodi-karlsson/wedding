@@ -90,5 +90,7 @@
   "admin_submission": "Svar",
   "admin_not_submitted": "Inte svarat än",
   "admin_no_message": "Inget meddelande",
-  "admin_back": "Tillbaka"
+  "admin_back": "Tillbaka",
+  "location_open_maps": "Öppna i Google Maps",
+  "location_map_aria": "Karta över bröllopsplatserna i Lund"
 }

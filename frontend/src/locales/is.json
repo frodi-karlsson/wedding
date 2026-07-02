@@ -90,5 +90,7 @@
   "admin_submission": "Innsent svar",
   "admin_not_submitted": "Ekki svarað enn",
   "admin_no_message": "Engin skilaboð",
-  "admin_back": "Til baka"
+  "admin_back": "Til baka",
+  "location_open_maps": "Opna í Google Maps",
+  "location_map_aria": "Kort af brúðkaupsstöðunum í Lundi"
 }

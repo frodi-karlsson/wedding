@@ -90,5 +90,7 @@
   "admin_submission": "Antwort",
   "admin_not_submitted": "Noch nicht geantwortet",
   "admin_no_message": "Keine Nachricht",
-  "admin_back": "Zurück"
+  "admin_back": "Zurück",
+  "location_open_maps": "In Google Maps öffnen",
+  "location_map_aria": "Karte der Hochzeitsorte in Lund"
 }

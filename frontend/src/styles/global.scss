@@ -107,6 +107,32 @@ input, textarea, select {
   }
 }
 
+// Venue map (Leaflet island in the location section)
+.venue-map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+.venue-map {
+  height: clamp(280px, 45vh, 420px);
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  isolation: isolate; // contain Leaflet's internal z-indexes below the sticky navbar
+}
+.venue-map__cta { align-self: flex-start; }
+.map-pin__dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(27 46 74 / 0.5);
+}
+
 // Heading — Cormorant serif
 .heading {
   font-family: var(--font-serif);

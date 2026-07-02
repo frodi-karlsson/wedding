@@ -1,6 +1,7 @@
 ---
 import { translate, type Lang } from '../scripts/i18n';
 import RsvpForm from './RsvpForm.astro';
+import LocationMap from '../islands/LocationMap';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -46,6 +47,7 @@ const contacts = [
         <p class="venue-addr">{translate('location_reception_addr', lang)}</p>
       </div>
     </div>
+    <LocationMap client:only="solid-js" lang={lang} />
   </div>
 </section>
 
