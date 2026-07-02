@@ -1,18 +1,26 @@
 ---
-import { Image } from 'astro:assets';
+import BlurredImage from './BlurredImage.astro';
 import heroImg from '../assets/carla-frodi-hero.jpg';
 import { translate, type Lang } from '../scripts/i18n';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const heroImgPath = resolve('src/assets/carla-frodi-hero.jpg');
+const heroImgBuffer = await readFile(heroImgPath);
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
 <header class="hero surface--inverse">
   <div class="hero__media">
-    <Image
+    <BlurredImage
       src={heroImg}
+      lqipBuffer={heroImgBuffer}
       alt="Carla and Fróði"
       widths={[600, 900, 1200]}
       sizes="(max-width: 760px) 100vw, 50vw"
+      loading="eager"
+      fetchpriority="high"
       class="hero__img"
     />
   </div>
@@ -34,11 +42,13 @@ const { lang } = Astro.props;
   .hero__img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+  }
+  .hero__img .blurred-image__img {
     object-position: 50% 22%;
-    display: block;
   }
   .hero__panel {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -79,6 +89,7 @@ const { lang } = Astro.props;
     .hero__panel {
       position: absolute;
       inset: auto 0 0 0;
+      z-index: 2;
       justify-content: flex-end;
       gap: var(--space-3);
       padding: var(--space-8) clamp(1.5rem, 6vw, 2.5rem) var(--space-6);

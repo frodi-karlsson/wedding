@@ -1,5 +1,7 @@
 ---
 import LangPicker from './LangPicker.astro';
+import { NavToggle } from '../islands/NavToggle';
+import { InviteeView } from '../islands/InviteeView';
 import { translate, type Lang } from '../scripts/i18n';
 
 interface Props { lang: Lang; }
@@ -38,14 +40,18 @@ const links = [
           <a href={href} class="nav__link" data-nav-link>{translate(key, lang)}</a>
         </li>
       ))}
-      <li hidden data-rsvp-navlink>
-        <a href="#rsvp" class="nav__link nav__link--rsvp" data-nav-link>{translate('nav_rsvp', lang)}</a>
-      </li>
+      <InviteeView client:only="solid-js">
+        <li>
+          <a href="#rsvp" class="nav__link nav__link--rsvp" data-nav-link>{translate('nav_rsvp', lang)}</a>
+        </li>
+      </InviteeView>
     </ul>
     <div class="nav__lang">
       <LangPicker lang={lang} />
     </div>
   </div>
+
+  <NavToggle client:load />
 </nav>
 
 <style>
@@ -99,11 +105,15 @@ const links = [
   }
 
   /* Dot separators between header items */
-  .nav__links li + li::before {
+  .nav__links li::before {
     content: "·";
     margin-inline: var(--space-3);
     opacity: 0.45;
     color: inherit;
+  }
+
+  .nav__links > li:first-child::before {
+    content: none;
   }
 
   .nav__link {
@@ -223,53 +233,10 @@ const links = [
       letter-spacing: 0.01em;
     }
 
-    .nav__links li + li::before {
+    .nav__links li::before {
       display: none;
     }
   }
 </style>
 
-<script>
-  const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
-  const panel = document.querySelector<HTMLElement>('[data-nav-panel]');
 
-  // ── RSVP link: reveal only when ?id param is present ────────────
-  if (new URLSearchParams(location.search).get('id')) {
-    document.querySelectorAll<HTMLElement>('[data-rsvp-navlink]').forEach((el) => {
-      el.hidden = false;
-    });
-  }
-
-  // ── Hamburger toggle ─────────────────────────────────────────────
-  function openMenu() {
-    panel?.setAttribute('data-open', '');
-    toggle?.setAttribute('aria-expanded', 'true');
-    toggle?.setAttribute('aria-label', 'Close navigation menu');
-  }
-
-  function closeMenu() {
-    panel?.removeAttribute('data-open');
-    toggle?.setAttribute('aria-expanded', 'false');
-    toggle?.setAttribute('aria-label', 'Open navigation menu');
-  }
-
-  toggle?.addEventListener('click', () => {
-    if (panel?.hasAttribute('data-open')) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  });
-
-  // Close menu when any nav link is clicked
-  panel?.querySelectorAll<HTMLAnchorElement>('[data-nav-link]').forEach((link) => {
-    link.addEventListener('click', closeMenu);
-  });
-
-  // Close on Escape
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && panel?.hasAttribute('data-open')) {
-      closeMenu();
-    }
-  });
-</script>

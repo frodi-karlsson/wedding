@@ -1,5 +1,5 @@
 import { test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/admin';
+import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/admin.service';
 import type { GuestResponse, InviteResponse } from '../src/scripts/types.gen';
 
 beforeEach(() => {

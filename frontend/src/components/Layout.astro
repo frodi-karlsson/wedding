@@ -34,6 +34,16 @@ const { title, lang } = Astro.props;
     <Container>
       <slot />
     </Container>
+    <script>
+      import { scrollToFragment } from '../scripts/nav';
+
+      if (globalThis.location.hash) {
+        // Defer until after hydration so client-only islands have populated.
+        requestAnimationFrame(() => {
+          scrollToFragment(globalThis.location.hash);
+        });
+      }
+    </script>
   </body>
 </html>
 

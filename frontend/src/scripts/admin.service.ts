@@ -1,0 +1,59 @@
+import type { Lang } from './i18n';
+import type { GuestResponse, InviteResponse } from './types.gen';
+
+export interface InviteForm {
+  id?: string;
+  name: string;
+  min_plus: number;
+  max_plus: number;
+  guest_names: string[];
+  link_lang: Lang;
+}
+
+export type AdminView = 'login' | 'dashboard' | 'form';
+
+export interface AdminState {
+  view: AdminView;
+  lang: Lang;
+  invites: InviteResponse[];
+  error?: string;
+  formError?: string;
+  form?: InviteForm;
+}
+
+export function buildShareLink(id: string, lang: Lang): string {
+  const prefix = lang === 'en' ? '' : lang;
+  return `${globalThis.location.origin}/${prefix}?id=${id}`;
+}
+
+export function createEmptyForm(lang: Lang): InviteForm {
+  return {
+    name: '',
+    min_plus: 0,
+    max_plus: 1,
+    guest_names: [''],
+    link_lang: lang,
+  };
+}
+
+export function formFromInvite(
+  invite: InviteResponse,
+  guests: GuestResponse[],
+  lang: Lang,
+): InviteForm {
+  const names =
+    guests.length > 0
+      ? guests
+          .slice()
+          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+          .map((g) => g.name)
+      : [invite.name];
+  return {
+    id: invite.id,
+    name: invite.name,
+    min_plus: invite.min_plus,
+    max_plus: invite.max_plus,
+    guest_names: names,
+    link_lang: lang,
+  };
+}

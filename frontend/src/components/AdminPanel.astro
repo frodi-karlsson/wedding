@@ -1,14 +1,7 @@
 ---
+import AdminPanel from '../islands/AdminPanel';
 import type { Lang } from '../scripts/i18n';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
-<div id="admin-root" data-lang={lang}></div>
-<script type="module">
-  const root = document.getElementById('admin-root');
-  if (root) {
-    const { mountAdmin } = await import('../scripts/admin');
-    const lang = /** @type {import('../scripts/i18n').Lang} */ (root.dataset.lang);
-    mountAdmin(root, lang);
-  }
-</script>
+<AdminPanel client:only="solid-js" lang={lang} />

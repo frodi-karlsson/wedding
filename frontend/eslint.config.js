@@ -1,6 +1,7 @@
 import tseslint from 'typescript-eslint';
 import astro from 'eslint-plugin-astro';
 import vitest from 'eslint-plugin-vitest';
+import solid from 'eslint-plugin-solid';
 
 const windowBan = [
   'error',
@@ -25,7 +26,11 @@ export default [
   ...tseslint.configs.recommended,
   ...astro.configs.recommended,
   {
-    files: ['**/*.{js,ts,astro}'],
+    files: ['**/*.tsx'],
+    ...solid.configs['flat/recommended'],
+  },
+  {
+    files: ['**/*.{js,ts,tsx,astro}'],
     rules: {
       'no-restricted-globals': windowBan,
       'no-restricted-syntax': windowMemberBan,
@@ -38,7 +43,7 @@ export default [
     },
   },
   {
-    files: ['**/*.test.ts', 'tests/**'],
+    files: ['**/*.test.{ts,tsx}', 'tests/**'],
     ...vitest.configs.recommended,
     rules: {
       ...vitest.configs.recommended.rules,
