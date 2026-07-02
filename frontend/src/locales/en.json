@@ -14,8 +14,6 @@
   "thank_you": "Thank you!",
   "thank_you_body": "Your RSVP has been submitted. See you at the wedding!",
   "load_error": "Could not load your invitation. Please check your link.",
-  "no_id_error": "No invitation ID found. Please use the link from your invitation.",
-  "rsvp_error_title": "Oops! Something went wrong",
   "submit_error": "Submission failed. Please try again.",
   "name_label": "Name",
   "name_you_label": "Name (you)",

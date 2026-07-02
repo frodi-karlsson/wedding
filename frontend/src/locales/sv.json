@@ -34,8 +34,6 @@
   "min_clause": " (minst {min})",
   "name_label": "Namn",
   "name_you_label": "Namn (du)",
-  "no_id_error": "Ingen inbjudnings-ID hittades. Vänligen använd länken från din inbjudan.",
-  "rsvp_error_title": "Oj! Något gick fel",
   "remove_guest": "Ta bort",
   "rsvp_intro_one": "Berätta för oss vilka som kommer. Du kan ta med dig upp till {max} gäst{min_clause}.",
   "rsvp_intro_other": "Berätta för oss vilka som kommer. Du kan ta med dig upp till {max} gäster{min_clause}.",

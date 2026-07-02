@@ -34,8 +34,6 @@
   "min_clause": " (að minnsta kosti {min})",
   "name_label": "Nafn",
   "name_you_label": "Nafn (þú)",
-  "no_id_error": "Ekkert boðskortaauðkenni fannst. Vinsamlegast notaðu hlekkinn úr boðskortinu þínu.",
-  "rsvp_error_title": "Ónei! Eitthvað fór úrskeiðis",
   "remove_guest": "Fjarlægja",
   "rsvp_intro_one": "Segðu okkur hverjir koma. Þú getur tekið með þér allt að {max} gesti{min_clause}.",
   "rsvp_intro_other": "Segðu okkur hverjir koma. Þú getur tekið með þér allt að {max} gestum{min_clause}.",

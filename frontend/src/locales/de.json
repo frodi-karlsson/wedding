@@ -34,8 +34,6 @@
   "min_clause": " (mindestens {min})",
   "name_label": "Name",
   "name_you_label": "Name (du)",
-  "no_id_error": "Keine Einladungs-ID gefunden. Bitte benutze den Link aus deiner Einladung.",
-  "rsvp_error_title": "Hoppla! Etwas ist schiefgelaufen",
   "remove_guest": "Entfernen",
   "rsvp_intro_one": "Sag uns, wer kommt. Du kannst bis zu {max} Gast mitbringen{min_clause}.",
   "rsvp_intro_other": "Sag uns, wer kommt. Du kannst bis zu {max} Gäste mitbringen{min_clause}.",
