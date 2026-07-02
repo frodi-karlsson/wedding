@@ -77,5 +77,12 @@
   "submit_error": "Det gick inte att skicka. Vänligen försök igen.",
   "submitting": "Skickar…",
   "thank_you": "Tack!",
-  "thank_you_body": "Ditt svar har skickats. Vi ses på bröllopet!"
+  "thank_you_body": "Ditt svar har skickats. Vi ses på bröllopet!",
+  "nav_welcome": "Welcome",
+  "nav_location": "Location",
+  "nav_dress": "Dress code",
+  "nav_speeches": "Speeches",
+  "nav_gifts": "Gifts",
+  "nav_contact": "Contact",
+  "nav_rsvp": "RSVP"
 }

@@ -77,5 +77,12 @@
   "submit_error": "Sending mistókst. Vinsamlegast reyndu aftur.",
   "submitting": "Sendir…",
   "thank_you": "Takk fyrir!",
-  "thank_you_body": "Svarið þitt hefur verið sent. Sjáumst á brúðkaupinu!"
+  "thank_you_body": "Svarið þitt hefur verið sent. Sjáumst á brúðkaupinu!",
+  "nav_welcome": "Welcome",
+  "nav_location": "Location",
+  "nav_dress": "Dress code",
+  "nav_speeches": "Speeches",
+  "nav_gifts": "Gifts",
+  "nav_contact": "Contact",
+  "nav_rsvp": "RSVP"
 }
