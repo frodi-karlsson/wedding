@@ -37,28 +37,61 @@ input, textarea, select {
 }
 
 // Utility classes (for TS-rendered HTML)
-.container { max-width: 720px; margin: 0 auto; padding: var(--space-4); }
+.container { max-width: 720px; margin: 0 auto; padding: var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-6); }
+.container > * { width: 100%; }
 .error     { color: var(--color-error); font-size: var(--text-sm); }
 .loading   { color: var(--color-text-muted); }
 
-// Lang picker
-.lang-picker {
+// Language dropdown
+.lang-dropdown { position: relative; width: auto; align-self: flex-end; }
+.lang-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  &:hover { background: var(--color-surface-hover); }
+}
+.lang-dropdown__flag { font-size: 1.1em; line-height: 1; }
+.lang-dropdown__chevron { opacity: 0.6; transition: transform 0.15s; }
+.lang-dropdown__trigger[aria-expanded='true'] .lang-dropdown__chevron { transform: rotate(180deg); }
+.lang-dropdown__menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  list-style: none;
+  padding: var(--space-1);
+  margin: 0;
+  min-width: 160px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+.lang-dropdown__item {
   display: flex;
-  gap: var(--space-1);
-  justify-content: flex-end;
-  margin-bottom: var(--space-4);
-  a {
-    text-decoration: none;
-    color: var(--color-text-muted);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
-    &:hover, &[aria-current='true'] {
-      background: var(--color-surface-hover);
-      color: var(--color-text);
-    }
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  &:hover { background: var(--color-surface-hover); }
+  &[aria-current='true'] {
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+    font-weight: var(--weight-medium);
   }
 }
+.lang-dropdown__flag { font-size: 1.1em; line-height: 1; }
 
 // Component classes (shared between Astro components and TS islands)
 
@@ -129,7 +162,7 @@ input, textarea, select {
 }
 
 // RSVP form layout
-.rsvp-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.rsvp-form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
 .rsvp-form .intro { color: var(--color-text-muted); font-size: var(--text-sm); }
 .rsvp-form .guests { display: flex; flex-direction: column; gap: var(--space-3); }
 .rsvp-form .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
@@ -164,10 +197,11 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  width: 100%;
 }
 
 // Admin layout
-.admin-login { display: flex; flex-direction: column; gap: var(--space-4); max-width: 360px; }
+.admin-login { display: flex; flex-direction: column; gap: var(--space-4); max-width: 360px; width: 100%; }
 .admin-login label, .admin-form label {
   display: flex;
   flex-direction: column;
@@ -175,7 +209,7 @@ input, textarea, select {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
-.admin-dashboard { display: flex; flex-direction: column; gap: var(--space-4); }
+.admin-dashboard { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
 .admin-dashboard .toolbar { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .admin-table {
   width: 100%;
@@ -197,7 +231,7 @@ input, textarea, select {
     .link-lang { width: auto; flex: 0 0 auto; }
   }
 }
-.admin-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.admin-form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
 .admin-form .guest-names {
   display: flex;
   flex-direction: column;
@@ -211,3 +245,8 @@ input, textarea, select {
 }
 .guest-names-list { display: flex; flex-direction: column; gap: var(--space-2); }
 .form-actions { display: flex; gap: var(--space-2); }
+
+.admin-heading { text-align: center; }
+.rsvp-heading { text-align: center; }
+#admin-root { display: flex; flex-direction: column; align-items: center; width: 100%; }
+#rsvp-root { display: flex; flex-direction: column; align-items: center; width: 100%; }

@@ -41,6 +41,26 @@ test('should fall back to the key when it is missing in all locales', () => {
   expect(result).toBe('nonexistent_key_xyz');
 });
 
+test('should select the singular variant for count 1', () => {
+  const result = translate('rsvp_intro', 'en', 1);
+
+  expect(result).toContain('{max} guest{min_clause}');
+});
+
+test('should select the plural variant for count 2', () => {
+  const result = translate('rsvp_intro', 'en', 2);
+
+  expect(result).toContain('{max} guests{min_clause}');
+});
+
+test('should apply language-specific plural rules (Icelandic dative sg vs pl)', () => {
+  // Icelandic plural category "one" applies to 1, 21, 31… (singular agreement),
+  // "other" to everything else — Intl.PluralRules encodes this.
+  expect(translate('rsvp_intro', 'is', 1)).toContain('gesti{min_clause}');
+  expect(translate('rsvp_intro', 'is', 21)).toContain('gesti{min_clause}');
+  expect(translate('rsvp_intro', 'is', 2)).toContain('gestum{min_clause}');
+});
+
 test('should return en for the root path', () => {
   const result = langFromPath('/');
 

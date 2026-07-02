@@ -8,6 +8,6 @@ interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
 <Layout title={translate('admin_title', lang)} lang={lang}>
-  <Heading size="xl">{translate('admin_title', lang)}</Heading>
+  <Heading size="xl" class="admin-heading">{translate('admin_title', lang)}</Heading>
   <AdminPanel lang={lang} />
 </Layout>

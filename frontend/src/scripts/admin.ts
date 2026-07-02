@@ -84,7 +84,6 @@ function renderLogin(root: HTMLElement, state: AdminState): void {
   const error = state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : '';
   root.innerHTML = `
     <form class="admin-login card" data-action="login">
-      <h2 class="heading heading--md">${escapeHtml(translate('admin_title', state.lang))}</h2>
       <label>
         <span>${escapeHtml(translate('admin_password_label', state.lang))}</span>
         <input type="password" name="password" required>

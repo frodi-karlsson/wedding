@@ -113,7 +113,7 @@ export function render(root: HTMLElement, state: RsvpState): void {
           translate('min_clause', lang).replace('{min}', String(state.invite.min_plus)),
         )
       : '';
-  const intro = escapeHtml(translate('rsvp_intro', lang))
+  const intro = escapeHtml(translate('rsvp_intro', lang, state.invite.max_plus))
     .replace('{max}', String(state.invite.max_plus))
     .replace('{min_clause}', minClause);
 
