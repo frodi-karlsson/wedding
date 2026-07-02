@@ -387,6 +387,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
   });
 
   render(root, state);
+  root.classList.add('fade-in');
 
   try {
     const response = await api.listInvites().run();

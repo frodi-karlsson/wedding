@@ -1,11 +1,9 @@
 ---
-import { translate, type Lang } from '../scripts/i18n';
+import type { Lang } from '../scripts/i18n';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
-<div id="admin-root" data-lang={lang}>
-  <p class="loading">{translate('loading', lang)}</p>
-</div>
+<div id="admin-root" data-lang={lang}></div>
 <script type="module">
   const root = document.getElementById('admin-root');
   if (root) {

@@ -8,6 +8,6 @@ interface Props { lang: Lang; }
 const { lang } = Astro.props;
 ---
 <Layout title={translate('site_title', lang)} lang={lang}>
-  <Heading size="2xl" class="rsvp-heading" data-rsvp-heading>{translate('rsvp_title', lang)}</Heading>
+  <Heading size="2xl" class="rsvp-heading" data-rsvp-heading hidden>{translate('rsvp_title', lang)}</Heading>
   <RsvpForm lang={lang} />
 </Layout>

@@ -250,3 +250,9 @@ input, textarea, select {
 .rsvp-heading { text-align: center; }
 #admin-root { display: flex; flex-direction: column; align-items: center; width: 100%; }
 #rsvp-root { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(var(--space-1)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.2s ease-out; }

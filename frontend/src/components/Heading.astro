@@ -3,9 +3,10 @@ interface Props {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   class?: string;
+  [key: string]: unknown;
 }
-const { size = 'xl', tag: Tag = 'h1', class: className } = Astro.props;
+const { size = 'xl', tag: Tag = 'h1', class: className, ...rest } = Astro.props;
 ---
-<Tag class:list={["heading", `heading--${size}`, className]}>
+<Tag class:list={["heading", `heading--${size}`, className]} {...rest}>
   <slot />
 </Tag>

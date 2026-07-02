@@ -245,6 +245,7 @@ export async function mountRsvpForm(root: HTMLElement, inviteId: string, lang: L
   });
 
   render(root, state);
+  root.classList.add('fade-in');
 
   try {
     const response = await api.getInvite(inviteId).run();
