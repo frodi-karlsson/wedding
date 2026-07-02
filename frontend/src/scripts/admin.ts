@@ -4,7 +4,7 @@ import type { GuestResponse, InviteResponse } from './types.gen';
 import { escapeHtml } from './html';
 
 export interface InviteForm {
-  id?: number;
+  id?: string;
   name: string;
   min_plus: number;
   max_plus: number;
@@ -23,7 +23,7 @@ export interface AdminState {
   form?: InviteForm;
 }
 
-export function buildShareLink(id: number, lang: Lang): string {
+export function buildShareLink(id: string, lang: Lang): string {
   const prefix = lang === 'en' ? '' : lang;
   return `${globalThis.location.origin}/${prefix}?id=${id}`;
 }
@@ -282,7 +282,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
   root.addEventListener('click', async (event) => {
     const target = event.target as HTMLElement;
     const action = target.dataset.action;
-    const id = Number(target.dataset.id);
+    const id = target.dataset.id;
 
     switch (action) {
       case 'new-invite': {
@@ -324,6 +324,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
         break;
       }
       case 'edit': {
+        if (!id) break;
         try {
           const response = await api.getAdminInvite(id).run();
           update({
@@ -338,6 +339,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
         break;
       }
       case 'delete': {
+        if (!id) break;
         if (globalThis.confirm(translate('admin_delete_confirm', state.lang))) {
           try {
             await api.deleteInvite(id).run();
@@ -349,6 +351,7 @@ export async function mountAdmin(root: HTMLElement, lang: Lang): Promise<void> {
         break;
       }
       case 'copy-link': {
+        if (!id) break;
         const select = root.querySelector(`select.link-lang[data-id="${id}"]`) as HTMLSelectElement | null;
         const linkLang = (select?.value as Lang) ?? state.lang;
         const link = buildShareLink(id, linkLang);

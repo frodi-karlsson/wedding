@@ -11,7 +11,7 @@ const { lang } = Astro.props;
   if (root) {
     const { mountRsvpForm } = await import('../scripts/rsvp-form');
     const lang = /** @type {import('../scripts/i18n').Lang} */ (root.dataset.lang);
-    const id = Number(new URLSearchParams(globalThis.location.search).get('id'));
+    const id = new URLSearchParams(globalThis.location.search).get('id');
     if (id) mountRsvpForm(root, id, lang);
   }
 </script>

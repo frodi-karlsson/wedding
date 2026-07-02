@@ -7,27 +7,31 @@ import type {
   InviteWithGuestsResponse,
   ListInvitesResponse,
   StatusResponse,
+  UpdateInviteRequest,
 } from './types.gen';
 
-const env = import.meta.env as unknown as ImportMetaEnv | undefined;
-const baseUrl = env?.PUBLIC_API_URL ?? 'http://localhost:8080';
+const baseUrl = import.meta.env.PUBLIC_API_URL;
+if (!baseUrl && import.meta.env.PROD) {
+  throw new Error('PUBLIC_API_URL is not set');
+}
+const resolvedBaseUrl = baseUrl ?? 'http://localhost:8080';
 
 const fetchWithCredentials: typeof globalThis.fetch = (input, init) =>
   globalThis.fetch(input, { ...init, credentials: 'include' });
 
 const client = WebClient.create()
-  .withBaseUrl(baseUrl)
+  .withBaseUrl(resolvedBaseUrl)
   .withTimeout(10_000)
   .withRetry({ attempts: 3 })
   .withHeaders({ 'Content-Type': 'application/json' })
   .withFetch(fetchWithCredentials);
 
 export const api = {
-  getInvite(id: number): Task<InviteWithGuestsResponse, HttpError> {
+  getInvite(id: string): Task<InviteWithGuestsResponse, HttpError> {
     return client.get(`invites/${id}`).map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  rsvp(id: number, guests: GuestInput[]): Task<InviteWithGuestsResponse, HttpError> {
+  rsvp(id: string, guests: GuestInput[]): Task<InviteWithGuestsResponse, HttpError> {
     return client
       .post(`invites/${id}/rsvp`, { guests })
       .map((r) => r.data as InviteWithGuestsResponse);
@@ -49,15 +53,15 @@ export const api = {
     return client.post('admin/invites', body).map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  getAdminInvite(id: number): Task<InviteWithGuestsResponse, HttpError> {
+  getAdminInvite(id: string): Task<InviteWithGuestsResponse, HttpError> {
     return client.get(`admin/invites/${id}`).map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  updateInvite(id: number, body: CreateInviteRequest): Task<InviteWithGuestsResponse, HttpError> {
+  updateInvite(id: string, body: UpdateInviteRequest): Task<InviteWithGuestsResponse, HttpError> {
     return client.put(`admin/invites/${id}`, body).map((r) => r.data as InviteWithGuestsResponse);
   },
 
-  deleteInvite(id: number): Task<void, HttpError> {
+  deleteInvite(id: string): Task<void, HttpError> {
     return client.delete(`admin/invites/${id}`).map(() => undefined);
   },
 };

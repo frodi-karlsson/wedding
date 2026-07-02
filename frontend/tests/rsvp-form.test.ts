@@ -10,7 +10,7 @@ import {
 } from '../src/scripts/rsvp-form';
 
 function mockInvite(overrides: Partial<InviteResponse> = {}): InviteResponse {
-  return { id: 1, name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, ...overrides };
+  return { id: '1', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, ...overrides };
 }
 
 function mockGuest(overrides: Partial<GuestResponse> = {}): GuestResponse {

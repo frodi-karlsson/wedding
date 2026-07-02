@@ -174,9 +174,9 @@ export function render(root: HTMLElement, state: RsvpState): void {
   `;
 }
 
-export async function mountRsvpForm(root: HTMLElement, inviteId: number, lang: Lang): Promise<void> {
+export async function mountRsvpForm(root: HTMLElement, inviteId: string, lang: Lang): Promise<void> {
   let state: RsvpState = {
-    invite: { id: 0, name: '', min_plus: 0, max_plus: 0, submitted: false },
+    invite: { id: '', name: '', min_plus: 0, max_plus: 0, submitted: false },
     guests: [],
     status: 'loading',
     lang,
