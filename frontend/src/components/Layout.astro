@@ -6,7 +6,9 @@ import '@fontsource/cormorant/500-italic.css';
 import '@fontsource/work-sans/400.css';
 import '@fontsource/work-sans/500.css';
 import cormorant600Url from '@fontsource/cormorant/files/cormorant-latin-600-normal.woff2?url';
+import cormorant500Url from '@fontsource/cormorant/files/cormorant-latin-500-normal.woff2?url';
 import workSans400Url from '@fontsource/work-sans/files/work-sans-latin-400-normal.woff2?url';
+import workSans500Url from '@fontsource/work-sans/files/work-sans-latin-500-normal.woff2?url';
 import LangPicker from './LangPicker.astro';
 import Container from './Container.astro';
 import type { Lang } from '../scripts/i18n';
@@ -21,7 +23,9 @@ const { title, lang } = Astro.props;
     <title>{title}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={cormorant600Url} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={cormorant500Url} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={workSans400Url} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={workSans500Url} as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div class="topbar"><LangPicker lang={lang} /></div>
