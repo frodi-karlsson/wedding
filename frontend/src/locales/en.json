@@ -9,7 +9,7 @@
   "welcome_title": "You are warmly welcome to our wedding",
   "welcome_when": "Saturday 3 April 2027 · starts at 15:00",
   "location_eyebrow": "Location",
-  "location_body":"We'll begin with a ceremony in Kulturens trädgård, then walk together to Tegnérs matsalar to continue the celebration. It's about a three-minute walk between the two.",
+  "location_body": "We'll begin with a ceremony in Kulturens trädgård, then walk together to Tegnérs matsalar to continue the celebration. It's about a three-minute walk between the two.",
   "location_ceremony_tag": "Ceremony",
   "location_ceremony_name": "Kulturens trädgård",
   "location_ceremony_addr": "Tegnérsplatsen 6, 223 50 Lund",
@@ -48,9 +48,10 @@
   "load_error": "Could not load your invitation. Please check your link.",
   "submit_error": "Submission failed. Please try again.",
   "name_label": "Name",
-  "name_you_label": "Name (you)",
+  "you_label": "You",
   "dietary_label": "Dietary preference (optional)",
   "alcohol_free_label": "Alcohol-free",
+  "message_label": "Message to the couple (optional)",
   "guest_label": "Guest",
   "admin_title": "Admin",
   "admin_password_label": "Password",
@@ -84,5 +85,10 @@
   "nav_speeches": "Speeches",
   "nav_gifts": "Gifts",
   "nav_contact": "Contact",
-  "nav_rsvp": "RSVP"
+  "nav_rsvp": "RSVP",
+  "admin_view": "View",
+  "admin_submission": "Submission",
+  "admin_not_submitted": "Not submitted yet",
+  "admin_no_message": "No message",
+  "admin_back": "Back"
 }
