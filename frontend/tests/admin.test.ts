@@ -35,7 +35,7 @@ test('should create an empty form with the given language', () => {
 });
 
 test('should derive the primary guest name from the invite when no guests exist', () => {
-  const invite: InviteResponse = { id: '5', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false };
+  const invite: InviteResponse = { id: '5', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, message: '' };
 
   const result = formFromInvite(invite, [], 'en');
 
@@ -44,7 +44,7 @@ test('should derive the primary guest name from the invite when no guests exist'
 });
 
 test('should sort guest names with the primary guest first', () => {
-  const invite: InviteResponse = { id: '6', name: 'Ada', min_plus: 1, max_plus: 3, submitted: false };
+  const invite: InviteResponse = { id: '6', name: 'Ada', min_plus: 1, max_plus: 3, submitted: false, message: '' };
   const guests: GuestResponse[] = [
     { id: 2, name: 'Bob', dietary_preference: '', alcohol_free: false, is_primary: false },
     { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true },

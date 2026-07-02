@@ -11,6 +11,7 @@ interface AdminDashboardProps {
   invites: InviteResponse[];
   onNewInvite: () => void;
   onLogout: () => void;
+  onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onCopyLink: (id: string, lang: Lang, button: HTMLButtonElement) => void;
@@ -68,6 +69,13 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
                     }}
                   >
                     {translate('admin_copy_link', props.lang)}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--ghost btn--sm"
+                    onClick={() => props.onView(invite.id)}
+                  >
+                    {translate('admin_view', props.lang)}
                   </button>
                   <button
                     type="button"

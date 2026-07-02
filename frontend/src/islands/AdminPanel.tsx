@@ -11,6 +11,7 @@ import {
 } from '../scripts/admin.service';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AdminSubmission } from './components/AdminSubmission';
 import { AdminForm } from './components/AdminForm';
 
 export function AdminPanel(props: { lang: Lang }): JSX.Element {
@@ -69,6 +70,20 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
       // ignore logout errors
     }
     setState((prev) => ({ ...prev, view: 'login', invites: [], error: undefined }));
+  }
+
+  async function onView(id: string): Promise<void> {
+    try {
+      const response = await api.getAdminInvite(id).run();
+      setState((prev) => ({
+        ...prev,
+        view: 'submission',
+        viewInvite: response.invite,
+        viewGuests: response.guests,
+      }));
+    } catch {
+      // ignore load error
+    }
   }
 
   async function onEdit(id: string): Promise<void> {
@@ -147,10 +162,23 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
             invites={state().invites}
             onNewInvite={onNewInvite}
             onLogout={onLogout}
+            onView={onView}
             onEdit={onEdit}
             onDelete={onDelete}
             onCopyLink={onCopyLink}
           />
+        </Match>
+        <Match when={state().view === 'submission'}>
+          <Show when={state().viewInvite}>
+            {(invite) => (
+              <AdminSubmission
+                lang={state().lang}
+                invite={invite()}
+                guests={state().viewGuests ?? []}
+                onBack={() => { refreshDashboard(); }}
+              />
+            )}
+          </Show>
         </Match>
         <Match when={state().view === 'form'}>
           <Show when={state().form}>
