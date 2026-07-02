@@ -194,6 +194,7 @@ input, textarea, select {
     display: flex;
     gap: var(--space-1);
     align-items: center;
+    .link-lang { width: auto; flex: 0 0 auto; }
   }
 }
 .admin-form { display: flex; flex-direction: column; gap: var(--space-4); }

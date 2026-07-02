@@ -109,9 +109,9 @@ function renderDashboard(root: HTMLElement, state: AdminState): void {
           <td><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></td>
           <td class="actions">
             <select class="link-lang" data-id="${invite.id}">${langOptions(state.lang)}</select>
-            <button type="button" data-action="copy-link" data-id="${invite.id}">${escapeHtml(translate('admin_copy_link', state.lang))}</button>
-            <button type="button" data-action="edit" data-id="${invite.id}">${escapeHtml(translate('admin_edit', state.lang))}</button>
-            <button type="button" data-action="delete" data-id="${invite.id}">${escapeHtml(translate('admin_delete', state.lang))}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="copy-link" data-id="${invite.id}">${escapeHtml(translate('admin_copy_link', state.lang))}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="edit" data-id="${invite.id}">${escapeHtml(translate('admin_edit', state.lang))}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="delete" data-id="${invite.id}">${escapeHtml(translate('admin_delete', state.lang))}</button>
           </td>
         </tr>
       `;
