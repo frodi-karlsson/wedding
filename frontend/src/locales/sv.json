@@ -41,6 +41,8 @@
   "rsvp_intro_other": "Berätta för oss vilka som kommer. Du kan ta med dig upp till {max} gäster{min_clause}.",
   "rsvp_title": "Du är inbjuden!",
   "site_title": "Carla & Fróði",
+  "hero_coming_soon": "Kommer snart",
+  "hero_date": "April 2027",
   "submit": "Skicka svar",
   "submit_error": "Det gick inte att skicka. Vänligen försök igen.",
   "submitting": "Skickar…",

@@ -41,6 +41,8 @@
   "rsvp_intro_other": "Segðu okkur hverjir koma. Þú getur tekið með þér allt að {max} gestum{min_clause}.",
   "rsvp_title": "Þér er boðið!",
   "site_title": "Carla & Fróði",
+  "hero_coming_soon": "Væntanlegt",
+  "hero_date": "Apríl 2027",
   "submit": "Senda svar",
   "submit_error": "Sending mistókst. Vinsamlegast reyndu aftur.",
   "submitting": "Sendir…",

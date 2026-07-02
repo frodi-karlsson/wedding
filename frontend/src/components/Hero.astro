@@ -17,8 +17,10 @@ const { lang } = Astro.props;
     />
   </div>
   <div class="hero__panel">
+    <p class="hero__eyebrow">{translate('hero_coming_soon', lang)}</p>
     <h1 class="hero__names">{translate('site_title', lang)}</h1>
     <span class="hero__rule"></span>
+    <p class="hero__date">{translate('hero_date', lang)}</p>
   </div>
 </header>
 
@@ -52,6 +54,19 @@ const { lang } = Astro.props;
     color: #fff;
   }
   .hero__rule { width: 56px; height: 2px; background: var(--color-inverse-accent); }
+  .hero__eyebrow {
+    font-family: var(--font-sans);
+    font-weight: var(--weight-medium);
+    font-size: var(--step--1);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-inverse-muted);
+  }
+  .hero__date {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    color: var(--color-inverse-text);
+  }
 
   @media (max-width: 760px) {
     .hero {

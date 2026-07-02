@@ -41,6 +41,8 @@
   "rsvp_intro_other": "Sag uns, wer kommt. Du kannst bis zu {max} Gäste mitbringen{min_clause}.",
   "rsvp_title": "Du bist eingeladen!",
   "site_title": "Carla & Fróði",
+  "hero_coming_soon": "Demnächst",
+  "hero_date": "April 2027",
   "submit": "Antwort absenden",
   "submit_error": "Senden fehlgeschlagen. Bitte versuche es noch einmal.",
   "submitting": "Wird gesendet…",
