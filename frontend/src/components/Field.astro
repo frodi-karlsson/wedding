@@ -1,0 +1,8 @@
+---
+interface Props { label: string; for: string; class?: string; }
+const { label, for: htmlFor, class: className } = Astro.props;
+---
+<div class:list={["field", className]}>
+  <label for={htmlFor} class="field__label">{label}</label>
+  <slot />
+</div>

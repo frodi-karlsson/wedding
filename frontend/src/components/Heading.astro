@@ -1,0 +1,11 @@
+---
+interface Props {
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  tag?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  class?: string;
+}
+const { size = 'xl', tag: Tag = 'h1', class: className } = Astro.props;
+---
+<Tag class:list={["heading", `heading--${size}`, className]}>
+  <slot />
+</Tag>
