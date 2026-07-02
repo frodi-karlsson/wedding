@@ -1,15 +1,12 @@
 ---
 import '../styles/global.scss';
-import '@fontsource/cormorant/500.css';
-import '@fontsource/cormorant/600.css';
-import '@fontsource/cormorant/500-italic.css';
-import '@fontsource/work-sans/400.css';
-import '@fontsource/work-sans/500.css';
-import cormorant600Url from '@fontsource/cormorant/files/cormorant-latin-600-normal.woff2?url';
-import cormorant500Url from '@fontsource/cormorant/files/cormorant-latin-500-normal.woff2?url';
-import cormorant500ItalicUrl from '@fontsource/cormorant/files/cormorant-latin-500-italic.woff2?url';
-import workSans400Url from '@fontsource/work-sans/files/work-sans-latin-400-normal.woff2?url';
-import workSans500Url from '@fontsource/work-sans/files/work-sans-latin-500-normal.woff2?url';
+import '../styles/fonts.scss';
+
+// Self-hosted fonts: every file in ../assets/fonts is declared in fonts.scss and
+// preloaded below. Globbing the folder means adding a weight needs no edit here.
+const fontPreloadUrls = Object.values(
+  import.meta.glob('../assets/fonts/*.woff2', { eager: true, query: '?url', import: 'default' }),
+) as string[];
 import LangPicker from './LangPicker.astro';
 import Container from './Container.astro';
 import type { Lang } from '../scripts/i18n';
@@ -24,11 +21,9 @@ const { title, lang } = Astro.props;
     <meta name="robots" content="noindex, nofollow" />
     <title>{title}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href={cormorant600Url} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={cormorant500Url} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={cormorant500ItalicUrl} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={workSans400Url} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={workSans500Url} as="font" type="font/woff2" crossorigin />
+    {fontPreloadUrls.map((href) => (
+      <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />
+    ))}
   </head>
   <body>
     <slot name="topbar"><div class="topbar"><LangPicker lang={lang} /></div></slot>
