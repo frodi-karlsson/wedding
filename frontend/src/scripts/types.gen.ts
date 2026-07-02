@@ -45,7 +45,7 @@ export interface GuestResponse {
   is_primary: boolean;
 }
 export interface InviteResponse {
-  id: number /* int64 */;
+  id: string;
   name: string;
   min_plus: number /* int */;
   max_plus: number /* int */;
