@@ -58,17 +58,34 @@ sqlite3 infra/data/wedding-staging.db < db/seed.staging.sql
 
 ## Backups
 
-Backups are manual. The SQLite file lives on a DO Volume (durable, persists
-across droplet recreation). To take a snapshot after a batch of RSVPs, SSH into
-the droplet and run:
+Nightly SQLite backup to Cloudflare R2 (`wedding-backups` bucket) via a systemd
+timer at 03:00. The backup script checks the DB file exists, snapshots it via
+`sqlite3 .backup`, uploads to R2 via rclone, and pings healthchecks.io on
+success. If a nightly ping is missed, healthchecks.io emails you (dead-man's
+switch). On explicit failure (rclone/sqlite error), a Resend email is sent.
+R2 lifecycle expires backups after 30 days.
 
-```sh
-sqlite3 /mnt/data/wedding.db ".backup '/tmp/wedding-backup.db'"
-# then scp /tmp/wedding-backup.db down to your machine
-```
+### Restore procedure
 
-There is no automated off-droplet backup (DO Spaces was removed to avoid the
-$5/mo flat cost — not worth it for a few KB of RSVP data).
+1. Install rclone locally and configure an R2 remote (same access key/secret
+   as the droplet).
+2. List backups: `rclone ls r2:wedding-backups/`
+3. Pull the latest: `rclone copy r2:wedding-backups/wedding-backup-<TS>.db ./`
+4. Verify it opens: `sqlite3 wedding-backup-<TS>.db "SELECT count(*) FROM invites;"`
+5. SSH into the droplet, stop the backend: `docker compose stop backend`
+6. **Delete the WAL + SHM files** (critical — the DB runs in WAL mode; stale WAL/SHM left beside the restored file will replay old frames and silently corrupt or revert the restore):
+   ```sh
+   rm -f /mnt/data/wedding.db-wal /mnt/data/wedding.db-shm
+   ```
+7. Replace the DB: `cp wedding-backup-<TS>.db /mnt/data/wedding.db`
+8. Restart: `docker compose up -d backend`
+
+### Break-glass: SSH lockout
+
+If your IP changes and SSH is blocked, use the DigitalOcean web console:
+https://cloud.digitalocean.com/droplets → your droplet → Access → Launch Web
+Console. From there, update `/etc/ssh/sshd_config.d/00-hardening.conf` or
+update the firewall via `tofu apply` with the new IP.
 
 ## CI
 

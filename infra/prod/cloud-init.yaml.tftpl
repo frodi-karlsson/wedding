@@ -4,6 +4,9 @@ packages:
   - docker.io
   - docker-compose-v2
   - sqlite3
+  - rclone
+  - fail2ban
+  - unattended-upgrades
 
 write_files:
   - path: /opt/wedding/docker-compose.yml
@@ -34,10 +37,32 @@ write_files:
         caddy_data:
         caddy_config:
 
+  - path: /root/.rclone.conf
+    permissions: '0600'
+    content: |
+      [r2]
+      type = s3
+      provider = Cloudflare
+      env_auth = false
+      access_key_id = ${r2_access_key_id}
+      secret_access_key = ${r2_secret_access_key}
+      endpoint = ${r2_account_id}.r2.cloudflarestorage.com
+      acl = private
+
   - path: /opt/wedding/Caddyfile
     content: |
       api.${domain} {
-        reverse_proxy backend:8080
+        header {
+          Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+          X-Content-Type-Options "nosniff"
+          X-Frame-Options "DENY"
+          Referrer-Policy "strict-origin-when-cross-origin"
+        }
+        reverse_proxy backend:8080 {
+          # OVERWRITE X-Forwarded-For with the real peer IP (not append).
+          # This makes the backend's clientIP() spoof-proof.
+          header_up X-Forwarded-For {http.request.remote.host}
+        }
       }
 
   - path: /opt/wedding/.env
@@ -52,9 +77,78 @@ write_files:
       CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
       PORT=8080
 
+  - path: /opt/wedding/backup.sh
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      set -e
+      DB=/mnt/data/wedding.db
+      [ -f "$DB" ] || { echo "no db at $DB"; exit 1; }
+      TS=$$(date +%Y%m%d-%H%M%S)
+      sqlite3 "$DB" ".backup '/tmp/wedding-backup-$$TS.db'"
+      if ! rclone copy "/tmp/wedding-backup-$$TS.db" r2:wedding-backups/ --config /root/.rclone.conf; then
+        curl -s -X POST "https://api.resend.com/emails" \
+          -H "Authorization: Bearer ${resend_api_key}" \
+          -H "Content-Type: application/json" \
+          -d "{\"from\":\"${resend_from}\",\"to\":\"${resend_to}\",\"subject\":\"Wedding backup FAILED\",\"text\":\"Backup failed at $$TS. Check the droplet.\"}"
+        exit 1
+      fi
+      rm "/tmp/wedding-backup-$$TS.db"
+      # Dead-man's switch: ping healthchecks.io on success.
+      # If this ping is missed, healthchecks.io emails you.
+      curl -s -m 10 "${healthchecks_ping_url}" >/dev/null || true
+
+  - path: /etc/ssh/sshd_config.d/00-hardening.conf
+    content: |
+      PermitRootLogin prohibit-password
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+
+  - path: /etc/systemd/system/wedding-backup.service
+    content: |
+      [Unit]
+      Description=Wedding SQLite backup to R2
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/wedding/backup.sh
+
+  - path: /etc/systemd/system/wedding-backup.timer
+    content: |
+      [Unit]
+      Description=Nightly wedding SQLite backup
+      [Timer]
+      OnCalendar=*-*-* 03:00:00
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
+
+  - path: /etc/systemd/system/wedding-pull.service
+    content: |
+      [Unit]
+      Description=Pull latest wedding backend image
+      After=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/docker compose -f /opt/wedding/docker-compose.yml pull backend
+      ExecStart=/usr/bin/docker compose -f /opt/wedding/docker-compose.yml up -d backend
+      WorkingDirectory=/opt/wedding
+
+  - path: /etc/systemd/system/wedding-pull.timer
+    content: |
+      [Unit]
+      Description=Pull latest wedding backend image every 2 minutes
+      [Timer]
+      OnBootSec=1min
+      OnUnitActiveSec=2min
+      [Install]
+      WantedBy=timers.target
+
 runcmd:
   - mkdir -p /mnt/data
-  - docker login ${registry_server_url} -u ${do_token} -p ${do_token}
+  - echo "${do_token}" | docker login ${registry_server_url} -u "${do_token}" --password-stdin
   - cd /opt/wedding
-  - docker compose pull
+  - docker compose pull || true
   - docker compose up -d
+  - systemctl restart sshd
+  - systemctl enable --now wedding-pull.timer
+  - systemctl enable --now wedding-backup.timer

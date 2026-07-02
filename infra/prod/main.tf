@@ -20,16 +20,20 @@ resource "digitalocean_droplet" "wedding" {
   image    = "ubuntu-24-04-x64"
   ssh_keys = [digitalocean_ssh_key.default.fingerprint]
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    do_token             = var.do_token
-    resend_api_key       = var.resend_api_key
-    admin_password       = var.admin_password
-    session_secret       = var.session_secret
-    resend_from          = var.resend_from
-    resend_to            = var.resend_to
-    cors_allowed_origins = var.cors_allowed_origins
-    domain               = var.domain
-    registry_server      = digitalocean_container_registry.wedding.endpoint
-    registry_server_url  = digitalocean_container_registry.wedding.server_url
+    do_token              = var.do_token
+    resend_api_key        = var.resend_api_key
+    admin_password        = var.admin_password
+    session_secret        = var.session_secret
+    resend_from           = var.resend_from
+    resend_to             = var.resend_to
+    cors_allowed_origins  = var.cors_allowed_origins
+    domain                = var.domain
+    registry_server       = digitalocean_container_registry.wedding.endpoint
+    registry_server_url   = digitalocean_container_registry.wedding.server_url
+    r2_access_key_id      = var.r2_access_key_id
+    r2_secret_access_key  = var.r2_secret_access_key
+    r2_account_id         = var.r2_account_id
+    healthchecks_ping_url = var.healthchecks_ping_url
   })
 }
 
@@ -70,7 +74,7 @@ resource "digitalocean_firewall" "wedding" {
   inbound_rule {
     protocol         = "tcp"
     port_range       = "22"
-    source_addresses = ["0.0.0.0/0", "::/0"]
+    source_addresses = [var.ssh_allowed_ip]
   }
 
   inbound_rule {
@@ -96,6 +100,32 @@ resource "digitalocean_firewall" "wedding" {
     port_range            = "all"
     destination_addresses = ["0.0.0.0/0", "::/0"]
   }
+}
+
+# --- Cloudflare R2 bucket for backups (free tier, zero egress) ---
+resource "cloudflare_r2_bucket" "backups" {
+  account_id   = var.cloudflare_account_id
+  name         = "wedding-backups"
+  location     = "weur"
+  jurisdiction = "eu"
+}
+
+resource "cloudflare_r2_bucket_lifecycle" "backups" {
+  account_id  = var.cloudflare_account_id
+  bucket_name = cloudflare_r2_bucket.backups.name
+  rules = [{
+    id      = "expire-old-backups"
+    enabled = true
+    conditions = {
+      prefix = ""
+    }
+    delete_objects_transition = {
+      condition = {
+        max_age = 30
+        type    = "Age"
+      }
+    }
+  }]
 }
 
 # --- Cloudflare Pages project (direct upload, no git connection) ---

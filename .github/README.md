@@ -2,8 +2,8 @@
 
 ## Workflows
 
-- `backend.yml` — tests, builds, pushes backend image to DO Container Registry,
-  SSH-deploys to the droplet. Runs on pushes/PRs touching `backend/`.
+- `backend.yml` — tests, builds, pushes backend image to DO Container Registry.
+  The droplet pulls the latest image via a systemd timer. Runs on pushes/PRs touching `backend/`.
 - `frontend.yml` — tests, builds, deploys frontend to Cloudflare Pages via
   wrangler. Runs on pushes/PRs touching `frontend/`.
 - `infra-check.yml` — `tofu fmt -check` + `tofu validate`. Runs on PRs and pushes
@@ -17,8 +17,6 @@
 |--------|---------|---------|
 | `DO_TOKEN` | backend, infra | DigitalOcean API token |
 | `DO_REGISTRY_ENDPOINT` | backend | DO Container Registry endpoint, e.g. `registry.digitalocean.com/wedding` — must include the registry name (the `registry_endpoint` OpenTofu output) |
-| `DROPLET_IP` | backend | Droplet public/reserved IP for SSH deploy |
-| `DROPLET_SSH_KEY` | backend | SSH private key for droplet access |
 | `CLOUDFLARE_API_TOKEN` | frontend | Cloudflare API token (Pages deploy) |
 | `CLOUDFLARE_ACCOUNT_ID` | frontend | Cloudflare account ID |
 

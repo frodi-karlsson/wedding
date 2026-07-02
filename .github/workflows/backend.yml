@@ -32,30 +32,11 @@ jobs:
         working-directory: backend
         run: go build ./cmd/server/
 
-      # The following steps only run on push to main (not PRs).
-      - name: Login to DO Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          docker login "${{ secrets.DO_REGISTRY_ENDPOINT }}" \
-            -u "${{ secrets.DO_TOKEN }}" -p "${{ secrets.DO_TOKEN }}"
-
+      # The following step only runs on push to main (not PRs).
       - name: Build and push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: backend
         run: |
+          docker login "${{ secrets.DO_REGISTRY_ENDPOINT }}" -u "${{ secrets.DO_TOKEN }}" --password-stdin <<< "${{ secrets.DO_TOKEN }}"
           docker build -t "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:latest" .
           docker push "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:latest"
-
-      - name: Deploy to droplet
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          script: |
-            docker login "${{ secrets.DO_REGISTRY_ENDPOINT }}" -u "${{ secrets.DO_TOKEN }}" -p "${{ secrets.DO_TOKEN }}"
-            cd /opt/wedding
-            docker compose pull backend
-            docker compose up -d backend
-            docker image prune -f
