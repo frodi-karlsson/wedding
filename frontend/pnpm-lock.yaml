@@ -14,6 +14,12 @@ importers:
       '@anabranch/web-client':
         specifier: ^0
         version: 0.3.5
+      '@fontsource/cormorant':
+        specifier: ^5
+        version: 5.2.8
+      '@fontsource/work-sans':
+        specifier: ^5
+        version: 5.2.8
       anabranch:
         specifier: ^0
         version: 0.10.0
@@ -517,6 +523,12 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource/cormorant@5.2.8':
+    resolution: {integrity: sha512-VNiQ1dy/Km7UynaX0K+gtLLLtH+46SEfcoYcEjQhcs7/pEYTF3GThNNciWruv3AnVvTTSDPbCK/0BLBhdgYGUg==}
+
+  '@fontsource/work-sans@5.2.8':
+    resolution: {integrity: sha512-6LaHjVVgts+rnrcqvEkP2+iUB/jw1oDSYsGO0+TltAhnWki9Hnf/UGpgMQh2jcm0GEH8VqCPnq4PpmHLFzxXtQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2963,6 +2975,10 @@ snapshots:
 
   '@exodus/bytes@1.15.1':
     optional: true
+
+  '@fontsource/cormorant@5.2.8': {}
+
+  '@fontsource/work-sans@5.2.8': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

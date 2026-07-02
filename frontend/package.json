@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@anabranch/web-client": "^0",
+    "@fontsource/cormorant": "^5",
+    "@fontsource/work-sans": "^5",
     "anabranch": "^0",
     "astro": "^7"
   },
