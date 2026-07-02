@@ -132,7 +132,7 @@ func TestSubmitRSVP_InviteNotFound(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
-	_, _, err := svc.SubmitRSVP(context.Background(), 999, guests)
+	_, _, err := svc.SubmitRSVP(context.Background(), "nonexistent", guests)
 	if err == nil {
 		t.Fatal("SubmitRSVP should error when invite not found")
 	}

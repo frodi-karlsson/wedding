@@ -35,7 +35,7 @@ func NewService(store db.Store, email Emailer) *Service {
 	return &Service{store: store, email: email}
 }
 
-func (s *Service) GetInvite(ctx context.Context, id int64) (db.Invite, []db.Guest, error) {
+func (s *Service) GetInvite(ctx context.Context, id string) (db.Invite, []db.Guest, error) {
 	return s.store.GetInviteWithGuests(ctx, id)
 }
 
@@ -47,11 +47,11 @@ func (s *Service) ListInvites(ctx context.Context) ([]db.Invite, error) {
 	return s.store.ListInvites(ctx)
 }
 
-func (s *Service) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
+func (s *Service) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
 	return s.store.UpdateInvite(ctx, id, name, minPlus, maxPlus, guestNames)
 }
 
-func (s *Service) DeleteInvite(ctx context.Context, id int64) error {
+func (s *Service) DeleteInvite(ctx context.Context, id string) error {
 	return s.store.DeleteInvite(ctx, id)
 }
 
@@ -60,7 +60,7 @@ func (s *Service) DeleteInvite(ctx context.Context, id int64) error {
 // is reverted (the invite is marked unsubmitted and original guests restored
 // is NOT possible with a simple flag, so we instead send the email BEFORE
 // marking submitted — see implementation).
-func (s *Service) SubmitRSVP(ctx context.Context, id int64, guests []db.Guest) (db.Invite, []db.Guest, error) {
+func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest) (db.Invite, []db.Guest, error) {
 	inv, err := s.store.GetInvite(ctx, id)
 	if err != nil {
 		return db.Invite{}, nil, err

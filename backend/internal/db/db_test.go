@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/hex"
 	"testing"
 )
 
@@ -86,11 +87,28 @@ func TestCreateInvite_AutoCreatesPrimaryGuest(t *testing.T) {
 	}
 }
 
+func TestCreateInvite_GeneratesOpaqueTokenID(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla", "Friend"})
+	if err != nil {
+		t.Fatalf("CreateInvite() error: %v", err)
+	}
+	if len(inv.ID) != 32 {
+		t.Errorf("ID length = %d, want 32 (hex token)", len(inv.ID))
+	}
+	if _, err := hex.DecodeString(inv.ID); err != nil {
+		t.Errorf("ID %q is not valid hex: %v", inv.ID, err)
+	}
+}
+
 func TestGetInvite_NotFound(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
 
-	_, err := store.GetInvite(context.Background(), 999)
+	_, err := store.GetInvite(context.Background(), "999")
 	if err != ErrNotFound {
 		t.Errorf("GetInvite(999) err = %v, want ErrNotFound", err)
 	}
@@ -340,7 +358,7 @@ func TestUpdateInvite_NoGuestNamesErrorsAndLeavesGuestsIntact(t *testing.T) {
 func TestUpdateInvite_NotFound(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
-	_, err := store.UpdateInvite(context.Background(), 999, "X", 0, 1, []string{"X"})
+	_, err := store.UpdateInvite(context.Background(), "999", "X", 0, 1, []string{"X"})
 	if err != ErrNotFound {
 		t.Errorf("UpdateInvite(999) err = %v, want ErrNotFound", err)
 	}
@@ -349,7 +367,7 @@ func TestUpdateInvite_NotFound(t *testing.T) {
 func TestDeleteInvite_NotFound(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
-	if err := store.DeleteInvite(context.Background(), 999); err != ErrNotFound {
+	if err := store.DeleteInvite(context.Background(), "999"); err != ErrNotFound {
 		t.Errorf("DeleteInvite(999) err = %v, want ErrNotFound", err)
 	}
 }

@@ -309,7 +309,7 @@ func createAndLogin(t *testing.T, srv http.Handler) {
 	}
 }
 
-func firstInviteID(t *testing.T, srv http.Handler) int64 {
+func firstInviteID(t *testing.T, srv http.Handler) string {
 	t.Helper()
 	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/admin/invites", nil, adminCookies)
 	var resp ListInvitesResponse
@@ -340,11 +340,11 @@ func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string
 	return db.Invite{}, nil
 }
 
-func (s *updateFetchNotFoundStore) GetInvite(ctx context.Context, id int64) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) GetInvite(ctx context.Context, id string) (db.Invite, error) {
 	return db.Invite{}, db.ErrNotFound
 }
 
-func (s *updateFetchNotFoundStore) GetInviteWithGuests(ctx context.Context, id int64) (db.Invite, []db.Guest, error) {
+func (s *updateFetchNotFoundStore) GetInviteWithGuests(ctx context.Context, id string) (db.Invite, []db.Guest, error) {
 	return db.Invite{}, nil, db.ErrNotFound
 }
 
@@ -352,15 +352,15 @@ func (s *updateFetchNotFoundStore) ListInvites(ctx context.Context) ([]db.Invite
 	return nil, nil
 }
 
-func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string) (db.Invite, error) {
 	return db.Invite{ID: id, Name: name, MinPlus: minPlus, MaxPlus: maxPlus}, nil
 }
 
-func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id int64) error {
+func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID int64, guests []db.Guest, submitted bool) ([]db.Guest, error) {
+func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID string, guests []db.Guest, submitted bool) ([]db.Guest, error) {
 	return guests, nil
 }
 

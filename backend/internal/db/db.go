@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -35,7 +37,7 @@ var ErrNoGuestNames = errors.New("at least one guest name is required")
 
 // Invite is the persisted invite record.
 type Invite struct {
-	ID        int64
+	ID        string
 	Name      string
 	MinPlus   int
 	MaxPlus   int
@@ -47,7 +49,7 @@ type Invite struct {
 // Guest is a persisted guest belonging to an invite.
 type Guest struct {
 	ID                int64
-	InviteID          int64
+	InviteID          string
 	Name              string
 	DietaryPreference string
 	AlcoholFree       bool
@@ -59,12 +61,12 @@ type Guest struct {
 // Store is the storage contract used by the invite service and handlers.
 type Store interface {
 	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
-	GetInvite(ctx context.Context, id int64) (Invite, error)
-	GetInviteWithGuests(ctx context.Context, id int64) (Invite, []Guest, error)
+	GetInvite(ctx context.Context, id string) (Invite, error)
+	GetInviteWithGuests(ctx context.Context, id string) (Invite, []Guest, error)
 	ListInvites(ctx context.Context) ([]Invite, error)
-	UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
-	DeleteInvite(ctx context.Context, id int64) error
-	SubmitRSVP(ctx context.Context, inviteID int64, guests []Guest, submitted bool) ([]Guest, error)
+	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
+	DeleteInvite(ctx context.Context, id string) error
+	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool) ([]Guest, error)
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -74,6 +76,14 @@ type SQLiteStore struct {
 
 func NewSQLiteStore(d *sql.DB) *SQLiteStore {
 	return &SQLiteStore{db: d}
+}
+
+func generateToken() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)
 }
 
 func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
@@ -86,13 +96,12 @@ func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, ma
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	res, err := tx.ExecContext(ctx,
-		"INSERT INTO invites (name, min_plus, max_plus) VALUES (?, ?, ?)",
-		name, minPlus, maxPlus)
-	if err != nil {
+	id := generateToken()
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO invites (id, name, min_plus, max_plus) VALUES (?, ?, ?, ?)",
+		id, name, minPlus, maxPlus); err != nil {
 		return Invite{}, err
 	}
-	id, _ := res.LastInsertId()
 	for i, gname := range guestNames {
 		var isPrimary int
 		if i == 0 {
@@ -111,7 +120,7 @@ func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, ma
 	return s.GetInvite(ctx, id)
 }
 
-func (s *SQLiteStore) GetInvite(ctx context.Context, id int64) (Invite, error) {
+func (s *SQLiteStore) GetInvite(ctx context.Context, id string) (Invite, error) {
 	var inv Invite
 	var submitted int
 	err := s.db.QueryRowContext(ctx,
@@ -127,7 +136,7 @@ func (s *SQLiteStore) GetInvite(ctx context.Context, id int64) (Invite, error) {
 	return inv, nil
 }
 
-func (s *SQLiteStore) GetInviteWithGuests(ctx context.Context, id int64) (Invite, []Guest, error) {
+func (s *SQLiteStore) GetInviteWithGuests(ctx context.Context, id string) (Invite, []Guest, error) {
 	inv, err := s.GetInvite(ctx, id)
 	if err != nil {
 		return Invite{}, nil, err
@@ -175,7 +184,7 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	return invites, rows.Err()
 }
 
-func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
+func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
 	if len(guestNames) == 0 {
 		return Invite{}, ErrNoGuestNames
 	}
@@ -249,26 +258,19 @@ func (s *SQLiteStore) UpdateInvite(ctx context.Context, id int64, name string, m
 	return s.GetInvite(ctx, id)
 }
 
-func (s *SQLiteStore) DeleteInvite(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM guests WHERE invite_id=?", id)
-	if err != nil {
-		return err
-	}
+func (s *SQLiteStore) DeleteInvite(ctx context.Context, id string) error {
 	res, err := s.db.ExecContext(ctx, "DELETE FROM invites WHERE id=?", id)
 	if err != nil {
 		return err
 	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
+	n, _ := res.RowsAffected()
 	if n == 0 {
 		return ErrNotFound
 	}
 	return nil
 }
 
-func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID int64, guests []Guest, submitted bool) ([]Guest, error) {
+func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool) ([]Guest, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err

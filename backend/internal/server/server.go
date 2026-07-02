@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"wedding/backend/internal/auth"
@@ -102,11 +101,10 @@ func decodeJSON(r *http.Request, v any) error {
 	return nil
 }
 
-func idFromPath(r *http.Request) (int64, bool) {
-	s := r.PathValue("id")
-	id, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, false
+func idFromPath(r *http.Request) (string, bool) {
+	id := r.PathValue("id")
+	if id == "" {
+		return "", false
 	}
 	return id, true
 }

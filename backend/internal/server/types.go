@@ -54,7 +54,7 @@ type GuestResponse struct {
 }
 
 type InviteResponse struct {
-	ID        int64  `json:"id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	MinPlus   int    `json:"min_plus"`
 	MaxPlus   int    `json:"max_plus"`
