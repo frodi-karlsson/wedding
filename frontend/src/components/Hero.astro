@@ -17,11 +17,8 @@ const { lang } = Astro.props;
     />
   </div>
   <div class="hero__panel">
-    <p class="hero__eyebrow">{translate('hero_eyebrow', lang)}</p>
-    <h1 class="hero__names">Carla <span class="hero__amp">&amp;</span> Fróði</h1>
-    <p class="hero__where">{translate('hero_date', lang)} · {translate('hero_location', lang)}</p>
+    <h1 class="hero__names">{translate('site_title', lang)}</h1>
     <span class="hero__rule"></span>
-    <a class="btn btn--md btn--on-navy hero__cta" href="#rsvp-root">{translate('hero_cta', lang)}</a>
   </div>
 </header>
 
@@ -36,7 +33,7 @@ const { lang } = Astro.props;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 50% 22%; /* crops high to keep faces */
+    object-position: 50% 22%;
     display: block;
   }
   .hero__panel {
@@ -46,14 +43,6 @@ const { lang } = Astro.props;
     gap: var(--space-6);
     padding: clamp(2rem, 5vw, 4.5rem);
   }
-  .hero__eyebrow {
-    font-family: var(--font-sans);
-    font-weight: var(--weight-medium);
-    font-size: var(--step--1);
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--color-inverse-muted);
-  }
   .hero__names {
     font-family: var(--font-serif);
     font-weight: var(--weight-semibold);
@@ -62,14 +51,7 @@ const { lang } = Astro.props;
     letter-spacing: -0.015em;
     color: #fff;
   }
-  .hero__amp { font-style: italic; font-weight: var(--weight-medium); color: var(--color-inverse-accent); }
-  .hero__where {
-    font-family: var(--font-serif);
-    font-size: var(--step-2);
-    color: var(--color-inverse-text);
-  }
   .hero__rule { width: 56px; height: 2px; background: var(--color-inverse-accent); }
-  .hero__cta { align-self: start; }
 
   @media (max-width: 760px) {
     .hero { grid-template-columns: 1fr; }
