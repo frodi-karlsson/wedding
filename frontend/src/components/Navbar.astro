@@ -141,6 +141,23 @@ const links = [
     cursor: pointer;
     color: inherit;
     flex-shrink: 0;
+    /* Stay tappable above the open overlay so it can close the menu. */
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Open state: light ✕ that reads on the navy overlay. */
+  .nav__toggle[aria-expanded='true'] {
+    color: var(--color-inverse-text);
+  }
+  .nav__toggle[aria-expanded='true'] .nav__toggle-bar:nth-child(1) {
+    transform: translateY(6.5px) rotate(45deg);
+  }
+  .nav__toggle[aria-expanded='true'] .nav__toggle-bar:nth-child(2) {
+    opacity: 0;
+  }
+  .nav__toggle[aria-expanded='true'] .nav__toggle-bar:nth-child(3) {
+    transform: translateY(-6.5px) rotate(-45deg);
   }
 
   .nav__toggle-bar {
@@ -172,6 +189,7 @@ const links = [
     .nav__panel {
       position: fixed;
       inset: 0;
+      z-index: 1;
       flex-direction: column;
       justify-content: center;
       align-items: center;
@@ -246,5 +264,12 @@ const links = [
   // Close menu when any nav link is clicked
   panel?.querySelectorAll<HTMLAnchorElement>('[data-nav-link]').forEach((link) => {
     link.addEventListener('click', closeMenu);
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && panel?.hasAttribute('data-open')) {
+      closeMenu();
+    }
   });
 </script>
