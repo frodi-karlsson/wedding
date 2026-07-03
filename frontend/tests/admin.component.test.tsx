@@ -82,8 +82,8 @@ test('should show the submission view when clicking view', async () => {
     mockTask<InviteWithGuestsResponse>({
       invite: { id: '2', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: 'Cannot wait!' },
       guests: [
-        { id: 1, name: 'Bob', dietary_preference: 'Vegetarian', alcohol_free: true, is_primary: true },
-        { id: 2, name: 'Cara', dietary_preference: '', alcohol_free: false, is_primary: false },
+        { id: 1, name: 'Bob', dietary_preference: 'Vegetarian', alcohol_free: true, is_primary: true, co_primary: false },
+        { id: 2, name: 'Cara', dietary_preference: '', alcohol_free: false, is_primary: false, co_primary: false },
       ],
     }),
   );

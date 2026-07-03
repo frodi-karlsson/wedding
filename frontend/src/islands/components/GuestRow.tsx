@@ -1,4 +1,4 @@
-import { type JSX } from 'solid-js';
+import { Show, type JSX } from 'solid-js';
 import type { Lang } from '../../scripts/i18n';
 import { translate } from '../../scripts/i18n';
 import type { GuestInput } from '../../scripts/types.gen';
@@ -9,9 +9,15 @@ interface GuestRowProps {
   lang: Lang;
   onRemove: (index: number) => void;
   onUpdate: (index: number, patch: Partial<GuestInput>) => void;
+  // Whether this row can be removed (false hides the Remove button, e.g. the
+  // last remaining co-primary of a group invite).
+  canRemove?: boolean;
 }
 
 export function GuestRow(props: GuestRowProps): JSX.Element {
+  // Co-primaries are a unit — they carry no "You"/"Guest N" legend; the editable
+  // name identifies them.
+  const showLegend = () => !props.guest.co_primary;
   const legend = () =>
     props.guest.is_primary
       ? translate('you_label', props.lang)
@@ -37,7 +43,9 @@ export function GuestRow(props: GuestRowProps): JSX.Element {
 
   return (
     <fieldset class="guest-row" data-index={props.index}>
-      <legend>{legend()}</legend>
+      <Show when={showLegend()}>
+        <legend>{legend()}</legend>
+      </Show>
       <label>
         <span>{nameLabel()}</span>
         <input type="text" value={props.guest.name} required onInput={onNameInput} />
@@ -58,7 +66,7 @@ export function GuestRow(props: GuestRowProps): JSX.Element {
         />
         <span>{translate('alcohol_free_label', props.lang)}</span>
       </label>
-      {!props.guest.is_primary && (
+      {!props.guest.is_primary && props.canRemove !== false && (
         <button
           type="button"
           class="btn btn--ghost btn--sm remove"

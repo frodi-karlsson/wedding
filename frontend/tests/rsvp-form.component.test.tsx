@@ -17,7 +17,7 @@ function mockFailingTask<T>(error: Error): Task<T, HttpError> {
 const mockInviteResponse: InviteWithGuestsResponse = {
   invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false, message: '' },
   guests: [
-    { id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true },
+    { id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true, co_primary: false },
   ],
 };
 
@@ -72,7 +72,7 @@ test('should disable submit when a guest name is empty', async () => {
   const emptyNameResponse: InviteWithGuestsResponse = {
     invite: { id: 'abc123', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false, message: '' },
     guests: [
-      { id: 1, name: '', dietary_preference: '', alcohol_free: false, is_primary: true },
+      { id: 1, name: '', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false },
     ],
   };
   vi.spyOn(api, 'getInvite').mockReturnValue(mockTask(emptyNameResponse));

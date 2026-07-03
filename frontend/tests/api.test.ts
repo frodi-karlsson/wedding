@@ -64,7 +64,7 @@ test('should GET /invites/{id} and return the invite with guests', async () => {
 });
 
 test('should POST /invites/{id}/rsvp with the guest list', async () => {
-  const guests = [{ name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }];
+  const guests = [{ name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true, co_primary: false }];
   const response = {
     invite: { id: 'rsvp-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: true, message: '' },
     guests: [{ id: 1, name: 'Ada', dietary_preference: 'vegetarian', alcohol_free: false, is_primary: true }],
@@ -132,6 +132,7 @@ test('should POST /admin/invites with the full CreateInviteRequest body includin
     min_plus: 0,
     max_plus: 1,
     guest_names: ['Ada'],
+    group: false,
   };
   const response = {
     invite: { id: 'created-id', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' },
@@ -173,6 +174,7 @@ test('should PUT /admin/invites/{id} with the full update body including guest_n
     min_plus: 0,
     max_plus: 1,
     guest_names: ['Ada + Guest'],
+    group: false,
   };
   const response = {
     invite: { id: 'update-id', name: 'Ada + Guest', min_plus: 0, max_plus: 1, submitted: false, message: '' },

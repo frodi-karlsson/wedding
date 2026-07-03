@@ -131,6 +131,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
       min_plus: form.min_plus,
       max_plus: form.max_plus,
       guest_names: form.guest_names,
+      group: form.group,
     };
 
     try {

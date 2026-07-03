@@ -242,6 +242,14 @@ input, textarea, select {
 .rsvp-form .intro { color: var(--color-text-muted); font-size: var(--step-0); }
 .rsvp-form .guests { display: flex; flex-direction: column; gap: var(--space-3); }
 .rsvp-form .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.rsvp-form .readd-coprimaries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+  color: var(--color-text-muted);
+}
 .guest-row {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -352,16 +360,22 @@ input, textarea, select {
     text-align: left;
     border-bottom: 1px solid var(--color-border);
     font-size: var(--step--1);
+    vertical-align: middle;
   }
   th {
     font-weight: var(--weight-medium);
     color: var(--color-text-muted);
   }
   td.actions {
+    white-space: nowrap;
+  }
+  // Flex lives on an inner wrapper, not the <td>: a display:flex cell drops out
+  // of table layout and won't match the row height when another column wraps.
+  .row-actions {
     display: flex;
     gap: var(--space-1);
     align-items: center;
-    .link-lang { width: auto; flex: 0 0 auto; }
+    flex-wrap: wrap;
   }
 }
 .admin-table-wrap {
@@ -453,6 +467,12 @@ input, textarea, select {
   }
 }
 .admin-form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.admin-form .admin-group-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  input { width: auto; }
+}
 .admin-form .guest-names {
   display: flex;
   flex-direction: column;

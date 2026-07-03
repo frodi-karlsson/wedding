@@ -12,6 +12,7 @@ export interface GuestInput {
   dietary_preference: string;
   alcohol_free: boolean;
   is_primary: boolean;
+  co_primary: boolean;
 }
 export interface RSVPRequest {
   guests: GuestInput[];
@@ -22,12 +23,14 @@ export interface CreateInviteRequest {
   min_plus: number /* int */;
   max_plus: number /* int */;
   guest_names: string[];
+  group: boolean;
 }
 export interface UpdateInviteRequest {
   name: string;
   min_plus: number /* int */;
   max_plus: number /* int */;
   guest_names: string[];
+  group: boolean;
 }
 export interface LoginRequest {
   password: string;
@@ -44,6 +47,7 @@ export interface GuestResponse {
   dietary_preference: string;
   alcohol_free: boolean;
   is_primary: boolean;
+  co_primary: boolean;
 }
 export interface InviteResponse {
   id: string;

@@ -16,11 +16,14 @@ import {
   createRsvpState,
   addGuest,
   removeGuest,
+  readdCoPrimary,
   updateGuest,
   updateMessage,
   canSubmit,
+  isGroupInvite,
   type RsvpState,
 } from '../scripts/rsvp.service';
+import { joinNames } from '../scripts/guests';
 import type { GuestInput } from '../scripts/types.gen';
 import { GuestRow } from './components/GuestRow';
 
@@ -47,13 +50,26 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
     () => !canSubmit(state()) || state().status === 'submitting',
   );
 
+  const group = createMemo(() => isGroupInvite(state()));
+
   const canAdd = createMemo(() => {
+    if (group()) return false;
     const plusCount = state().guests.filter((g) => !g.is_primary).length;
     return plusCount < state().invite.max_plus;
   });
 
+  // Header: a group invite lists all its co-primaries; otherwise the invite name.
+  const headerTitle = createMemo(() =>
+    group()
+      ? joinNames(state().guests.filter((g) => g.co_primary).map((g) => g.name))
+      : state().invite.name,
+  );
+
   const intro = createMemo(() => {
     const s = state();
+    if (isGroupInvite(s)) {
+      return translate('rsvp_intro_group', s.lang);
+    }
     const minClause =
       s.invite.min_plus > 0
         ? translate('min_clause', s.lang).replace('{min}', String(s.invite.min_plus))
@@ -90,6 +106,12 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
   function onRemoveGuest(index: number) {
     setState((prev) => ({ ...removeGuest(prev, index), errorMessage: undefined }));
   }
+
+  function onReaddCoPrimary(index: number) {
+    setState((prev) => ({ ...readdCoPrimary(prev, index), errorMessage: undefined }));
+  }
+
+  const removedCoPrimaries = createMemo(() => state().removedCoPrimaries ?? []);
 
   function onUpdateGuest(index: number, patch: Partial<GuestInput>) {
     setState((prev) => ({ ...updateGuest(prev, index, patch), errorMessage: undefined }));
@@ -140,7 +162,7 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
         </Match>
         <Match when={state().status === 'ready' || state().status === 'submitting'}>
           <form class="rsvp-form card" onSubmit={onSubmit}>
-            <h2 class="heading heading--md">{state().invite.name}</h2>
+            <h2 class="heading heading--md">{headerTitle()}</h2>
             <p class="intro">{intro()}</p>
             <div class="guests">
               <Index each={state().guests}>
@@ -151,10 +173,27 @@ export function RsvpForm(props: RsvpFormProps): JSX.Element {
                     lang={lang}
                     onRemove={onRemoveGuest}
                     onUpdate={onUpdateGuest}
+                    canRemove={!group() || state().guests.length > 1}
                   />
                 )}
               </Index>
             </div>
+            <Show when={group() && removedCoPrimaries().length > 0}>
+              <div class="readd-coprimaries">
+                <span>{translate('readd_coprimary_label', lang)}</span>
+                <Index each={removedCoPrimaries()}>
+                  {(g, i) => (
+                    <button
+                      type="button"
+                      class="btn btn--secondary btn--sm"
+                      onClick={() => onReaddCoPrimary(i)}
+                    >
+                      + {g().name}
+                    </button>
+                  )}
+                </Index>
+              </div>
+            </Show>
             <label class="rsvp-message">
               <span>{translate('message_label', lang)}</span>
               <textarea

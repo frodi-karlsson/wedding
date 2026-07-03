@@ -52,34 +52,36 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
                 <td>{invite.max_plus}</td>
                 <td>{invite.submitted ? '✓' : '—'}</td>
                 <td class="actions">
-                  <button
-                    type="button"
-                    class="btn btn--ghost btn--sm"
-                    onClick={() => props.onGetInvite(invite.id)}
-                  >
-                    {translate('admin_get_invite', props.lang)}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn--ghost btn--sm"
-                    onClick={() => props.onView(invite.id)}
-                  >
-                    {translate('admin_view', props.lang)}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn--ghost btn--sm"
-                    onClick={() => props.onEdit(invite.id)}
-                  >
-                    {translate('admin_edit', props.lang)}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn--ghost btn--sm"
-                    onClick={() => props.onDelete(invite.id)}
-                  >
-                    {translate('admin_delete', props.lang)}
-                  </button>
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm"
+                      onClick={() => props.onGetInvite(invite.id)}
+                    >
+                      {translate('admin_get_invite', props.lang)}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm"
+                      onClick={() => props.onView(invite.id)}
+                    >
+                      {translate('admin_view', props.lang)}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm"
+                      onClick={() => props.onEdit(invite.id)}
+                    >
+                      {translate('admin_edit', props.lang)}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm"
+                      onClick={() => props.onDelete(invite.id)}
+                    >
+                      {translate('admin_delete', props.lang)}
+                    </button>
+                  </div>
                 </td>
               </tr>
             )}

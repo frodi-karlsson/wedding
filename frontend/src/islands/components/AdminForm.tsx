@@ -1,4 +1,4 @@
-import { createSignal, For, Index, untrack, type JSX } from 'solid-js';
+import { createSignal, For, Index, Show, untrack, type JSX } from 'solid-js';
 import { translate, LOCALE_CODES, type Lang } from '../../scripts/i18n';
 import type { InviteForm } from '../../scripts/admin.service';
 
@@ -24,14 +24,18 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   const [guestNames, setGuestNames] = createSignal<string[]>(form.guest_names.slice(1));
   const [linkLang, setLinkLang] = createSignal<Lang>(form.link_lang);
   const [countError, setCountError] = createSignal('');
+  const [group, setGroup] = createSignal(form.group);
 
-  // Preset guest names are the "plus" guests, so their count must stay within
-  // [min_plus, max_plus]. Gate the add/remove controls accordingly.
+  // Standard invites: preset names are "plus" guests, capped to [min, max].
+  // Group invites: the names are co-primaries with no plus allowance, so the
+  // add/remove controls are unconstrained.
   const canAddName = () => {
+    if (group()) return true;
     const max = Number(maxPlus());
     return !Number.isNaN(max) && guestNames().length < max;
   };
   const canRemoveName = () => {
+    if (group()) return true;
     const min = Number(minPlus());
     return guestNames().length > (Number.isNaN(min) ? 0 : min);
   };
@@ -60,11 +64,29 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   function handleSubmit(e: Event) {
     e.preventDefault();
     const trimmedName = name().trim();
+    if (!trimmedName) return;
+    const allNames = [trimmedName, ...guestNames().filter((n) => n.trim().length > 0)];
+
+    // Group invite: co-primaries, no primary/plus distinction, no min/max. The
+    // server derives the display name from the joined co-primary names.
+    if (group()) {
+      setCountError('');
+      props.onSubmit({
+        id: props.form.id,
+        name: trimmedName,
+        min_plus: 0,
+        max_plus: 0,
+        guest_names: allNames,
+        link_lang: linkLang(),
+        group: true,
+      });
+      return;
+    }
+
     const min = Number(minPlus());
     const max = Number(maxPlus());
-    if (!trimmedName || Number.isNaN(min) || Number.isNaN(max) || min > max) return;
+    if (Number.isNaN(min) || Number.isNaN(max) || min > max) return;
 
-    const allNames = [trimmedName, ...guestNames().filter((n) => n.trim().length > 0)];
     const plusCount = allNames.length - 1;
     if (plusCount < min || plusCount > max) {
       setCountError(
@@ -83,14 +105,24 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
       max_plus: max,
       guest_names: allNames,
       link_lang: linkLang(),
+      group: false,
     });
   }
 
   return (
     <form class="admin-form card" onSubmit={handleSubmit}>
       <h2 class="heading heading--md">{heading()}</h2>
+      <label class="admin-group-toggle">
+        <input
+          type="checkbox"
+          name="group"
+          checked={group()}
+          onChange={(e) => setGroup(e.currentTarget.checked)}
+        />
+        <span>{translate('admin_group_invite', props.lang)}</span>
+      </label>
       <label>
-        <span>{translate('admin_name_label', props.lang)}</span>
+        <span>{translate(group() ? 'admin_coprimary_name_label' : 'admin_name_label', props.lang)}</span>
         <input
           type="text"
           name="name"
@@ -99,30 +131,32 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
           onInput={(e) => setName(e.currentTarget.value)}
         />
       </label>
-      <label>
-        <span>{translate('admin_min_label', props.lang)}</span>
-        <input
-          type="number"
-          name="min_plus"
-          min="0"
-          value={minPlus()}
-          required
-          onInput={(e) => setMinPlus(e.currentTarget.value)}
-        />
-      </label>
-      <label>
-        <span>{translate('admin_max_label', props.lang)}</span>
-        <input
-          type="number"
-          name="max_plus"
-          min="0"
-          value={maxPlus()}
-          required
-          onInput={(e) => setMaxPlus(e.currentTarget.value)}
-        />
-      </label>
+      <Show when={!group()}>
+        <label>
+          <span>{translate('admin_min_label', props.lang)}</span>
+          <input
+            type="number"
+            name="min_plus"
+            min="0"
+            value={minPlus()}
+            required
+            onInput={(e) => setMinPlus(e.currentTarget.value)}
+          />
+        </label>
+        <label>
+          <span>{translate('admin_max_label', props.lang)}</span>
+          <input
+            type="number"
+            name="max_plus"
+            min="0"
+            value={maxPlus()}
+            required
+            onInput={(e) => setMaxPlus(e.currentTarget.value)}
+          />
+        </label>
+      </Show>
       <div class="guest-names">
-        <span>{translate('admin_guest_names_label', props.lang)}</span>
+        <span>{translate(group() ? 'admin_coprimary_names_label' : 'admin_guest_names_label', props.lang)}</span>
         <div class="guest-names-list">
           <Index each={guestNames()}>
             {(gname, index) => (

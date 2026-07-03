@@ -4,8 +4,10 @@ import {
   createRsvpState,
   addGuest,
   removeGuest,
+  readdCoPrimary,
   updateGuest,
   canSubmit,
+  isGroupInvite,
 } from '../src/scripts/rsvp.service';
 
 function mockInvite(overrides: Partial<InviteResponse> = {}): InviteResponse {
@@ -13,7 +15,7 @@ function mockInvite(overrides: Partial<InviteResponse> = {}): InviteResponse {
 }
 
 function mockGuest(overrides: Partial<GuestResponse> = {}): GuestResponse {
-  return { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, ...overrides };
+  return { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false, ...overrides };
 }
 
 test('should create state with the primary guest first and status ready', () => {
@@ -32,12 +34,14 @@ test('should create state with the primary guest first and status ready', () => 
     dietary_preference: '',
     alcohol_free: false,
     is_primary: true,
+    co_primary: false,
   });
   expect(state.guests[1]).toEqual({
     name: 'Guest',
     dietary_preference: '',
     alcohol_free: false,
     is_primary: false,
+    co_primary: false,
   });
 });
 
@@ -57,6 +61,7 @@ test('should create state mapping existing guest data into GuestInput', () => {
     dietary_preference: 'vegan',
     alcohol_free: true,
     is_primary: true,
+    co_primary: false,
   });
 });
 
@@ -71,6 +76,7 @@ test('should add a non-primary empty guest row when under max_plus', () => {
     dietary_preference: '',
     alcohol_free: false,
     is_primary: false,
+    co_primary: false,
   });
 });
 
@@ -145,4 +151,51 @@ test('should not allow submit when any name is empty or only whitespace', () => 
   const result = canSubmit(state);
 
   expect(result).toBe(false);
+});
+
+// --- Group (co-primary) invites ---
+
+function groupState() {
+  return createRsvpState(
+    mockInvite({ name: 'Alice & Bob', min_plus: 0, max_plus: 0 }),
+    [
+      mockGuest({ id: 1, name: 'Alice', is_primary: false, co_primary: true }),
+      mockGuest({ id: 2, name: 'Bob', is_primary: false, co_primary: true }),
+    ],
+    'en',
+  );
+}
+
+test('isGroupInvite is true when any guest is a co-primary', () => {
+  expect(isGroupInvite(groupState())).toBe(true);
+  expect(isGroupInvite(createRsvpState(mockInvite(), [mockGuest()], 'en'))).toBe(false);
+});
+
+test('group invites do not add extra guests', () => {
+  const next = addGuest(groupState());
+  expect(next.guests).toHaveLength(2);
+});
+
+test('group invites allow removing a co-primary but keep at least one', () => {
+  const afterOne = removeGuest(groupState(), 1);
+  expect(afterOne.guests).toHaveLength(1);
+
+  const afterTwo = removeGuest(afterOne, 0);
+  expect(afterTwo.guests).toHaveLength(1); // last co-primary is retained
+});
+
+test('group invites can submit with co-primaries and no min/max constraint', () => {
+  expect(canSubmit(groupState())).toBe(true);
+});
+
+test('removed co-primaries are remembered and can be re-added with their name', () => {
+  const removed = removeGuest(groupState(), 1); // remove Bob
+  expect(removed.guests).toHaveLength(1);
+  expect(removed.removedCoPrimaries).toHaveLength(1);
+  expect(removed.removedCoPrimaries?.[0].name).toBe('Bob');
+
+  const readded = readdCoPrimary(removed, 0);
+  expect(readded.guests).toHaveLength(2);
+  expect(readded.guests.some((g) => g.name === 'Bob' && g.co_primary)).toBe(true);
+  expect(readded.removedCoPrimaries).toHaveLength(0);
 });

@@ -9,6 +9,8 @@ export interface InviteForm {
   max_plus: number;
   guest_names: string[];
   link_lang: Lang;
+  // Group invite: guest_names are co-primaries (no single primary, no pluses).
+  group: boolean;
 }
 
 export type AdminAuthenticatedView = 'dashboard' | 'form' | 'submission' | 'invite';
@@ -39,6 +41,7 @@ export function createEmptyForm(lang: Lang): InviteForm {
     max_plus: 1,
     guest_names: [''],
     link_lang: lang,
+    group: false,
   };
 }
 
@@ -47,9 +50,10 @@ export function formFromInvite(
   guests: GuestResponse[],
   lang: Lang,
 ): InviteForm {
+  const group = guests.length > 0 && guests.every((g) => g.co_primary);
   const names =
     guests.length > 0
-      ? sortPrimaryFirst(guests).map((g) => g.name)
+      ? (group ? guests.map((g) => g.name) : sortPrimaryFirst(guests).map((g) => g.name))
       : [invite.name];
   return {
     id: invite.id,
@@ -58,5 +62,6 @@ export function formFromInvite(
     max_plus: invite.max_plus,
     guest_names: names,
     link_lang: lang,
+    group,
   };
 }
