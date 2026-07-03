@@ -11,10 +11,10 @@ export interface InviteForm {
   link_lang: Lang;
 }
 
-export type AdminView = 'login' | 'dashboard' | 'form' | 'submission' | 'invite';
+export type AdminAuthenticatedView = 'dashboard' | 'form' | 'submission' | 'invite';
 
 export interface AdminState {
-  view: AdminView;
+  view: AdminAuthenticatedView;
   lang: Lang;
   invites: InviteResponse[];
   error?: string;

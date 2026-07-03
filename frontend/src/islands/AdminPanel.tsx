@@ -18,10 +18,14 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
   const lang = untrack(() => props.lang);
 
   const [state, setState] = createSignal<AdminState>({
-    view: 'login',
+    view: 'dashboard',
     lang,
     invites: [],
   });
+
+  // undefined until the auth check resolves; render nothing meanwhile so login
+  // never flashes before the dashboard on refresh.
+  const [authed, setAuthed] = createSignal<boolean | undefined>(undefined);
 
   let rootRef: HTMLDivElement | undefined;
 
@@ -35,8 +39,10 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
         error: undefined,
         formError: undefined,
       }));
+      setAuthed(true);
     } catch {
-      setState((prev) => ({ ...prev, view: 'login', error: undefined, formError: undefined }));
+      setState((prev) => ({ ...prev, error: undefined, formError: undefined }));
+      setAuthed(false);
     }
   }
 
@@ -66,9 +72,9 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
   async function onLogout(): Promise<void> {
     try {
       await api.adminLogout().run();
-      setState((prev) => ({ ...prev, view: 'login', invites: [], error: undefined }));
+      setState((prev) => ({ ...prev, view: 'dashboard', invites: [], error: undefined }));
+      setAuthed(false);
     } catch {
-      // Keep the session on the dashboard but surface the failure.
       setState((prev) => ({ ...prev, error: translate('admin_logout_error', prev.lang) }));
     }
   }
@@ -106,8 +112,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     try {
       await api.deleteInvite(id).run();
     } catch {
-      // Surface the failure and skip the refresh so the row isn't silently
-      // re-fetched as if the delete had succeeded.
+      // Skip the refresh so a failed delete doesn't silently re-fetch the row.
       setState((prev) => ({ ...prev, error: translate('admin_delete_error', prev.lang) }));
       return;
     }
@@ -154,62 +159,66 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
 
   return (
     <div id="admin-root" ref={(el) => { rootRef = el; }}>
-      <Switch>
-        <Match when={state().view === 'login'}>
-          <AdminLogin lang={state().lang} error={state().error} onLogin={onLogin} />
-        </Match>
-        <Match when={state().view === 'dashboard'}>
-          <AdminDashboard
-            lang={state().lang}
-            invites={state().invites}
-            error={state().error}
-            onNewInvite={onNewInvite}
-            onLogout={onLogout}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onGetInvite={onGetInvite}
-          />
-        </Match>
-        <Match when={state().view === 'submission'}>
-          <Show when={state().viewInvite}>
-            {(invite) => (
-              <AdminSubmission
+      <Show when={authed() !== undefined}>
+        <Show
+          when={authed()}
+          fallback={<AdminLogin lang={state().lang} error={state().error} onLogin={onLogin} />}
+        >
+          <Switch>
+            <Match when={state().view === 'dashboard'}>
+              <AdminDashboard
                 lang={state().lang}
-                invite={invite()}
-                guests={state().viewGuests ?? []}
-                onBack={() => { refreshDashboard(); }}
+                invites={state().invites}
+                error={state().error}
+                onNewInvite={onNewInvite}
+                onLogout={onLogout}
+                onView={onView}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onGetInvite={onGetInvite}
               />
-            )}
-          </Show>
-        </Match>
-        <Match when={state().view === 'invite'}>
-          <Show when={state().linkInvite}>
-            {(invite) => (
-              <AdminInvite
-                lang={state().lang}
-                invite={invite()}
-                initialLang={state().linkLang ?? state().lang}
-                onBack={() => { refreshDashboard(); }}
-              />
-            )}
-          </Show>
-        </Match>
-        <Match when={state().view === 'form'}>
-          <Show when={state().form}>
-            {(form) => (
-              <AdminForm
-                lang={state().lang}
-                form={form()}
-                isCreate={form().id === undefined}
-                formError={state().formError}
-                onSubmit={onFormSubmit}
-                onCancel={onFormCancel}
-              />
-            )}
-          </Show>
-        </Match>
-      </Switch>
+            </Match>
+            <Match when={state().view === 'submission'}>
+              <Show when={state().viewInvite}>
+                {(invite) => (
+                  <AdminSubmission
+                    lang={state().lang}
+                    invite={invite()}
+                    guests={state().viewGuests ?? []}
+                    onBack={() => { refreshDashboard(); }}
+                  />
+                )}
+              </Show>
+            </Match>
+            <Match when={state().view === 'invite'}>
+              <Show when={state().linkInvite}>
+                {(invite) => (
+                  <AdminInvite
+                    lang={state().lang}
+                    invite={invite()}
+                    initialLang={state().linkLang ?? state().lang}
+                    onBack={() => { refreshDashboard(); }}
+                  />
+                )}
+              </Show>
+            </Match>
+            <Match when={state().view === 'form'}>
+              <Show when={state().form}>
+                {(form) => (
+                  <AdminForm
+                    lang={state().lang}
+                    form={form()}
+                    isCreate={form().id === undefined}
+                    formError={state().formError}
+                    onSubmit={onFormSubmit}
+                    onCancel={onFormCancel}
+                  />
+                )}
+              </Show>
+            </Match>
+          </Switch>
+        </Show>
+      </Show>
     </div>
   );
 }
