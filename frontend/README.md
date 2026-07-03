@@ -58,18 +58,18 @@ Four languages: English (`en`), Icelandic (`is`), German (`de`), Swedish (`sv`).
   `translate(key, lang)` utility (`src/scripts/i18n.ts`) imports all four and
   falls back to English, then the key string. It runs both at build time (in
   `.astro` frontmatter) and at runtime (in client islands).
-- **Language picker:** `src/components/LangPicker.astro` — navigates between
+- **Language picker:** `src/components/LangPicker.astro` navigates between
   locale paths, preserving the current path and query string.
 - **Adding/updating translations:** edit `src/locales/<lang>.json`. The key set
   must be identical across all four files (a key-completeness test is planned).
 
 ## Pages
 
-- `/` (and `/<lang>`) — RSVP form. Pass `?id=<inviteId>` to load a specific
+- `/` (and `/<lang>`) is the RSVP form. Pass `?id=<inviteId>` to load a specific
   invitation. The form prefills the invite's preset guests and lets the invitee
   add/remove pluses up to `max_plus`, fill names/dietary/alcohol-free, and
   submit.
-- `/admin` (and `/<lang>/admin`) — Admin panel (password-protected via the
+- `/admin` (and `/<lang>/admin`) is the admin panel (password-protected via the
   backend). Manage invites: create with preset guest names + a link-language
   picker, edit, delete, copy shareable links.
 

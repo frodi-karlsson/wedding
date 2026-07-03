@@ -272,7 +272,7 @@ func (s *SQLiteStore) DeleteInvite(ctx context.Context, id string) error {
 }
 
 // SubmitRSVP replaces the invite's guests, marks it submitted, and stores the
-// message — all in one transaction — then returns the resulting invite and guest
+// message (all in one transaction), then returns the resulting invite and guest
 // rows read back from within that same transaction. Returning the post-write
 // state lets callers use it directly (email body, HTTP response) without a second
 // round-trip that could observe stale or concurrently-modified data.

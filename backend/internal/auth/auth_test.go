@@ -153,8 +153,8 @@ func TestIsAuthenticated_TamperedCookie(t *testing.T) {
 		t.Fatalf("expected 1 cookie, got %d", len(cookies))
 	}
 	// Tamper: replace the last char with a guaranteed-different one. Compare the
-	// original last char (not the one before it) so the result always differs —
-	// otherwise it can reconstruct the valid value and still verify (flaky).
+	// original last char (not the one before it) so the result always differs.
+	// Otherwise it can reconstruct the valid value and still verify (flaky).
 	c := cookies[0]
 	repl := byte('a')
 	if c.Value[len(c.Value)-1] == 'a' {

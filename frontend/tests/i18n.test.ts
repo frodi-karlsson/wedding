@@ -55,7 +55,7 @@ test('should select the plural variant for count 2', () => {
 
 test('should apply language-specific plural rules (Icelandic dative sg vs pl)', () => {
   // Icelandic plural category "one" applies to 1, 21, 31… (singular agreement),
-  // "other" to everything else — Intl.PluralRules encodes this.
+  // "other" to everything else. Intl.PluralRules encodes this.
   expect(translate('rsvp_intro', 'is', 1)).toContain('gesti{min_clause}');
   expect(translate('rsvp_intro', 'is', 21)).toContain('gesti{min_clause}');
   expect(translate('rsvp_intro', 'is', 2)).toContain('gestum{min_clause}');

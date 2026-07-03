@@ -1,4 +1,4 @@
-# Carla & Frodi — Wedding Invite Site
+# Carla & Frodi Wedding Invite Site
 
 A wedding invitation website with an RSVP form and an admin panel for managing
 invites.
@@ -7,8 +7,8 @@ invites.
 
 ```
 wedding/
-├── backend/    # Go API — SQLite, RSVP, admin, email (see backend/README.md)
-├── frontend/   # Astro static site — RSVP + admin pages (see frontend/README.md)
+├── backend/    # Go API with SQLite, RSVP, admin, email (see backend/README.md)
+├── frontend/   # Astro static site with RSVP + admin pages (see frontend/README.md)
 ├── db/         # schema reference + staging seed
 ├── infra/      # OpenTofu + docker compose (see infra/README.md)
 └── .github/    # CI workflows (see .github/README.md)

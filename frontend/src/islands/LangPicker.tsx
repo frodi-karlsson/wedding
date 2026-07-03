@@ -30,7 +30,7 @@ export function LangPicker(props: LangPickerProps): JSX.Element {
   // Close on outside click. Solid delegates events to document, so
   // stopPropagation on the trigger can't prevent this listener from firing
   // (both are on document). Instead, check whether the click was inside
-  // the dropdown — the standard "click outside" pattern.
+  // the dropdown (the standard "click outside" pattern).
   onMount(() => {
     function onDocClick(e: MouseEvent) {
       if (!(e.target as HTMLElement).closest('[data-lang-dropdown]')) {

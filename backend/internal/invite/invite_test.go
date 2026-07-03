@@ -175,8 +175,8 @@ func TestSubmitRSVP_EmailSendFailure_StillPersists(t *testing.T) {
 		t.Errorf("Submitted = false, want true (persisted despite email failure)")
 	}
 
-	// The RSVP must be persisted even though the notification email failed —
-	// email is best-effort, never a gate on the guest's response.
+	// The RSVP must be persisted even though the notification email failed.
+	// Email is best-effort, never a gate on the guest's response.
 	inv2, guests2, err := svc.GetInvite(ctx, inv.ID)
 	if err != nil {
 		t.Fatalf("GetInvite() error: %v", err)

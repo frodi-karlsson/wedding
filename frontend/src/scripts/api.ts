@@ -29,7 +29,7 @@ interface ResLike {
  * The web client types `res.data` as `unknown`; casting it straight to a
  * response type lets backend drift surface later as `undefined`/`NaN`. This
  * checks that `data` is a non-null object and, when a `guard` is supplied, that
- * the expected fields are present — throwing a handled Error otherwise so the
+ * the expected fields are present, throwing a handled Error otherwise so the
  * failure is caught by the Task's error channel rather than propagating silently.
  */
 function unwrap<T>(res: ResLike, guard?: (data: object) => boolean): T {

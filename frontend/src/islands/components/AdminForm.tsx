@@ -15,7 +15,7 @@ interface AdminFormProps {
 }
 
 export function AdminForm(props: AdminFormProps): JSX.Element {
-  // Local mutable copy of the form — the parent owns the canonical state.
+  // Local mutable copy of the form. The parent owns the canonical state.
   // The component is unmounted/remounted on every view transition (create → dashboard,
   // edit → dashboard), so local signals initialized from props.form are correct and
   // never need to resync mid-lifecycle.

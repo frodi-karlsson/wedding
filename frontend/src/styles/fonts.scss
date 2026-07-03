@@ -1,10 +1,10 @@
 // Self-hosted latin subset of the two faces we use (copied from @fontsource, OFL).
-// The latin subset (unicode-range U+0000–00FF) covers Icelandic (þ ð ó æ),
+// The latin subset (unicode-range U+0000-00FF) covers Icelandic (þ ð ó æ),
 // German (ä ö ü ß) and Swedish (å ä ö).
 //
 // Single source of truth: the files in ../assets/fonts/ are declared here AND
 // auto-preloaded in Layout.astro (which globs that folder). To add a weight,
-// drop the .woff2 in that folder and add one @font-face here — no other edits.
+// drop the .woff2 in that folder and add one @font-face here. No other edits.
 
 @font-face {
   font-family: 'Cormorant';

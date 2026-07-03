@@ -7,27 +7,27 @@ run:
 linters:
   default: all
   disable:
-    - lll        # line length — not valuable for a small project
+    - lll        # line length, not valuable for a small project
     - wsl        # opinionated whitespace; noisy
     - nlreturn   # requires blank line before return; noisy
-    - exhaustruct # requires exhausting struct fields — overkill
-    - ireturn    # disallows returning interfaces — would fight our Store/Sender design
-    - varnamelen # opinionated short-var naming — fights Go conventions
-    - testpackage # requires tests in _test package — we use internal tests
+    - exhaustruct # requires exhausting struct fields, overkill
+    - ireturn    # disallows returning interfaces, would fight our Store/Sender design
+    - varnamelen # opinionated short-var naming, fights Go conventions
+    - testpackage # requires tests in _test package, we use internal tests
     - nonamedreturns # named returns are fine
-    - funlen     # function length — overkill for handlers
-    - cyclop     # complexity — covered by gocyclo if we want; keep off to avoid double
-    - gocognit   # cognitive complexity — opinionated
-    - maintidx   # maintainability index — opinionated
-    - wrapcheck  # requires wrapping all external errors — overkill for a small service
-    - musttag    # requires struct tags on all serializable structs — overkill
-    - gosec      # security heuristics — noisy on a tiny codebase; trivy covers IaC sec
-    - mnd        # magic number detector — extremely noisy (flags every 200, 404, etc.)
-    - depguard   # import allowlist — overkill for a single-module repo
-    - recvcheck  # receiver name consistency — minor
-    - gomoddirectives # go.mod directive restrictions — overkill
-    - wsl_v5     # whitespace/blank-line style — pure bikeshedding, not bug-catching
-    - noinlineerr # flags `if err := f(); err != nil` — THE standard Go idiom; anti-idiomatic
+    - funlen     # function length, overkill for handlers
+    - cyclop     # complexity, covered by gocyclo if we want; keep off to avoid double
+    - gocognit   # cognitive complexity, opinionated
+    - maintidx   # maintainability index, opinionated
+    - wrapcheck  # requires wrapping all external errors, overkill for a small service
+    - musttag    # requires struct tags on all serializable structs, overkill
+    - gosec      # security heuristics, noisy on a tiny codebase; trivy covers IaC sec
+    - mnd        # magic number detector, extremely noisy (flags every 200, 404, etc.)
+    - depguard   # import allowlist, overkill for a single-module repo
+    - recvcheck  # receiver name consistency, minor
+    - gomoddirectives # go.mod directive restrictions, overkill
+    - wsl_v5     # whitespace/blank-line style, pure bikeshedding, not bug-catching
+    - noinlineerr # flags `if err := f(); err != nil`, THE standard Go idiom; anti-idiomatic
     - tagliatelle # enforces camelCase JSON tags; our API contract is snake_case by spec
     - gomodguard  # deprecated in v2.12.0 (replaced by gomodguard_v2); not needed for this repo
 

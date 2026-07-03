@@ -1,4 +1,4 @@
-# tygo config — generates TypeScript types from the Go API contract.
+# tygo config. Generates TypeScript types from the Go API contract.
 # Source of truth: backend/internal/server/types.go
 # Output: frontend/src/scripts/types.gen.ts
 #

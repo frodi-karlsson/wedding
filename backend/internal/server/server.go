@@ -26,7 +26,7 @@ const healthCheckTimeout = 2 * time.Second
 func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins []string) http.Handler {
 	mux := http.NewServeMux()
 
-	// Health check — unauthenticated, not rate limited. Used by the container
+	// Health check, unauthenticated and not rate limited. Used by the container
 	// HEALTHCHECK. Kept deliberately trivial: pings the DB and returns JSON.
 	mux.HandleFunc("GET /healthz", handleHealthz(d))
 

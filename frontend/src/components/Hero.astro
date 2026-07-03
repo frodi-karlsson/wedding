@@ -35,7 +35,7 @@ const { lang } = Astro.props;
 <style>
   .hero {
     display: grid;
-    /* minmax(0,1fr), not 1fr — keeps both columns a true 50/50 instead of
+    /* minmax(0,1fr), not 1fr, keeps both columns a true 50/50 instead of
        letting the large heading's min-content width inflate the panel. */
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: 1fr;
@@ -46,14 +46,14 @@ const { lang } = Astro.props;
     overflow: hidden;
   }
 
-  /* On extra-wide screens the hero is boxed with side gutters — add a top gap
+  /* On extra-wide screens the hero is boxed with side gutters, so add a top gap
      so it feels centered in its area rather than flush under the navbar. */
   @media (min-width: 1400px) {
     .hero { margin-block-start: var(--space-12); }
   }
   .hero__media { position: relative; overflow: hidden; display: flex; }
   /* .hero__img is BlurredImage's root, so it carries BlurredImage's scope id,
-     not Hero's — target it through .hero__media (which does have Hero's id)
+     not Hero's. Target it through .hero__media (which does have Hero's id)
      and globalize the child so these rules actually match. */
   .hero__media > :global(.hero__img) { flex: 1; min-width: 0; }
   .hero__media :global(.blurred-image__img) {

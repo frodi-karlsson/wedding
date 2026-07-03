@@ -44,7 +44,7 @@ func (l *loginLimiter) Allow(ip string) bool {
 		if time.Now().Before(block) {
 			return false
 		}
-		// Block expired — give the IP a fresh 5-attempt budget.
+		// Block expired, so give the IP a fresh 5-attempt budget.
 		delete(l.failures, ip)
 		delete(l.blockTill, ip)
 	}

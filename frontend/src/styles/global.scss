@@ -24,7 +24,7 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-// Form elements — underline style, sans values >=16px (consumed by TS islands)
+// Form elements, underline style, sans values >=16px (consumed by TS islands)
 input, textarea, select {
   width: 100%;
   padding: var(--space-2) var(--space-1);
@@ -140,7 +140,7 @@ input, textarea, select {
   box-shadow: 0 1px 4px rgb(27 46 74 / 0.5);
 }
 
-// Heading — Cormorant serif
+// Heading, Cormorant serif
 .heading {
   font-family: var(--font-serif);
   line-height: var(--leading-tight);
@@ -155,7 +155,7 @@ input, textarea, select {
 .heading--2xl  { font-size: var(--step-3); }
 .heading--3xl  { font-size: var(--step-4); }
 
-// Button — engraved label
+// Button, engraved label
 .btn {
   display: inline-flex;
   align-items: center;
@@ -329,7 +329,7 @@ input, textarea, select {
   gap: var(--space-2);
   width: 100%;
   // Sits on .section--navy (light inherited text) but .card gives it a light
-  // surface — pin body text to the blue ink token so it stays readable.
+  // surface, so pin body text to the blue ink token so it stays readable.
   color: var(--color-text);
 }
 

@@ -33,7 +33,7 @@ func TestMigrate_CreatesTables(t *testing.T) {
 // TestApplyMigration_IsAtomic proves apply-SQL + record-version commit or roll
 // back together. When recording the version fails, the migration's schema change
 // must NOT be left behind. Under the pre-fix two-Exec code the ADD COLUMN would
-// persist even though the version was never recorded — so a later full Migrate()
+// persist even though the version was never recorded, so a later full Migrate()
 // re-runs 0003 and dies with "duplicate column name". With a single transaction,
 // a failed record rolls back the ALTER, leaving a clean slate.
 func TestApplyMigration_IsAtomic(t *testing.T) {
@@ -54,7 +54,7 @@ func TestApplyMigration_IsAtomic(t *testing.T) {
 	}
 
 	// Pre-insert version 1 so applyMigration's record INSERT hits a PRIMARY KEY
-	// conflict and fails — forcing a rollback of the whole transaction.
+	// conflict and fails, forcing a rollback of the whole transaction.
 	if _, err := d.Exec("INSERT INTO schema_migrations (version) VALUES (1)"); err != nil {
 		t.Fatalf("seed version: %v", err)
 	}

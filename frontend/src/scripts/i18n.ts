@@ -7,7 +7,7 @@ export type Lang = 'en' | 'is' | 'de' | 'sv';
 
 const messages: Record<Lang, Record<string, string>> = { en, is, de, sv };
 
-/** Locales that carry a URL prefix — the default ('en') is served unprefixed. */
+/** Locales that carry a URL prefix. The default ('en') is served unprefixed. */
 export const NON_DEFAULT_LOCALES: Lang[] = ['is', 'de', 'sv'];
 
 /**
@@ -15,7 +15,7 @@ export const NON_DEFAULT_LOCALES: Lang[] = ['is', 'de', 'sv'];
  *
  * When `count` is provided, the key is resolved to a plural variant using the
  * language's CLDR plural category (via `Intl.PluralRules`): `${key}_${category}`
- * (e.g. `rsvp_intro_one`, `rsvp_intro_other`). This handles per-language rules —
+ * (e.g. `rsvp_intro_one`, `rsvp_intro_other`). This handles per-language rules.
  * Icelandic, for instance, treats 1/21/31… as "one". Resolution falls back to
  * the `_other` variant, then English, then the raw key.
  */

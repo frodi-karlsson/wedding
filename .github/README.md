@@ -1,14 +1,14 @@
-# GitHub Actions — CI/CD
+# GitHub Actions CI/CD
 
 ## Workflows
 
-- `backend.yml` — tests, builds, pushes backend image to DO Container Registry.
+- `backend.yml` tests, builds, and pushes the backend image to DO Container Registry.
   The droplet pulls the latest image via a systemd timer. Runs on pushes/PRs touching `backend/`.
-- `frontend.yml` — tests, builds, deploys frontend to Cloudflare Pages via
+- `frontend.yml` tests, builds, and deploys the frontend to Cloudflare Pages via
   wrangler. Runs on pushes/PRs touching `frontend/`.
-- `infra-check.yml` — `tofu fmt -check` + `tofu validate`. Runs on PRs and pushes
+- `infra-check.yml` runs `tofu fmt -check` and `tofu validate`. Runs on PRs and pushes
   to `main` touching `infra/`.
-- `lint.yml` — runs golangci-lint, govulncheck, and `go mod tidy` check on the
+- `lint.yml` runs golangci-lint, govulncheck, and the `go mod tidy` check on the
   backend. Runs on pushes/PRs to `main`.
 
 ## Required GitHub Secrets
@@ -16,7 +16,7 @@
 | Secret | Used by | Purpose |
 |--------|---------|---------|
 | `DO_TOKEN` | backend, infra | DigitalOcean API token |
-| `DO_REGISTRY_ENDPOINT` | backend | DO Container Registry endpoint, e.g. `registry.digitalocean.com/wedding` — must include the registry name (the `registry_endpoint` OpenTofu output) |
+| `DO_REGISTRY_ENDPOINT` | backend | DO Container Registry endpoint, e.g. `registry.digitalocean.com/wedding` (must include the registry name, the `registry_endpoint` OpenTofu output) |
 | `CLOUDFLARE_API_TOKEN` | frontend | Cloudflare API token (Pages deploy) |
 | `CLOUDFLARE_ACCOUNT_ID` | frontend | Cloudflare account ID |
 
