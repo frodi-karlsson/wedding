@@ -1,0 +1,59 @@
+---
+import Layout from '../components/Layout.astro';
+import { translate } from '../scripts/i18n';
+
+// Astro's static build emits a single dist/404.html, which Cloudflare Pages serves
+// (with a 404 status) for any unmatched route. It is rendered in the default locale;
+// the client script below re-localizes from the browser language, since a not-found
+// path carries no locale prefix to read.
+const lang = 'en';
+---
+
+<Layout title={translate('notfound_title', lang)} lang={lang}>
+  <section class="notfound">
+    <h1 class="heading heading--lg" data-i18n="notfound_heading">{translate('notfound_heading', lang)}</h1>
+    <p class="notfound__body" data-i18n="notfound_body">{translate('notfound_body', lang)}</p>
+    <a href="/" class="btn btn--md btn--primary" data-home data-i18n="notfound_home">
+      {translate('notfound_home', lang)}
+    </a>
+  </section>
+</Layout>
+
+<script>
+  import { translate, NON_DEFAULT_LOCALES, type Lang } from '../scripts/i18n';
+
+  const LOCALES = ['en', 'is', 'de', 'sv'] as const;
+  const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  const lang: Lang = (LOCALES as readonly string[]).includes(nav) ? (nav as Lang) : 'en';
+
+  if (lang !== 'en') {
+    document.documentElement.lang = lang;
+    document.title = translate('notfound_title', lang);
+    document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key) el.textContent = translate(key, lang);
+    });
+    const home = document.querySelector<HTMLAnchorElement>('[data-home]');
+    if (home && (NON_DEFAULT_LOCALES as readonly string[]).includes(lang)) {
+      home.href = `/${lang}`;
+    }
+  }
+</script>
+
+<style>
+  .notfound {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: var(--space-section) clamp(1.25rem, 4vw, 2rem);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .notfound__body {
+    color: var(--color-text-muted);
+    line-height: var(--leading-relaxed);
+    margin: 0;
+  }
+</style>
