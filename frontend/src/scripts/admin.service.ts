@@ -1,4 +1,4 @@
-import type { Lang } from './i18n';
+import { localePrefix, type Lang } from './i18n';
 import { sortPrimaryFirst } from './guests';
 import type { GuestResponse, InviteResponse } from './types.gen';
 
@@ -29,8 +29,7 @@ export interface AdminState {
 }
 
 export function buildShareLink(origin: string, id: string, lang: Lang): string {
-  const prefix = lang === 'en' ? '' : lang;
-  return `${origin}/${prefix}?id=${id}`;
+  return `${origin}${localePrefix(lang) || '/'}?id=${id}`;
 }
 
 export function createEmptyForm(lang: Lang): InviteForm {

@@ -1,23 +1,10 @@
 import { createSignal, createMemo, For, onMount, onCleanup, type JSX } from 'solid-js';
-import type { Lang } from '../scripts/i18n';
+import { LOCALES, type Lang } from '../scripts/i18n';
 import { buildLocaleHref } from '../scripts/nav';
-
-interface LocaleOption {
-  code: Lang;
-  label: string;
-  icon: string;
-}
 
 interface LangPickerProps {
   lang: Lang;
 }
-
-const LOCALES: LocaleOption[] = [
-  { code: 'en', label: 'English', icon: 'gb' },
-  { code: 'is', label: 'Íslenska', icon: 'is' },
-  { code: 'de', label: 'Deutsch', icon: 'de' },
-  { code: 'sv', label: 'Svenska', icon: 'se' },
-];
 
 export function LangPicker(props: LangPickerProps): JSX.Element {
   const [open, setOpen] = createSignal(false);
@@ -53,7 +40,7 @@ export function LangPicker(props: LangPickerProps): JSX.Element {
       >
         <img
           class="lang-dropdown__flag"
-          src={`/flags/${current().icon}.svg`}
+          src={`/flags/${current().flag}.svg`}
           width="20"
           height="15"
           alt=""
@@ -89,7 +76,7 @@ export function LangPicker(props: LangPickerProps): JSX.Element {
               >
                 <img
                   class="lang-dropdown__flag"
-                  src={`/flags/${l.icon}.svg`}
+                  src={`/flags/${l.flag}.svg`}
                   width="20"
                   height="15"
                   alt=""

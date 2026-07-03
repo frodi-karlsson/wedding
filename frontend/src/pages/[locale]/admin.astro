@@ -3,8 +3,7 @@ import AdminPage from '../../components/AdminPage.astro';
 import { langFromPath, NON_DEFAULT_LOCALES } from '../../scripts/i18n';
 
 export function getStaticPaths() {
-  // Exclude the default 'en'. It is served unprefixed at '/admin', so emitting
-  // an 'en' param would duplicate it at '/en/admin'.
+  // Exclude the default locale, which is served unprefixed at '/admin'.
   return NON_DEFAULT_LOCALES.map((locale) => ({ params: { locale } }));
 }
 

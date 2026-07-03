@@ -1,9 +1,6 @@
 import { createSignal, For, Index, untrack, type JSX } from 'solid-js';
-import type { Lang } from '../../scripts/i18n';
-import { translate } from '../../scripts/i18n';
+import { translate, LOCALE_CODES, type Lang } from '../../scripts/i18n';
 import type { InviteForm } from '../../scripts/admin.service';
-
-const ALL_LANGS: Lang[] = ['en', 'is', 'de', 'sv'];
 
 interface AdminFormProps {
   lang: Lang;
@@ -162,7 +159,7 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
         <label>
           <span>{translate('admin_link_lang_label', props.lang)}</span>
           <select name="link_lang" onChange={(e) => setLinkLang(e.currentTarget.value as Lang)}>
-            <For each={ALL_LANGS}>
+            <For each={LOCALE_CODES}>
               {(l) => <option value={l} selected={l === linkLang()}>{l}</option>}
             </For>
           </select>

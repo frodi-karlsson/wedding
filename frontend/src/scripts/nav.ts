@@ -1,5 +1,5 @@
 import type { Lang } from './i18n';
-import { langFromPath } from './i18n';
+import { DEFAULT_LOCALE, langFromPath, localePrefix } from './i18n';
 
 interface UrlLike {
   pathname: string;
@@ -21,10 +21,10 @@ export function buildLocaleHref(
 ): string {
   const currentLang = langFromPath(currentUrl.pathname);
   const stripped =
-    currentLang === 'en'
+    currentLang === DEFAULT_LOCALE
       ? currentUrl.pathname
       : currentUrl.pathname.slice(`/${currentLang}`.length) || '/';
-  const prefix = targetLang === 'en' ? '' : `/${targetLang}`;
+  const prefix = localePrefix(targetLang);
   const base = stripped === '/' ? (prefix || '/') : `${prefix}${stripped}`;
   return `${base}${currentUrl.search}${currentUrl.hash}`;
 }

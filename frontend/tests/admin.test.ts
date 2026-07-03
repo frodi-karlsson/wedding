@@ -2,8 +2,8 @@ import { test, expect } from 'vitest';
 import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/admin.service';
 import type { GuestResponse, InviteResponse } from '../src/scripts/types.gen';
 
-test('should build share link for en without a language prefix', () => {
-  const result = buildShareLink('https://example.com', 'abc123', 'en');
+test('should build share link for the default locale without a prefix', () => {
+  const result = buildShareLink('https://example.com', 'abc123', 'sv');
 
   expect(result).toBe('https://example.com/?id=abc123');
 });
@@ -14,12 +14,12 @@ test('should build share link for is with the language prefix', () => {
   expect(result).toBe('https://example.com/is?id=abc123');
 });
 
-test('should build share link for de and sv', () => {
+test('should build share link for de and en with the language prefix', () => {
   const de = buildShareLink('https://example.com', '1', 'de');
-  const sv = buildShareLink('https://example.com', '2', 'sv');
+  const en = buildShareLink('https://example.com', '2', 'en');
 
   expect(de).toBe('https://example.com/de?id=1');
-  expect(sv).toBe('https://example.com/sv?id=2');
+  expect(en).toBe('https://example.com/en?id=2');
 });
 
 test('should create an empty form with the given language', () => {

@@ -1,12 +1,12 @@
 import { test, expect, vi } from 'vitest';
 import { localeFromPath, buildLocaleHref, hasInviteId, scrollToFragment } from '../src/scripts/nav';
 
-test('should return en for the root path', () => {
-  expect(localeFromPath('/')).toBe('en');
+test('should return the default locale for the root path', () => {
+  expect(localeFromPath('/')).toBe('sv');
 });
 
-test('should return en for a path with no locale prefix', () => {
-  expect(localeFromPath('/admin')).toBe('en');
+test('should return the default locale for a path with no locale prefix', () => {
+  expect(localeFromPath('/admin')).toBe('sv');
 });
 
 test('should return is for the Icelandic language prefix', () => {
@@ -17,15 +17,15 @@ test('should return de for the German language prefix', () => {
   expect(localeFromPath('/de/admin')).toBe('de');
 });
 
-test('should return sv for the Swedish language prefix', () => {
-  expect(localeFromPath('/sv')).toBe('sv');
+test('should return en for the English language prefix', () => {
+  expect(localeFromPath('/en')).toBe('en');
 });
 
-test('should return en for an unknown language prefix', () => {
-  expect(localeFromPath('/xyz')).toBe('en');
+test('should return the default locale for an unknown language prefix', () => {
+  expect(localeFromPath('/xyz')).toBe('sv');
 });
 
-test('should preserve query params and fragment when switching from en to is', () => {
+test('should preserve query params and fragment when switching from the default locale to is', () => {
   const url = { pathname: '/', search: '?id=abc123', hash: '#rsvp' };
 
   expect(buildLocaleHref(url, 'is')).toBe('/is?id=abc123#rsvp');
@@ -34,7 +34,7 @@ test('should preserve query params and fragment when switching from en to is', (
 test('should preserve query params and fragment when switching from is to en', () => {
   const url = { pathname: '/is', search: '?id=abc123', hash: '#rsvp' };
 
-  expect(buildLocaleHref(url, 'en')).toBe('/?id=abc123#rsvp');
+  expect(buildLocaleHref(url, 'en')).toBe('/en?id=abc123#rsvp');
 });
 
 test('should preserve query params and fragment when switching from is to de', () => {
@@ -46,7 +46,7 @@ test('should preserve query params and fragment when switching from is to de', (
 test('should handle switching from a deeper path', () => {
   const url = { pathname: '/is/admin', search: '?id=abc123', hash: '' };
 
-  expect(buildLocaleHref(url, 'en')).toBe('/admin?id=abc123');
+  expect(buildLocaleHref(url, 'en')).toBe('/en/admin?id=abc123');
 });
 
 test('should handle switching to the same locale', () => {
@@ -58,7 +58,8 @@ test('should handle switching to the same locale', () => {
 test('should handle root path with no params or fragment', () => {
   const url = { pathname: '/', search: '', hash: '' };
 
-  expect(buildLocaleHref(url, 'en')).toBe('/');
+  expect(buildLocaleHref(url, 'en')).toBe('/en');
+  expect(buildLocaleHref(url, 'sv')).toBe('/');
   expect(buildLocaleHref(url, 'is')).toBe('/is');
 });
 

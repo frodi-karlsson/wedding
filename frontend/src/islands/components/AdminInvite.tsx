@@ -1,11 +1,8 @@
 import { createSignal, createResource, For, Show, type JSX } from 'solid-js';
 import QRCode from 'qrcode';
-import type { Lang } from '../../scripts/i18n';
-import { translate } from '../../scripts/i18n';
+import { translate, LOCALE_CODES, type Lang } from '../../scripts/i18n';
 import type { InviteResponse } from '../../scripts/types.gen';
 import { buildShareLink } from '../../scripts/admin.service';
-
-const ALL_LANGS: Lang[] = ['en', 'is', 'de', 'sv'];
 
 interface AdminInviteProps {
   lang: Lang;
@@ -51,7 +48,7 @@ export function AdminInvite(props: AdminInviteProps): JSX.Element {
       <label class="admin-invite__field">
         <span>{translate('admin_link_lang_label', props.lang)}</span>
         <select value={linkLang()} onChange={(e) => setLinkLang(e.currentTarget.value as Lang)}>
-          <For each={ALL_LANGS}>
+          <For each={LOCALE_CODES}>
             {(l) => <option value={l} selected={l === linkLang()}>{l}</option>}
           </For>
         </select>

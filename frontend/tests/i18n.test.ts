@@ -8,8 +8,8 @@ test('should return the translated string for a known key in the requested langu
   expect(result).toBe('Thank you!');
 });
 
-test('should fall back to English when a key is missing in a non-default locale', () => {
-  const langs: Lang[] = ['is', 'de', 'sv'];
+test('should return a non-empty string for every locale', () => {
+  const langs: Lang[] = ['en', 'is', 'de', 'sv'];
 
   langs.forEach((l) => {
     const result = translate('thank_you', l);
@@ -19,7 +19,7 @@ test('should fall back to English when a key is missing in a non-default locale'
   });
 });
 
-test('should fall back to the English value when a key is missing from a specific locale', () => {
+test('should fall back to the default-locale value when a key is missing from a specific locale', () => {
   const key = 'thank_you';
   const dict = is as Record<string, string | undefined>;
   const original = dict[key];
@@ -29,7 +29,7 @@ test('should fall back to the English value when a key is missing from a specifi
   try {
     const result = translate(key, 'is');
 
-    expect(result).toBe('Thank you!');
+    expect(result).toBe('Tack!');
   } finally {
     dict[key] = original;
   }
@@ -61,10 +61,10 @@ test('should apply language-specific plural rules (Icelandic dative sg vs pl)', 
   expect(translate('rsvp_intro', 'is', 2)).toContain('gestum{min_clause}');
 });
 
-test('should return en for the root path', () => {
+test('should return the default locale for the root path', () => {
   const result = langFromPath('/');
 
-  expect(result).toBe('en');
+  expect(result).toBe('sv');
 });
 
 test('should return is for the Icelandic language prefix', () => {
@@ -79,10 +79,10 @@ test('should return de for the German language prefix', () => {
   expect(result).toBe('de');
 });
 
-test('should return sv for the Swedish language prefix', () => {
-  const result = langFromPath('/sv');
+test('should return en for the English language prefix', () => {
+  const result = langFromPath('/en');
 
-  expect(result).toBe('sv');
+  expect(result).toBe('en');
 });
 
 test('should return the language prefix for a deeper path', () => {
@@ -91,8 +91,8 @@ test('should return the language prefix for a deeper path', () => {
   expect(result).toBe('is');
 });
 
-test('should return en for an unknown language prefix', () => {
+test('should return the default locale for an unknown language prefix', () => {
   const result = langFromPath('/xyz');
 
-  expect(result).toBe('en');
+  expect(result).toBe('sv');
 });

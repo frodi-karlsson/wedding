@@ -133,6 +133,6 @@ test('should show the get-invite screen with the shareable link when clicking Ge
   fireEvent.click(screen.getAllByText('Get invite')[0]);
 
   await waitFor(() => {
-    expect(screen.getByDisplayValue('https://example.com/?id=1')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://example.com/en?id=1')).toBeInTheDocument();
   });
 });

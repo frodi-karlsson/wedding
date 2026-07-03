@@ -19,3 +19,13 @@ test('language switch preserves query params and fragment', async ({ page }) => 
   expect(url.searchParams.get('id')).toBe('abc123');
   expect(url.hash).toBe('#location');
 });
+
+test('root renders the default locale (Swedish)', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'sv');
+});
+
+test('the /en route renders English', async ({ page }) => {
+  await page.goto('/en');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});
