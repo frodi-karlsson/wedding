@@ -55,19 +55,35 @@ type Guest struct {
 	DietaryPreference string
 	AlcoholFree       bool
 	IsPrimary         bool
+	CoPrimary         bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
 
 // Store is the storage contract used by the invite service and handlers.
+// group=true marks a "group" invite: every preset guest is stored as a
+// co-primary (no single primary). group=false is the standard shape where the
+// first guest is the primary and the rest are plain pluses.
 type Store interface {
-	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
+	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error)
 	GetInvite(ctx context.Context, id string) (Invite, error)
 	GetInviteWithGuests(ctx context.Context, id string) (Invite, []Guest, error)
 	ListInvites(ctx context.Context) ([]Invite, error)
-	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
+	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error)
 	DeleteInvite(ctx context.Context, id string) error
 	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) (Invite, []Guest, error)
+}
+
+// presetFlags returns the (is_primary, co_primary) column values for a preset
+// guest at position i, given the invite shape.
+func presetFlags(i int, group bool) (isPrimary, coPrimary int) {
+	if group {
+		return 0, 1
+	}
+	if i == 0 {
+		return 1, 0
+	}
+	return 0, 0
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -87,7 +103,7 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
+func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error) {
 	if len(guestNames) == 0 {
 		return Invite{}, ErrNoGuestNames
 	}
@@ -104,13 +120,10 @@ func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, ma
 		return Invite{}, err
 	}
 	for i, gname := range guestNames {
-		var isPrimary int
-		if i == 0 {
-			isPrimary = 1
-		}
+		isPrimary, coPrimary := presetFlags(i, group)
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, ?)",
-			id, gname, isPrimary); err != nil {
+			"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
+			id, gname, isPrimary, coPrimary); err != nil {
 			return Invite{}, err
 		}
 	}
@@ -143,7 +156,7 @@ func (s *SQLiteStore) GetInviteWithGuests(ctx context.Context, id string) (Invit
 		return Invite{}, nil, err
 	}
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT id, invite_id, name, dietary_preference, alcohol_free, is_primary, created_at, updated_at FROM guests WHERE invite_id=? ORDER BY is_primary DESC, id ASC",
+		"SELECT id, invite_id, name, dietary_preference, alcohol_free, is_primary, co_primary, created_at, updated_at FROM guests WHERE invite_id=? ORDER BY is_primary DESC, co_primary DESC, id ASC",
 		id)
 	if err != nil {
 		return Invite{}, nil, err
@@ -153,12 +166,13 @@ func (s *SQLiteStore) GetInviteWithGuests(ctx context.Context, id string) (Invit
 	var guests []Guest
 	for rows.Next() {
 		var g Guest
-		var alcoholFree, isPrimary int
-		if err := rows.Scan(&g.ID, &g.InviteID, &g.Name, &g.DietaryPreference, &alcoholFree, &isPrimary, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		var alcoholFree, isPrimary, coPrimary int
+		if err := rows.Scan(&g.ID, &g.InviteID, &g.Name, &g.DietaryPreference, &alcoholFree, &isPrimary, &coPrimary, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return Invite{}, nil, err
 		}
 		g.AlcoholFree = alcoholFree == 1
 		g.IsPrimary = isPrimary == 1
+		g.CoPrimary = coPrimary == 1
 		guests = append(guests, g)
 	}
 	return inv, guests, rows.Err()
@@ -185,7 +199,7 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	return invites, rows.Err()
 }
 
-func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string) (Invite, error) {
+func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error) {
 	if len(guestNames) == 0 {
 		return Invite{}, ErrNoGuestNames
 	}
@@ -227,20 +241,17 @@ func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus
 	// Reconcile existing guest rows by position; insert new rows for extra names;
 	// delete trailing extras. This preserves dietary_preference/alcohol_free on retained rows.
 	for i, gname := range guestNames {
-		var isPrimary int
-		if i == 0 {
-			isPrimary = 1
-		}
+		isPrimary, coPrimary := presetFlags(i, group)
 		if i < len(existingIDs) {
 			if _, err := tx.ExecContext(ctx,
-				"UPDATE guests SET name=?, is_primary=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-				gname, isPrimary, existingIDs[i]); err != nil {
+				"UPDATE guests SET name=?, is_primary=?, co_primary=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+				gname, isPrimary, coPrimary, existingIDs[i]); err != nil {
 				return Invite{}, err
 			}
 		} else {
 			if _, err := tx.ExecContext(ctx,
-				"INSERT INTO guests (invite_id, name, is_primary) VALUES (?, ?, ?)",
-				id, gname, isPrimary); err != nil {
+				"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
+				id, gname, isPrimary, coPrimary); err != nil {
 				return Invite{}, err
 			}
 		}
@@ -292,13 +303,17 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []
 		if g.IsPrimary {
 			isPrimary = 1
 		}
+		var coPrimary int
+		if g.CoPrimary {
+			coPrimary = 1
+		}
 		var alcoholFree int
 		if g.AlcoholFree {
 			alcoholFree = 1
 		}
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO guests (invite_id, name, dietary_preference, alcohol_free, is_primary) VALUES (?, ?, ?, ?, ?)",
-			inviteID, g.Name, g.DietaryPreference, alcoholFree, isPrimary); err != nil {
+			"INSERT INTO guests (invite_id, name, dietary_preference, alcohol_free, is_primary, co_primary) VALUES (?, ?, ?, ?, ?, ?)",
+			inviteID, g.Name, g.DietaryPreference, alcoholFree, isPrimary, coPrimary); err != nil {
 			return Invite{}, nil, err
 		}
 	}
@@ -355,7 +370,7 @@ func getInviteTx(ctx context.Context, tx *sql.Tx, id string) (Invite, error) {
 // as GetInviteWithGuests.
 func getGuestsTx(ctx context.Context, tx *sql.Tx, inviteID string) ([]Guest, error) {
 	rows, err := tx.QueryContext(ctx,
-		"SELECT id, invite_id, name, dietary_preference, alcohol_free, is_primary, created_at, updated_at FROM guests WHERE invite_id=? ORDER BY is_primary DESC, id ASC",
+		"SELECT id, invite_id, name, dietary_preference, alcohol_free, is_primary, co_primary, created_at, updated_at FROM guests WHERE invite_id=? ORDER BY is_primary DESC, co_primary DESC, id ASC",
 		inviteID)
 	if err != nil {
 		return nil, err
@@ -365,12 +380,13 @@ func getGuestsTx(ctx context.Context, tx *sql.Tx, inviteID string) ([]Guest, err
 	var guests []Guest
 	for rows.Next() {
 		var g Guest
-		var alcoholFree, isPrimary int
-		if err := rows.Scan(&g.ID, &g.InviteID, &g.Name, &g.DietaryPreference, &alcoholFree, &isPrimary, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		var alcoholFree, isPrimary, coPrimary int
+		if err := rows.Scan(&g.ID, &g.InviteID, &g.Name, &g.DietaryPreference, &alcoholFree, &isPrimary, &coPrimary, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, err
 		}
 		g.AlcoholFree = alcoholFree == 1
 		g.IsPrimary = isPrimary == 1
+		g.CoPrimary = coPrimary == 1
 		guests = append(guests, g)
 	}
 	return guests, rows.Err()

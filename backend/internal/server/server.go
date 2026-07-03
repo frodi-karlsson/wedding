@@ -198,6 +198,7 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 				DietaryPreference: g.DietaryPreference,
 				AlcoholFree:       g.AlcoholFree,
 				IsPrimary:         g.IsPrimary,
+				CoPrimary:         g.CoPrimary,
 			}
 		}
 		if utf8.RuneCountInString(req.Message) > 1000 {
@@ -275,11 +276,25 @@ type inviteRequest struct {
 	GuestNames []string
 	MinPlus    int
 	MaxPlus    int
+	Group      bool
 }
 
 // validateInviteRequest returns a non-empty error message string on failure
 // and "" on success.
 func validateInviteRequest(req inviteRequest) string {
+	// Group invite: a list of co-primary names, no single primary, no pluses.
+	// The display name and min/max are derived server-side.
+	if req.Group {
+		if len(req.GuestNames) == 0 {
+			return "at least one co-primary name is required"
+		}
+		for _, n := range req.GuestNames {
+			if strings.TrimSpace(n) == "" {
+				return "co-primary names cannot be empty"
+			}
+		}
+		return ""
+	}
 	if strings.TrimSpace(req.Name) == "" {
 		return "name is required"
 	}
@@ -322,11 +337,11 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus}); msg != "" {
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
 			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
+		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames, req.Group)
 		if err != nil {
 			logInternalError(w, err)
 			return
@@ -383,11 +398,11 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus}); msg != "" {
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
 			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames)
+		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames, req.Group)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
 				writeError(w, http.StatusNotFound, "invite not found")

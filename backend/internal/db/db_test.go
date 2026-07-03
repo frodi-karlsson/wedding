@@ -58,7 +58,7 @@ func TestCreateInvite_AutoCreatesPrimaryGuest(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla"})
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestCreateInvite_GeneratesOpaqueTokenID(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla", "Friend"})
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla", "Friend"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestSubmitRSVP_Atomic(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla"})
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -170,12 +170,12 @@ func TestUpdateInvite_UpdatesPrimaryGuestName(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "Old Name", 0, 1, []string{"Old Name"})
+	inv, err := store.CreateInvite(ctx, "Old Name", 0, 1, []string{"Old Name"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
 
-	if _, err := store.UpdateInvite(ctx, inv.ID, "New Name", 0, 1, []string{"New Name"}); err != nil {
+	if _, err := store.UpdateInvite(ctx, inv.ID, "New Name", 0, 1, []string{"New Name"}, false); err != nil {
 		t.Fatalf("UpdateInvite() error: %v", err)
 	}
 
@@ -199,7 +199,7 @@ func TestForeignKeys_Cascade(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "Cascade", 0, 1, []string{"Cascade"})
+	inv, err := store.CreateInvite(ctx, "Cascade", 0, 1, []string{"Cascade"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestDeleteInvite_RemovesInvite(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
 	ctx := context.Background()
-	inv, err := store.CreateInvite(ctx, "To Delete", 0, 1, []string{"To Delete"})
+	inv, err := store.CreateInvite(ctx, "To Delete", 0, 1, []string{"To Delete"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestCreateInvite_MultipleGuestNames(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla", "Friend One", "Friend Two"})
+	inv, err := store.CreateInvite(ctx, "Frodi & Carla", 0, 2, []string{"Frodi & Carla", "Friend One", "Friend Two"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -268,10 +268,36 @@ func TestCreateInvite_MultipleGuestNames(t *testing.T) {
 	}
 }
 
+func TestCreateInvite_Group_AllCoPrimary(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := store.CreateInvite(ctx, "ignored", 5, 9, []string{"Alice", "Bob", "Carla"}, true)
+	if err != nil {
+		t.Fatalf("CreateInvite(group) error: %v", err)
+	}
+	_, guests, err := store.GetInviteWithGuests(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
+	}
+	if len(guests) != 3 {
+		t.Fatalf("len(guests) = %d, want 3", len(guests))
+	}
+	for i, g := range guests {
+		if g.IsPrimary {
+			t.Errorf("guest[%d] IsPrimary = true, want false (group)", i)
+		}
+		if !g.CoPrimary {
+			t.Errorf("guest[%d] CoPrimary = false, want true (group)", i)
+		}
+	}
+}
+
 func TestCreateInvite_NoGuestNamesErrors(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
-	_, err := store.CreateInvite(context.Background(), "X", 0, 1, []string{})
+	_, err := store.CreateInvite(context.Background(), "X", 0, 1, []string{}, false)
 	if err == nil {
 		t.Fatal("CreateInvite with empty guestNames should error")
 	}
@@ -282,7 +308,7 @@ func TestUpdateInvite_ReconcilesGuestNamesByPosition(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "A", 0, 3, []string{"A", "B", "C"})
+	inv, err := store.CreateInvite(ctx, "A", 0, 3, []string{"A", "B", "C"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -291,11 +317,11 @@ func TestUpdateInvite_ReconcilesGuestNamesByPosition(t *testing.T) {
 		t.Fatalf("Get() error: %v", err)
 	}
 	// Mutate B's dietary pref to verify it's preserved on rename.
-	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"}); err != nil { // no-op rename first to get stable ids
+	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"}, false); err != nil { // no-op rename first to get stable ids
 		t.Fatalf("no-op UpdateInvite() error: %v", err)
 	}
 	// Set dietary on guest B directly via SubmitRSVP-like path is overkill; instead test rename + add + remove.
-	updated, err := store.UpdateInvite(ctx, inv.ID, "A2", 0, 3, []string{"A2", "B2"})
+	updated, err := store.UpdateInvite(ctx, inv.ID, "A2", 0, 3, []string{"A2", "B2"}, false)
 	if err != nil {
 		t.Fatalf("UpdateInvite() error: %v", err)
 	}
@@ -326,8 +352,8 @@ func TestUpdateInvite_AddsGuestNames(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := store.CreateInvite(ctx, "A", 0, 3, []string{"A"})
-	_, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"})
+	inv, _ := store.CreateInvite(ctx, "A", 0, 3, []string{"A"}, false)
+	_, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{"A", "B", "C"}, false)
 	if err != nil {
 		t.Fatalf("UpdateInvite() error: %v", err)
 	}
@@ -345,12 +371,12 @@ func TestUpdateInvite_NoGuestNamesErrorsAndLeavesGuestsIntact(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := store.CreateInvite(ctx, "A", 0, 3, []string{"A", "B"})
+	inv, err := store.CreateInvite(ctx, "A", 0, 3, []string{"A", "B"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
 
-	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{}); err == nil {
+	if _, err := store.UpdateInvite(ctx, inv.ID, "A", 0, 3, []string{}, false); err == nil {
 		t.Fatal("UpdateInvite with empty guestNames should error")
 	}
 
@@ -369,7 +395,7 @@ func TestUpdateInvite_NoGuestNamesErrorsAndLeavesGuestsIntact(t *testing.T) {
 func TestUpdateInvite_NotFound(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
-	_, err := store.UpdateInvite(context.Background(), "999", "X", 0, 1, []string{"X"})
+	_, err := store.UpdateInvite(context.Background(), "999", "X", 0, 1, []string{"X"}, false)
 	if err != ErrNotFound {
 		t.Errorf("UpdateInvite(999) err = %v, want ErrNotFound", err)
 	}

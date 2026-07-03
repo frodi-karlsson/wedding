@@ -41,7 +41,7 @@ func TestSubmitRSVP_Valid(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestSubmitRSVP_NoPrimary(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
 	guests := []db.Guest{
 		{Name: "Frodi"},
 	}
@@ -85,7 +85,7 @@ func TestSubmitRSVP_TooManyPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1, []string{"Frodi"})
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1, []string{"Frodi"}, false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Plus1"},
@@ -102,7 +102,7 @@ func TestSubmitRSVP_TooFewPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2, []string{"Frodi"})
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2, []string{"Frodi"}, false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 	}
@@ -117,7 +117,7 @@ func TestSubmitRSVP_EmptyName(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: ""},
@@ -142,7 +142,7 @@ func TestCreateInvite_MultipleGuests(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 	ctx := context.Background()
-	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi", "Carla"})
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi", "Carla"}, false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestSubmitRSVP_EmailSendFailure_StillPersists(t *testing.T) {
 	emailer.sendErr = errors.New("send failed")
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"})
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
 
 	savedInv, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "hi")
@@ -193,5 +193,82 @@ func TestSubmitRSVP_EmailSendFailure_StillPersists(t *testing.T) {
 	// The email should still have been attempted.
 	if emailer.lastSubject == "" {
 		t.Error("expected a notification email send attempt")
+	}
+}
+
+func TestCreateInvite_Group_DerivesNameAndForcesNoPluses(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// name/min/max are ignored for group invites; the name is derived from the
+	// co-primary names and the plus allowance is forced to 0.
+	inv, err := svc.CreateInvite(ctx, "ignored", 3, 7, []string{"Alice", "Bob", "Carla"}, true)
+	if err != nil {
+		t.Fatalf("CreateInvite(group) error: %v", err)
+	}
+	if inv.Name != "Alice, Bob & Carla" {
+		t.Errorf("Name = %q, want %q", inv.Name, "Alice, Bob & Carla")
+	}
+	if inv.MinPlus != 0 || inv.MaxPlus != 0 {
+		t.Errorf("Min/Max = %d/%d, want 0/0", inv.MinPlus, inv.MaxPlus)
+	}
+	_, guests, err := svc.GetInvite(ctx, inv.ID)
+	if err != nil {
+		t.Fatalf("GetInvite() error: %v", err)
+	}
+	if len(guests) != 3 {
+		t.Fatalf("len(guests) = %d, want 3", len(guests))
+	}
+	for i, g := range guests {
+		if g.IsPrimary || !g.CoPrimary {
+			t.Errorf("guest[%d] = %+v, want co-primary (not primary)", i, g)
+		}
+	}
+}
+
+func TestSubmitRSVP_Group_Valid(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := svc.CreateInvite(ctx, "", 0, 0, []string{"Alice", "Bob"}, true)
+	if err != nil {
+		t.Fatalf("CreateInvite(group) error: %v", err)
+	}
+	guests := []db.Guest{
+		{Name: "Alice", CoPrimary: true},
+		{Name: "Bob", CoPrimary: true, AlcoholFree: true},
+	}
+	_, saved, err := svc.SubmitRSVP(ctx, inv.ID, guests, "see you")
+	if err != nil {
+		t.Fatalf("SubmitRSVP(group) error: %v", err)
+	}
+	if len(saved) != 2 {
+		t.Fatalf("len(saved) = %d, want 2", len(saved))
+	}
+	for i, g := range saved {
+		if !g.CoPrimary || g.IsPrimary {
+			t.Errorf("saved[%d] = %+v, want co-primary", i, g)
+		}
+	}
+}
+
+func TestSubmitRSVP_Group_RejectsMixingWithPrimary(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	inv, err := svc.CreateInvite(ctx, "", 0, 0, []string{"Alice", "Bob"}, true)
+	if err != nil {
+		t.Fatalf("CreateInvite(group) error: %v", err)
+	}
+	// A submission that mixes a primary in with co-primaries must be rejected.
+	guests := []db.Guest{
+		{Name: "Alice", IsPrimary: true},
+		{Name: "Bob", CoPrimary: true},
+	}
+	if _, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, ""); err == nil {
+		t.Fatal("SubmitRSVP should reject mixing a primary with co-primaries")
 	}
 }

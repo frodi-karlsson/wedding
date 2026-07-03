@@ -9,6 +9,7 @@ type GuestInput struct {
 	DietaryPreference string `json:"dietary_preference"`
 	AlcoholFree       bool   `json:"alcohol_free"`
 	IsPrimary         bool   `json:"is_primary"`
+	CoPrimary         bool   `json:"co_primary"`
 }
 
 type RSVPRequest struct {
@@ -21,6 +22,7 @@ type CreateInviteRequest struct {
 	MinPlus    int      `json:"min_plus"`
 	MaxPlus    int      `json:"max_plus"`
 	GuestNames []string `json:"guest_names"`
+	Group      bool     `json:"group"`
 }
 
 type UpdateInviteRequest struct {
@@ -28,6 +30,7 @@ type UpdateInviteRequest struct {
 	MinPlus    int      `json:"min_plus"`
 	MaxPlus    int      `json:"max_plus"`
 	GuestNames []string `json:"guest_names"`
+	Group      bool     `json:"group"`
 }
 
 type LoginRequest struct {
@@ -52,6 +55,7 @@ type GuestResponse struct {
 	DietaryPreference string `json:"dietary_preference"`
 	AlcoholFree       bool   `json:"alcohol_free"`
 	IsPrimary         bool   `json:"is_primary"`
+	CoPrimary         bool   `json:"co_primary"`
 }
 
 type InviteResponse struct {
@@ -80,6 +84,7 @@ func toGuestResponse(g *db.Guest) GuestResponse {
 		DietaryPreference: g.DietaryPreference,
 		AlcoholFree:       g.AlcoholFree,
 		IsPrimary:         g.IsPrimary,
+		CoPrimary:         g.CoPrimary,
 	}
 }
 
