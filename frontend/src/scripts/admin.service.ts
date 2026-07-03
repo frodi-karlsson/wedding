@@ -1,4 +1,5 @@
 import type { Lang } from './i18n';
+import { sortPrimaryFirst } from './guests';
 import type { GuestResponse, InviteResponse } from './types.gen';
 
 export interface InviteForm {
@@ -49,10 +50,7 @@ export function formFromInvite(
 ): InviteForm {
   const names =
     guests.length > 0
-      ? guests
-          .slice()
-          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
-          .map((g) => g.name)
+      ? sortPrimaryFirst(guests).map((g) => g.name)
       : [invite.name];
   return {
     id: invite.id,

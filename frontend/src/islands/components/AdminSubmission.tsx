@@ -1,6 +1,7 @@
 import { For, Show, type JSX } from 'solid-js';
 import type { Lang } from '../../scripts/i18n';
 import { translate } from '../../scripts/i18n';
+import { sortPrimaryFirst } from '../../scripts/guests';
 import type { GuestResponse, InviteResponse } from '../../scripts/types.gen';
 
 interface AdminSubmissionProps {
@@ -11,8 +12,7 @@ interface AdminSubmissionProps {
 }
 
 export function AdminSubmission(props: AdminSubmissionProps): JSX.Element {
-  const sortedGuests = () =>
-    props.guests.slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+  const sortedGuests = () => sortPrimaryFirst(props.guests);
 
   return (
     <div class="admin-submission card">

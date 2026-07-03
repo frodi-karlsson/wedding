@@ -16,7 +16,7 @@ const { lang } = Astro.props;
     <BlurredImage
       src={heroImg}
       lqipBuffer={heroImgBuffer}
-      alt="Carla and Fróði"
+      alt={translate('hero_photo_alt', lang)}
       widths={[600, 900, 1200]}
       sizes="(max-width: 760px) 100vw, 50vw"
       loading="eager"

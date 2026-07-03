@@ -66,10 +66,11 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
   async function onLogout(): Promise<void> {
     try {
       await api.adminLogout().run();
+      setState((prev) => ({ ...prev, view: 'login', invites: [], error: undefined }));
     } catch {
-      // ignore logout errors
+      // Keep the session on the dashboard but surface the failure.
+      setState((prev) => ({ ...prev, error: translate('admin_logout_error', prev.lang) }));
     }
-    setState((prev) => ({ ...prev, view: 'login', invites: [], error: undefined }));
   }
 
   async function onView(id: string): Promise<void> {
@@ -82,7 +83,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
         viewGuests: response.guests,
       }));
     } catch {
-      // ignore load error
+      setState((prev) => ({ ...prev, error: translate('admin_load_error', prev.lang) }));
     }
   }
 
@@ -96,7 +97,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
         formError: undefined,
       }));
     } catch {
-      // ignore load error
+      setState((prev) => ({ ...prev, error: translate('admin_load_error', prev.lang) }));
     }
   }
 
@@ -105,7 +106,10 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     try {
       await api.deleteInvite(id).run();
     } catch {
-      // ignore delete error
+      // Surface the failure and skip the refresh so the row isn't silently
+      // re-fetched as if the delete had succeeded.
+      setState((prev) => ({ ...prev, error: translate('admin_delete_error', prev.lang) }));
+      return;
     }
     await refreshDashboard();
   }
@@ -158,6 +162,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
           <AdminDashboard
             lang={state().lang}
             invites={state().invites}
+            error={state().error}
             onNewInvite={onNewInvite}
             onLogout={onLogout}
             onView={onView}

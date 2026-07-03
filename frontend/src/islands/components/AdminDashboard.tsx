@@ -7,6 +7,7 @@ import { buildShareLink } from '../../scripts/admin.service';
 interface AdminDashboardProps {
   lang: Lang;
   invites: InviteResponse[];
+  error?: string;
   onNewInvite: () => void;
   onLogout: () => void;
   onView: (id: string) => void;
@@ -26,6 +27,7 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
           {translate('admin_logout', props.lang)}
         </button>
       </div>
+      {props.error && <p class="error">{props.error}</p>}
       <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>

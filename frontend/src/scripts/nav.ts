@@ -1,4 +1,5 @@
 import type { Lang } from './i18n';
+import { langFromPath } from './i18n';
 
 interface UrlLike {
   pathname: string;
@@ -10,21 +11,15 @@ interface SearchLike {
   search: string;
 }
 
-const NON_DEFAULT_LOCALES: Lang[] = ['is', 'de', 'sv'];
-
-export function localeFromPath(pathname: string): Lang {
-  const seg = pathname.split('/').filter(Boolean)[0];
-  if (seg && (NON_DEFAULT_LOCALES as string[]).includes(seg)) {
-    return seg as Lang;
-  }
-  return 'en';
-}
+// `localeFromPath` is the canonical `langFromPath` from i18n.ts, re-exported
+// here under the name nav consumers use.
+export { langFromPath as localeFromPath };
 
 export function buildLocaleHref(
   currentUrl: UrlLike,
   targetLang: Lang,
 ): string {
-  const currentLang = localeFromPath(currentUrl.pathname);
+  const currentLang = langFromPath(currentUrl.pathname);
   const stripped =
     currentLang === 'en'
       ? currentUrl.pathname

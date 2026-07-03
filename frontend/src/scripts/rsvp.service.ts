@@ -1,4 +1,5 @@
 import type { Lang } from './i18n';
+import { sortPrimaryFirst } from './guests';
 import type { GuestInput, GuestResponse, InviteResponse } from './types.gen';
 
 export type RsvpStatus = 'loading' | 'ready' | 'submitting' | 'confirmed' | 'error';
@@ -17,13 +18,14 @@ export function createRsvpState(
   guests: GuestResponse[],
   lang: Lang,
 ): RsvpState {
-  const mapped = guests.map((guest) => ({
-    name: guest.name,
-    dietary_preference: guest.dietary_preference,
-    alcohol_free: guest.alcohol_free,
-    is_primary: guest.is_primary,
-  }));
-  mapped.sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+  const mapped = sortPrimaryFirst(
+    guests.map((guest) => ({
+      name: guest.name,
+      dietary_preference: guest.dietary_preference,
+      alcohol_free: guest.alcohol_free,
+      is_primary: guest.is_primary,
+    })),
+  );
   return { invite, guests: mapped, message: '', status: 'ready', lang };
 }
 

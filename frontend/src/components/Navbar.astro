@@ -17,7 +17,7 @@ const links = [
 ];
 ---
 
-<nav class="nav" data-nav aria-label="Site navigation">
+<nav class="nav" data-nav aria-label={translate('nav_aria_label', lang)}>
   <div class="nav__inner">
     <a href="#" class="nav__brand">{translate('site_title', lang)}</a>
 
@@ -26,8 +26,10 @@ const links = [
       type="button"
       data-nav-toggle
       aria-expanded="false"
-      aria-label="Open navigation menu"
+      aria-label={translate('nav_toggle_open', lang)}
       aria-controls="nav-panel"
+      data-label-open={translate('nav_toggle_open', lang)}
+      data-label-close={translate('nav_toggle_close', lang)}
     >
       <span class="nav__toggle-bar"></span>
       <span class="nav__toggle-bar"></span>
@@ -57,10 +59,14 @@ const links = [
 <script>
   const toggle = document.querySelector('[data-nav-toggle]');
   const panel = document.querySelector('[data-nav-panel]');
+  // Translated labels are passed in via data-* so the client script stays
+  // language-agnostic (no hardcoded copy here).
+  const labelOpen = toggle?.getAttribute('data-label-open') ?? '';
+  const labelClose = toggle?.getAttribute('data-label-close') ?? '';
   function setOpen(open: boolean) {
     panel?.toggleAttribute('data-open', open);
     toggle?.setAttribute('aria-expanded', String(open));
-    toggle?.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    toggle?.setAttribute('aria-label', open ? labelClose : labelOpen);
   }
   toggle?.addEventListener('click', () => setOpen(!panel?.hasAttribute('data-open')));
   panel?.querySelectorAll('[data-nav-link]').forEach((link) => {
