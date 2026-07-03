@@ -39,9 +39,13 @@
 - Single-line commit messages. No body.
 - No trailers. Do not add Co-Authored-By or similar.
 
+## Verification
+
+- **`make check`** at the repo root is how to confirm work before shipping. It runs the backend checks (lint, vet, govulncheck, tidy, tests) and the frontend checks (astro check, eslint, vitest, build, and Playwright e2e). Ship only on a green run.
+- Playwright needs its browser once per machine: `cd frontend && pnpm exec playwright install chromium`.
+
 ## General
 
 - TDD throughout (test-first).
 - No secrets committed or in plain text.
 - Versions pinned to verified-latest (see spec).
-- **`make check`** at the repo root runs all static analysis + tests for both backend and frontend. Run it before handing over work.

@@ -13,7 +13,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "lint": "eslint .",
-    "check": "pnpm exec astro check && pnpm exec eslint . && pnpm exec vitest run && pnpm run build"
+    "check": "pnpm exec astro check && pnpm exec eslint . && pnpm exec vitest run && pnpm run test:e2e"
   },
   "dependencies": {
     "@anabranch/web-client": "^0",
