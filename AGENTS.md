@@ -34,6 +34,11 @@
 - Prefer self-documenting names over comments. A comment that only restates what the code does is noise. Encode the intent in a name instead (e.g. rename a type to `AdminAuthenticatedView` rather than commenting why `login` is not a value). Keep comments for genuinely non-obvious rationale, and keep those terse.
 - No em dashes or en dashes anywhere in code, comments, docs, or config. Use periods or commas, and reword if needed. Never substitute a semicolon. User-facing text is exempt: locale copy in `src/locales/*.json`, and rendered UI glyphs such as an em dash empty-value placeholder.
 
+## Commits
+
+- Single-line commit messages. No body.
+- No trailers. Do not add Co-Authored-By or similar.
+
 ## General
 
 - TDD throughout (test-first).
