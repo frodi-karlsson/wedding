@@ -10,7 +10,7 @@ export interface InviteForm {
   link_lang: Lang;
 }
 
-export type AdminView = 'login' | 'dashboard' | 'form' | 'submission';
+export type AdminView = 'login' | 'dashboard' | 'form' | 'submission' | 'invite';
 
 export interface AdminState {
   view: AdminView;
@@ -22,6 +22,9 @@ export interface AdminState {
   // Populated when viewing a single invite's submission (read-only).
   viewInvite?: InviteResponse;
   viewGuests?: GuestResponse[];
+  // Populated when showing an invite's shareable link + QR ("Get invite").
+  linkInvite?: InviteResponse;
+  linkLang?: Lang;
 }
 
 export function buildShareLink(origin: string, id: string, lang: Lang): string {

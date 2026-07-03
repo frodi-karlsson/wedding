@@ -4,8 +4,6 @@ import { translate } from '../../scripts/i18n';
 import type { InviteResponse } from '../../scripts/types.gen';
 import { buildShareLink } from '../../scripts/admin.service';
 
-const ALL_LANGS: Lang[] = ['en', 'is', 'de', 'sv'];
-
 interface AdminDashboardProps {
   lang: Lang;
   invites: InviteResponse[];
@@ -14,7 +12,7 @@ interface AdminDashboardProps {
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onCopyLink: (id: string, lang: Lang, button: HTMLButtonElement) => void;
+  onGetInvite: (id: string) => void;
 }
 
 export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
@@ -52,23 +50,12 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
                 <td>{invite.max_plus}</td>
                 <td>{invite.submitted ? '✓' : '—'}</td>
                 <td class="actions">
-                  <select class="link-lang" data-id={invite.id}>
-                    <For each={ALL_LANGS}>
-                      {(l) => <option value={l} selected={l === props.lang}>{l}</option>}
-                    </For>
-                  </select>
                   <button
                     type="button"
                     class="btn btn--ghost btn--sm"
-                    onClick={(e) => {
-                      const select = e.currentTarget
-                        .closest('tr')
-                        ?.querySelector<HTMLSelectElement>(`select.link-lang[data-id="${invite.id}"]`);
-                      const linkLang = (select?.value as Lang) ?? props.lang;
-                      props.onCopyLink(invite.id, linkLang, e.currentTarget);
-                    }}
+                    onClick={() => props.onGetInvite(invite.id)}
                   >
-                    {translate('admin_copy_link', props.lang)}
+                    {translate('admin_get_invite', props.lang)}
                   </button>
                   <button
                     type="button"

@@ -119,3 +119,20 @@ test('should log out and return to login view', async () => {
     expect(screen.getByText('Log in')).toBeInTheDocument();
   });
 });
+
+test('should show the get-invite screen with the shareable link when clicking Get invite', async () => {
+  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
+
+  render(() => <AdminPanel lang="en" />);
+
+  await waitFor(() => {
+    expect(screen.getByText('Ada')).toBeInTheDocument();
+  });
+
+  // Ada is the first row.
+  fireEvent.click(screen.getAllByText('Get invite')[0]);
+
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('https://example.com/?id=1')).toBeInTheDocument();
+  });
+});

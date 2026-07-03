@@ -5,13 +5,13 @@ import { api } from '../scripts/api';
 import {
   createEmptyForm,
   formFromInvite,
-  buildShareLink,
   type AdminState,
   type InviteForm,
 } from '../scripts/admin.service';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminSubmission } from './components/AdminSubmission';
+import { AdminInvite } from './components/AdminInvite';
 import { AdminForm } from './components/AdminForm';
 
 export function AdminPanel(props: { lang: Lang }): JSX.Element {
@@ -110,18 +110,10 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     await refreshDashboard();
   }
 
-  async function onCopyLink(id: string, linkLang: Lang, button: HTMLButtonElement): Promise<void> {
-    const link = buildShareLink(globalThis.location.origin, id, linkLang);
-    try {
-      await navigator.clipboard.writeText(link);
-      const original = button.textContent ?? '';
-      button.textContent = translate('admin_copied', state().lang);
-      setTimeout(() => {
-        button.textContent = original;
-      }, 1500);
-    } catch {
-      // ignore clipboard errors
-    }
+  function onGetInvite(id: string): void {
+    const invite = state().invites.find((i) => i.id === id);
+    if (!invite) return;
+    setState((prev) => ({ ...prev, view: 'invite', linkInvite: invite, linkLang: prev.lang }));
   }
 
   async function onFormSubmit(form: InviteForm): Promise<void> {
@@ -135,11 +127,17 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     try {
       if (form.id === undefined) {
         const response = await api.createInvite(body).run();
-        const shareLink = buildShareLink(globalThis.location.origin, response.invite.id, form.link_lang);
-        globalThis.alert(shareLink);
-      } else {
-        await api.updateInvite(form.id, body).run();
+        await refreshDashboard();
+        // Land on the invite's link + QR screen instead of a bare alert.
+        setState((prev) => ({
+          ...prev,
+          view: 'invite',
+          linkInvite: response.invite,
+          linkLang: form.link_lang,
+        }));
+        return;
       }
+      await api.updateInvite(form.id, body).run();
       await refreshDashboard();
     } catch {
       setState((prev) => ({ ...prev, formError: translate('admin_error', prev.lang) }));
@@ -165,7 +163,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
             onView={onView}
             onEdit={onEdit}
             onDelete={onDelete}
-            onCopyLink={onCopyLink}
+            onGetInvite={onGetInvite}
           />
         </Match>
         <Match when={state().view === 'submission'}>
@@ -175,6 +173,18 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
                 lang={state().lang}
                 invite={invite()}
                 guests={state().viewGuests ?? []}
+                onBack={() => { refreshDashboard(); }}
+              />
+            )}
+          </Show>
+        </Match>
+        <Match when={state().view === 'invite'}>
+          <Show when={state().linkInvite}>
+            {(invite) => (
+              <AdminInvite
+                lang={state().lang}
+                invite={invite()}
+                initialLang={state().linkLang ?? state().lang}
                 onBack={() => { refreshDashboard(); }}
               />
             )}
