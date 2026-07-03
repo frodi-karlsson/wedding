@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.26.4'
+          go-version-file: backend/go.mod
 
       - name: Run tests
         working-directory: backend
@@ -38,5 +38,10 @@ jobs:
         working-directory: backend
         run: |
           docker login "${{ secrets.DO_REGISTRY_ENDPOINT }}" -u "${{ secrets.DO_TOKEN }}" --password-stdin <<< "${{ secrets.DO_TOKEN }}"
-          docker build -t "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:latest" .
+          # Tag both :latest (the droplet's pull timer tracks this) and an
+          # immutable :<sha> tag for rollback (docker pull ...:<sha> on the droplet).
+          docker build \
+            -t "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:latest" \
+            -t "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:${{ github.sha }}" .
           docker push "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:latest"
+          docker push "${{ secrets.DO_REGISTRY_ENDPOINT }}/wedding-backend:${{ github.sha }}"

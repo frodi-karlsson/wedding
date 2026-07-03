@@ -80,8 +80,8 @@ variable "resend_from" {
 }
 
 variable "resend_to" {
-  type    = string
-  default = "frodi.carla@gmail.com"
+  type        = string
+  description = "Recipient for RSVP notifications and backup-failure alerts. Required (no default) so the address is set deliberately per deployment."
 }
 
 variable "cors_allowed_origins" {

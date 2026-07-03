@@ -49,8 +49,15 @@ docker compose -f docker-compose.dev.yml up --build
 ```
 
 The staging backend uses a bind-mounted `./data` directory for its
-SQLite file. The directory is created with `chmod 777` so the distroless
-container's `nonroot` user can write to it.
+SQLite file. The distroless image runs as the `nonroot` user (uid 65532),
+so give that uid ownership rather than making the directory world-writable:
+
+```sh
+mkdir -p infra/data
+sudo chown 65532:65532 infra/data && chmod 750 infra/data
+```
+
+(On prod the volume at `/mnt/data` is set up the same way by cloud-init.)
 
 Optionally seed test data:
 ```sh

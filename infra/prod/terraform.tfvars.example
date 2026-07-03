@@ -11,6 +11,9 @@ resend_api_key      = "re_xxxxxxxxxxxxxxxxxxxxxx"
 admin_password      = "choose-a-strong-password"
 session_secret      = "generate-a-random-secret"
 
+# Recipient for RSVP notifications, backup-failure alerts, and DMARC reports. Required.
+resend_to           = "you@example.com"
+
 ssh_allowed_ip      = "84.55.97.207/32"
 
 r2_access_key_id     = "R2_ACCESS_KEY_ID"
@@ -23,5 +26,4 @@ healthchecks_ping_url = "https://hc-ping.com/your-uuid"
 # do_region           = "ams3"
 # droplet_size        = "s-1vcpu-1gb"
 # resend_from         = "rsvp@carlaochfrodi.wedding"
-# resend_to           = "frodi.carla@gmail.com"
 # cors_allowed_origins = "https://carlaochfrodi.wedding"

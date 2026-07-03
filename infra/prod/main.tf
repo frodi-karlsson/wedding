@@ -228,7 +228,11 @@ resource "cloudflare_dns_record" "resend_dmarc" {
   zone_id = var.cloudflare_zone_id
   name    = "_dmarc"
   type    = "TXT"
-  content = "v=DMARC1; p=none;"
+  # p=quarantine tells receivers to junk mail that fails SPF/DKIM alignment,
+  # protecting the domain from spoofing. No rua= aggregate reports — outbound
+  # deliverability is monitored via the Resend dashboard instead. Move to
+  # p=reject once mail flow is confirmed clean. Takes effect only on `tofu apply`.
+  content = "v=DMARC1; p=quarantine;"
   proxied = false
   ttl     = 1
 }

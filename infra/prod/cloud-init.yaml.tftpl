@@ -23,7 +23,8 @@ write_files:
             - caddy_data:/data
             - caddy_config:/config
           depends_on:
-            - backend
+            backend:
+              condition: service_healthy
         backend:
           image: ${registry_server}/wedding-backend:latest
           restart: unless-stopped
@@ -147,7 +148,7 @@ runcmd:
   - mkdir -p /mnt/data
   - mount /dev/disk/by-id/scsi-0DO_Volume_wedding-data /mnt/data || true
   - echo '/dev/disk/by-id/scsi-0DO_Volume_wedding-data /mnt/data ext4 defaults,nofail 0 2' >> /etc/fstab
-  - chmod 777 /mnt/data
+  - chown 65532:65532 /mnt/data && chmod 750 /mnt/data
   - echo "${do_token}" | docker login ${registry_server_url} -u "${do_token}" --password-stdin
   - cd /opt/wedding
   - docker compose pull || true
