@@ -23,7 +23,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     invites: [],
   });
 
-  // undefined until the auth check resolves; render nothing meanwhile so login
+  // undefined until the auth check resolves. Render nothing meanwhile so login
   // never flashes before the dashboard on refresh.
   const [authed, setAuthed] = createSignal<boolean | undefined>(undefined);
 
