@@ -1,0 +1,41 @@
+---
+// A page section wrapper. Includes data-reveal so every section slides up and
+// fades in on scroll (see scripts/reveal.ts and the .js [data-reveal] styles).
+interface Props {
+  id: string;
+  variant?: 'powder' | 'navy';
+  center?: boolean;
+}
+const { id, variant, center } = Astro.props;
+---
+
+<section class:list={['section', variant && `section--${variant}`]} id={id} data-reveal>
+  <div class:list={['section__inner', center && 'section__inner--center']}>
+    <slot />
+  </div>
+</section>
+
+<style>
+  .section {
+    scroll-margin-top: 80px;
+  }
+
+  .section__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-section) clamp(1.25rem, 4vw, 2rem);
+  }
+
+  .section__inner--center {
+    text-align: center;
+  }
+
+  .section--powder {
+    background: var(--color-accent-subtle);
+  }
+
+  .section--navy {
+    background: var(--color-inverse-bg);
+    color: var(--color-inverse-text);
+  }
+</style>

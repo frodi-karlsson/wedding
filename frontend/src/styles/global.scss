@@ -476,3 +476,25 @@ input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .fade-in { animation: none; }
 }
+
+// Scroll reveal: elements slide up and fade in as they enter the viewport.
+// Gated on `.js` so content is always visible without JavaScript.
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift));
+  transition:
+    opacity var(--reveal-duration) var(--reveal-ease),
+    transform var(--reveal-duration) var(--reveal-ease);
+  will-change: opacity, transform;
+}
+.js [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

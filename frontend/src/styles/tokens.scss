@@ -43,6 +43,11 @@
   --width-wide: 1400px; // hero + navbar content cap on extra-wide screens
   --gutter: clamp(1.5rem, 5vw, 3.5rem); // page side gutter below the cap
 
+  // Motion (scroll reveal)
+  --reveal-shift: 1.5rem;
+  --reveal-duration: 0.6s;
+  --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
   // Border radius, near-square, formal register
   --radius-0:    0;
   --radius-sm:   2px;
