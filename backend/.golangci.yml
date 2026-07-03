@@ -19,7 +19,6 @@ linters:
     - cyclop     # complexity — covered by gocyclo if we want; keep off to avoid double
     - gocognit   # cognitive complexity — opinionated
     - maintidx   # maintainability index — opinionated
-    - gochecknoglobals # package-level globals (test helpers) — would fight server_test.go
     - wrapcheck  # requires wrapping all external errors — overkill for a small service
     - musttag    # requires struct tags on all serializable structs — overkill
     - gosec      # security heuristics — noisy on a tiny codebase; trivy covers IaC sec

@@ -3,8 +3,10 @@ package server
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +20,12 @@ import (
 
 func newTestServer(t *testing.T) (http.Handler, *email.Fake) {
 	t.Helper()
-	adminCookies = nil
+	srv, fakeEmail, _ := newTestServerWithDB(t)
+	return srv, fakeEmail
+}
+
+func newTestServerWithDB(t *testing.T) (http.Handler, *email.Fake, *sql.DB) {
+	t.Helper()
 	d, err := db.Open(":memory:")
 	if err != nil {
 		t.Fatalf("Open() error: %v", err)
@@ -30,7 +37,7 @@ func newTestServer(t *testing.T) (http.Handler, *email.Fake) {
 	fakeEmail := &email.Fake{}
 	svc := invite.NewService(store, fakeEmail)
 	a := auth.New("admin-pw", "session-secret", false)
-	return New(svc, a, []string{"https://carlaochfrodi.wedding"}), fakeEmail
+	return New(svc, a, d, []string{"https://carlaochfrodi.wedding"}), fakeEmail, d
 }
 
 func TestGetInvite_ReturnsInviteAndGuests(t *testing.T) {
@@ -77,8 +84,8 @@ func TestGetInvite_NotFound(t *testing.T) {
 
 func TestSubmitRSVP_Valid_SendsEmailAndReturnsSaved(t *testing.T) {
 	srv, fakeEmail := newTestServer(t)
-	createAndLogin(t, srv)
-	id := firstInviteID(t, srv)
+	cookies := createAndLogin(t, srv)
+	id := firstInviteID(t, srv, cookies)
 
 	body := RSVPRequest{Guests: []GuestInput{
 		{Name: "Frodi & Carla", IsPrimary: true},
@@ -95,8 +102,8 @@ func TestSubmitRSVP_Valid_SendsEmailAndReturnsSaved(t *testing.T) {
 
 func TestSubmitRSVP_ValidationFails(t *testing.T) {
 	srv, _ := newTestServer(t)
-	createAndLogin(t, srv)
-	id := firstInviteID(t, srv)
+	cookies := createAndLogin(t, srv)
+	id := firstInviteID(t, srv, cookies)
 
 	body := RSVPRequest{Guests: []GuestInput{{Name: "NoPrimary"}}}
 	rec := jsonRequest(t, srv, http.MethodPost, "/invites/"+fmt.Sprint(id)+"/rsvp", body, false)
@@ -202,10 +209,10 @@ func TestAdminCreateInvite(t *testing.T) {
 
 func TestAdminDeleteInvite(t *testing.T) {
 	srv, _ := newTestServer(t)
-	createAndLogin(t, srv)
-	id := firstInviteID(t, srv)
+	cookies := createAndLogin(t, srv)
+	id := firstInviteID(t, srv, cookies)
 
-	rec := jsonRequest(t, srv, http.MethodDelete, "/admin/invites/"+fmt.Sprint(id), nil, true)
+	rec := jsonRequestWithCookies(t, srv, http.MethodDelete, "/admin/invites/"+fmt.Sprint(id), nil, cookies)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusNoContent {
 		t.Errorf("status = %d, want 200 or 204", rec.Code)
 	}
@@ -277,7 +284,7 @@ func TestAdminCreateInvite_InvalidMinMax(t *testing.T) {
 func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
 	a := auth.New("admin-pw", "session-secret", false)
-	srv := New(svc, a, []string{"https://example.com"})
+	srv := New(svc, a, nil, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/1",
 		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"X"}}, true)
 	if rec.Code != http.StatusNotFound {
@@ -285,33 +292,98 @@ func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	}
 }
 
-// --- helpers ---
+func TestClientIP_StripsPortFromRemoteAddr(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = net.JoinHostPort("203.0.113.7", "54321")
+	if got := clientIP(req); got != "203.0.113.7" {
+		t.Errorf("clientIP() = %q, want %q (port must be stripped)", got, "203.0.113.7")
+	}
+}
 
-var adminCookies []*http.Cookie
+func TestClientIP_PrefersXForwardedFor(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.1:9999"
+	req.Header.Set("X-Forwarded-For", "198.51.100.5, 10.0.0.1")
+	if got := clientIP(req); got != "198.51.100.5" {
+		t.Errorf("clientIP() = %q, want %q", got, "198.51.100.5")
+	}
+}
+
+func TestClientIP_FallsBackToRawWhenNoPort(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "unixsocket" // no host:port form
+	if got := clientIP(req); got != "unixsocket" {
+		t.Errorf("clientIP() = %q, want raw fallback %q", got, "unixsocket")
+	}
+}
+
+func TestHealthz_OKWhenDBReachable(t *testing.T) {
+	srv, _, _ := newTestServerWithDB(t)
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/healthz", nil, nil)
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	var resp StatusResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Status != "ok" {
+		t.Errorf("status field = %q, want %q", resp.Status, "ok")
+	}
+}
+
+func TestHealthz_503WhenDBClosed(t *testing.T) {
+	srv, _, d := newTestServerWithDB(t)
+	if err := d.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/healthz", nil, nil)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want 503 when DB is unreachable", rec.Code)
+	}
+}
+
+func TestHealthz_NotBehindAuth(t *testing.T) {
+	// No admin cookie is sent; /healthz must still be reachable (200), unlike
+	// admin routes which return 401.
+	srv, _, _ := newTestServerWithDB(t)
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/healthz", nil, nil)
+	if rec.Code == http.StatusUnauthorized {
+		t.Error("/healthz must not be behind auth")
+	}
+}
+
+// --- helpers ---
+//
+// Admin cookies are threaded explicitly through the helpers below (loginAndGetCookies
+// returns them; callers pass them into jsonRequestWithCookies). There is no shared
+// mutable global for auth state.
 
 func loginAndGetCookies(t *testing.T, srv http.Handler) []*http.Cookie {
 	t.Helper()
-	rec := jsonRequest(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "admin-pw"}, false)
+	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "admin-pw"}, nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login status = %d", rec.Code)
 	}
 	return rec.Result().Cookies()
 }
 
-func createAndLogin(t *testing.T, srv http.Handler) {
+// createAndLogin logs in as admin, seeds one invite, and returns the admin cookies
+// so the caller can make further authenticated requests.
+func createAndLogin(t *testing.T, srv http.Handler) []*http.Cookie {
 	t.Helper()
 	cookies := loginAndGetCookies(t, srv)
-	adminCookies = cookies
 	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/invites",
 		CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, GuestNames: []string{"Frodi & Carla"}}, cookies)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
 		t.Fatalf("create invite status = %d; body: %s", rec.Code, rec.Body.String())
 	}
+	return cookies
 }
 
-func firstInviteID(t *testing.T, srv http.Handler) string {
+func firstInviteID(t *testing.T, srv http.Handler, cookies []*http.Cookie) string {
 	t.Helper()
-	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/admin/invites", nil, adminCookies)
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/admin/invites", nil, cookies)
 	var resp ListInvitesResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -322,14 +394,13 @@ func firstInviteID(t *testing.T, srv http.Handler) string {
 	return resp.Invites[0].ID
 }
 
+// jsonRequest performs a request, logging in for a fresh admin cookie when
+// withAdminCookie is set. Cookies are obtained per-call rather than from a global.
 func jsonRequest(t *testing.T, srv http.Handler, method, path string, body interface{}, withAdminCookie bool) *httptest.ResponseRecorder {
 	t.Helper()
 	var cookies []*http.Cookie
 	if withAdminCookie {
-		if adminCookies == nil {
-			adminCookies = loginAndGetCookies(t, srv)
-		}
-		cookies = adminCookies
+		cookies = loginAndGetCookies(t, srv)
 	}
 	return jsonRequestWithCookies(t, srv, method, path, body, cookies)
 }
@@ -360,8 +431,8 @@ func (s *updateFetchNotFoundStore) DeleteInvite(ctx context.Context, id string) 
 	return nil
 }
 
-func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID string, guests []db.Guest, submitted bool, message string) ([]db.Guest, error) {
-	return guests, nil
+func (s *updateFetchNotFoundStore) SubmitRSVP(ctx context.Context, inviteID string, guests []db.Guest, submitted bool, message string) (db.Invite, []db.Guest, error) {
+	return db.Invite{ID: inviteID}, guests, nil
 }
 
 func jsonRequestWithCookies(t *testing.T, srv http.Handler, method, path string, body interface{}, cookies []*http.Cookie) *httptest.ResponseRecorder {

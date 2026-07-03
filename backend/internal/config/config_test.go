@@ -1,13 +1,15 @@
 package config
 
 import (
+	"errors"
+	"strings"
 	"testing"
 )
 
 func TestLoad_ReadsEnvVars(t *testing.T) {
 	t.Setenv("DB_PATH", "/data/wedding.db")
 	t.Setenv("ADMIN_PASSWORD", "secret-pass")
-	t.Setenv("SESSION_SECRET", "session-secret")
+	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "re_test_key")
 	t.Setenv("RESEND_FROM", "rsvp@carlaochfrodi.wedding")
 	t.Setenv("RESEND_TO", "frodi.carla@gmail.com")
@@ -25,7 +27,7 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 	if cfg.AdminPassword != "secret-pass" {
 		t.Errorf("AdminPassword = %q", cfg.AdminPassword)
 	}
-	if cfg.SessionSecret != "session-secret" {
+	if cfg.SessionSecret != "0123456789abcdef0123456789abcdef" {
 		t.Errorf("SessionSecret = %q", cfg.SessionSecret)
 	}
 	if cfg.ResendAPIKey != "re_test_key" {
@@ -56,7 +58,7 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 
 func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "x")
-	t.Setenv("SESSION_SECRET", "x")
+	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
 	t.Setenv("RESEND_TO", "x@x")
@@ -79,9 +81,43 @@ func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
 	}
 }
 
+func TestLoad_RejectsShortSessionSecret(t *testing.T) {
+	t.Setenv("ADMIN_PASSWORD", "x")
+	t.Setenv("SESSION_SECRET", strings.Repeat("a", 31)) // one byte short
+	t.Setenv("RESEND_API_KEY", "x")
+	t.Setenv("RESEND_FROM", "x@x")
+	t.Setenv("RESEND_TO", "x@x")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://example.com")
+	t.Setenv("DB_PATH", "")
+	t.Setenv("PORT", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() should error when SESSION_SECRET is shorter than 32 bytes")
+	}
+	if !errors.Is(err, ErrWeakSessionSecret) {
+		t.Errorf("error = %v, want ErrWeakSessionSecret", err)
+	}
+}
+
+func TestLoad_AcceptsExactly32ByteSessionSecret(t *testing.T) {
+	t.Setenv("ADMIN_PASSWORD", "x")
+	t.Setenv("SESSION_SECRET", strings.Repeat("a", 32))
+	t.Setenv("RESEND_API_KEY", "x")
+	t.Setenv("RESEND_FROM", "x@x")
+	t.Setenv("RESEND_TO", "x@x")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://example.com")
+	t.Setenv("DB_PATH", "")
+	t.Setenv("PORT", "")
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load() with 32-byte secret errored: %v", err)
+	}
+}
+
 func TestLoad_RequiresAdminPassword(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "")
-	t.Setenv("SESSION_SECRET", "x")
+	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
 	t.Setenv("RESEND_TO", "x@x")

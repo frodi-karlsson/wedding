@@ -125,8 +125,13 @@ func (a *Authenticator) ResetLogin(ip string) {
 }
 
 // Login returns true if the given password matches the configured admin password.
+// Both sides are SHA-256'd to a fixed 32 bytes before the constant-time compare
+// so the comparison neither short-circuits nor leaks the password length via
+// timing (hmac.Equal on raw bytes of differing length returns early).
 func (a *Authenticator) Login(password string) bool {
-	return hmac.Equal([]byte(password), []byte(a.password))
+	got := sha256.Sum256([]byte(password))
+	want := sha256.Sum256([]byte(a.password))
+	return hmac.Equal(got[:], want[:])
 }
 
 // SetSessionCookie writes a signed session cookie to the response.

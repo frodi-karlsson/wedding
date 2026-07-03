@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -103,6 +104,21 @@ func TestLogin_WrongPassword(t *testing.T) {
 	a := New("correct-horse", "session-secret", true)
 	if a.Login("wrong") {
 		t.Error("Login with wrong password returned true")
+	}
+}
+
+// TestLogin_WrongPasswordDifferentLengths guards the length-leak fix: because
+// both sides are SHA-256'd to a fixed 32 bytes before the constant-time compare,
+// a wrong password of a different length must be rejected just like any other.
+func TestLogin_WrongPasswordDifferentLengths(t *testing.T) {
+	a := New("correct-horse", "session-secret", true)
+	for _, pw := range []string{"", "x", "correct-hors", "correct-horsee", strings.Repeat("z", 200)} {
+		if a.Login(pw) {
+			t.Errorf("Login(%q) returned true, want false", pw)
+		}
+	}
+	if !a.Login("correct-horse") {
+		t.Error("Login with correct password returned false")
 	}
 }
 

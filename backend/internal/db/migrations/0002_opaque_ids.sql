@@ -1,5 +1,14 @@
 -- Switch invite IDs from INTEGER AUTOINCREMENT to opaque TEXT tokens.
--- Breaking schema change. Existing data is dropped (no RSVP data exists yet).
+--
+-- !!! DESTRUCTIVE MIGRATION — DATA LOSS !!!
+-- This migration DROPS the invites and guests tables and recreates them from
+-- scratch. IT DELETES ALL INVITE AND RSVP DATA. It is only safe because it ran
+-- before any real data existed. NEVER run this migration against a populated
+-- database (production or any environment holding real RSVPs). If this file has
+-- already been applied on a live DB, do NOT re-run it and do NOT reset the
+-- schema_migrations record for version 2 — doing so would wipe live data.
+-- Any future schema change to these tables must be written as a NON-destructive,
+-- forward-only migration (e.g. ALTER TABLE), not a drop-and-recreate.
 DROP TABLE IF EXISTS guests;
 DROP TABLE IF EXISTS invites;
 

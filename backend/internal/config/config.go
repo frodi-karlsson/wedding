@@ -24,6 +24,15 @@ type Config struct {
 // ErrMissingEnvVars is returned when one or more required environment variables are absent.
 var ErrMissingEnvVars = errors.New("missing required env vars")
 
+// ErrWeakSessionSecret is returned when SESSION_SECRET is shorter than the
+// minimum required length.
+var ErrWeakSessionSecret = errors.New("SESSION_SECRET must be at least 32 bytes")
+
+// minSessionSecretLen is the minimum acceptable SESSION_SECRET length in bytes.
+// The session cookie is HMAC-SHA256 signed, so a secret of at least the hash's
+// block/output size resists brute forcing.
+const minSessionSecretLen = 32
+
 // Load reads configuration from environment variables. Required vars are
 // ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY, RESEND_FROM, RESEND_TO,
 // and CORS_ALLOWED_ORIGINS. DB_PATH defaults to /data/wedding.db and PORT
@@ -62,6 +71,11 @@ func Load() (Config, error) {
 	}
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("%w: %s", ErrMissingEnvVars, strings.Join(missing, ", "))
+	}
+	// Guard against a weak session secret: a short secret makes the HMAC-signed
+	// session cookie brute-forceable. Only checked once the var is present.
+	if len(cfg.SessionSecret) < minSessionSecretLen {
+		return Config{}, fmt.Errorf("%w: got %d bytes", ErrWeakSessionSecret, len(cfg.SessionSecret))
 	}
 	return cfg, nil
 }

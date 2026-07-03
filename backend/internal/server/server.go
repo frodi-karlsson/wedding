@@ -1,11 +1,15 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"wedding/backend/internal/auth"
@@ -13,10 +17,18 @@ import (
 	"wedding/backend/internal/invite"
 )
 
+// healthCheckTimeout bounds the DB ping done by the /healthz handler.
+const healthCheckTimeout = 2 * time.Second
+
 // New returns an http.Handler with all routes wired, panic recovery (outermost),
-// CORS, body-size limit, and admin auth applied.
-func New(svc *invite.Service, a *auth.Authenticator, allowedOrigins []string) http.Handler {
+// CORS, body-size limit, and admin auth applied. d is used only by the
+// unauthenticated /healthz probe to ping the database.
+func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins []string) http.Handler {
 	mux := http.NewServeMux()
+
+	// Health check — unauthenticated, not rate limited. Used by the container
+	// HEALTHCHECK. Kept deliberately trivial: pings the DB and returns JSON.
+	mux.HandleFunc("GET /healthz", handleHealthz(d))
 
 	// Public routes
 	mux.HandleFunc("GET /invites/{id}", handleGetInvite(svc))
@@ -72,7 +84,26 @@ func clientIP(r *http.Request) string {
 		}
 		return strings.TrimSpace(xff)
 	}
+	// r.RemoteAddr is "host:port"; strip the ephemeral port so the rate limiter
+	// keys on the host alone (otherwise every new connection looks like a new IP).
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
 	return r.RemoteAddr
+}
+
+// handleHealthz reports service liveness by pinging the database. It is
+// unauthenticated and not rate limited so container health checks can reach it.
+func handleHealthz(d *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), healthCheckTimeout)
+		defer cancel()
+		if err := d.PingContext(ctx); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, StatusResponse{Status: "unavailable"})
+			return
+		}
+		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
+	}
 }
 
 // --- helpers ---

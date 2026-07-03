@@ -67,7 +67,7 @@ type Store interface {
 	ListInvites(ctx context.Context) ([]Invite, error)
 	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string) (Invite, error)
 	DeleteInvite(ctx context.Context, id string) error
-	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) ([]Guest, error)
+	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) (Invite, []Guest, error)
 }
 
 // SQLiteStore implements Store against a *sql.DB.
@@ -271,18 +271,22 @@ func (s *SQLiteStore) DeleteInvite(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) ([]Guest, error) {
+// SubmitRSVP replaces the invite's guests, marks it submitted, and stores the
+// message — all in one transaction — then returns the resulting invite and guest
+// rows read back from within that same transaction. Returning the post-write
+// state lets callers use it directly (email body, HTTP response) without a second
+// round-trip that could observe stale or concurrently-modified data.
+func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) (Invite, []Guest, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return Invite{}, nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM guests WHERE invite_id=?", inviteID); err != nil {
-		return nil, err
+		return Invite{}, nil, err
 	}
 
-	var result []Guest
 	for _, g := range guests {
 		var isPrimary int
 		if g.IsPrimary {
@@ -292,30 +296,82 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []
 		if g.AlcoholFree {
 			alcoholFree = 1
 		}
-		res, err := tx.ExecContext(ctx,
+		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO guests (invite_id, name, dietary_preference, alcohol_free, is_primary) VALUES (?, ?, ?, ?, ?)",
-			inviteID, g.Name, g.DietaryPreference, alcoholFree, isPrimary)
-		if err != nil {
-			return nil, err
+			inviteID, g.Name, g.DietaryPreference, alcoholFree, isPrimary); err != nil {
+			return Invite{}, nil, err
 		}
-		id, _ := res.LastInsertId()
-		g.ID = id
-		g.InviteID = inviteID
-		result = append(result, g)
 	}
 
 	var v int
 	if submitted {
 		v = 1
 	}
-	if _, err := tx.ExecContext(ctx,
+	res, err := tx.ExecContext(ctx,
 		"UPDATE invites SET submitted=?, message=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-		v, message, inviteID); err != nil {
-		return nil, err
+		v, message, inviteID)
+	if err != nil {
+		return Invite{}, nil, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return Invite{}, nil, ErrNotFound
+	}
+
+	// Read the post-write invite + guests from within the same transaction so
+	// the returned state is exactly what was just committed.
+	inv, err := getInviteTx(ctx, tx, inviteID)
+	if err != nil {
+		return Invite{}, nil, err
+	}
+	savedGuests, err := getGuestsTx(ctx, tx, inviteID)
+	if err != nil {
+		return Invite{}, nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
+		return Invite{}, nil, err
+	}
+	return inv, savedGuests, nil
+}
+
+// getInviteTx reads a single invite within a transaction.
+func getInviteTx(ctx context.Context, tx *sql.Tx, id string) (Invite, error) {
+	var inv Invite
+	var submitted int
+	err := tx.QueryRowContext(ctx,
+		"SELECT id, name, min_plus, max_plus, submitted, message, created_at, updated_at FROM invites WHERE id=?",
+		id).Scan(&inv.ID, &inv.Name, &inv.MinPlus, &inv.MaxPlus, &submitted, &inv.Message, &inv.CreatedAt, &inv.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Invite{}, ErrNotFound
+	}
+	if err != nil {
+		return Invite{}, err
+	}
+	inv.Submitted = submitted == 1
+	return inv, nil
+}
+
+// getGuestsTx reads an invite's guests within a transaction, in the same order
+// as GetInviteWithGuests.
+func getGuestsTx(ctx context.Context, tx *sql.Tx, inviteID string) ([]Guest, error) {
+	rows, err := tx.QueryContext(ctx,
+		"SELECT id, invite_id, name, dietary_preference, alcohol_free, is_primary, created_at, updated_at FROM guests WHERE invite_id=? ORDER BY is_primary DESC, id ASC",
+		inviteID)
+	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	defer rows.Close()
+
+	var guests []Guest
+	for rows.Next() {
+		var g Guest
+		var alcoholFree, isPrimary int
+		if err := rows.Scan(&g.ID, &g.InviteID, &g.Name, &g.DietaryPreference, &alcoholFree, &isPrimary, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			return nil, err
+		}
+		g.AlcoholFree = alcoholFree == 1
+		g.IsPrimary = isPrimary == 1
+		guests = append(guests, g)
+	}
+	return guests, rows.Err()
 }

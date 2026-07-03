@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"wedding/backend/internal/db"
 )
+
+// emailSendTimeout bounds the best-effort RSVP notification send, which runs on
+// a context detached from the request so a client disconnect can't cancel it.
+const emailSendTimeout = 10 * time.Second
 
 // Emailer is satisfied by email.Sender. Defined here to avoid an import cycle
 // (email imports nothing from invite; invite depends only on this interface).
@@ -70,22 +75,27 @@ func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, 
 		return db.Invite{}, nil, err
 	}
 
-	saved, err := s.store.SubmitRSVP(ctx, id, guests, true, message)
+	savedInv, savedGuests, err := s.store.SubmitRSVP(ctx, id, guests, true, message)
 	if err != nil {
 		return db.Invite{}, nil, err
 	}
 
-	// Best-effort notification — never fail the RSVP because email failed.
-	body := buildRSVPEmailBody(&inv, guests, message)
-	if err := s.email.Send(ctx, "New RSVP for "+inv.Name, body); err != nil {
+	// Best-effort notification — never fail the RSVP because email failed. The
+	// RSVP is already persisted above, so decouple the send from the request:
+	// use a fresh, background-derived context with its own timeout so a client
+	// disconnect right after the DB commit can't cancel the notification.
+	subject := "New RSVP for " + savedInv.Name
+	body := buildRSVPEmailBody(&savedInv, savedGuests, message)
+	emailCtx, cancel := context.WithTimeout(context.Background(), emailSendTimeout)
+	defer cancel()
+	// Intentionally detached from the request ctx: the RSVP is already committed,
+	// so a client disconnect must not cancel the notification. contextcheck would
+	// otherwise flag the non-inherited context, which is exactly what we want here.
+	if err := s.email.Send(emailCtx, subject, body); err != nil { //nolint:contextcheck // deliberate request-context decoupling for best-effort email
 		log.Printf("rsvp notification email failed for invite %s: %v", id, err)
 	}
 
-	inv, err = s.store.GetInvite(ctx, id)
-	if err != nil {
-		return db.Invite{}, nil, err
-	}
-	return inv, saved, nil
+	return savedInv, savedGuests, nil
 }
 
 func validate(inv *db.Invite, guests []db.Guest) error {

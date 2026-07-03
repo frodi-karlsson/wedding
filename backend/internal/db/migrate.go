@@ -63,12 +63,31 @@ func Migrate(d *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", name, err)
 		}
-		if _, err := d.ExecContext(context.Background(), string(content)); err != nil {
+		// Apply the migration SQL and record its version atomically. If a crash
+		// interrupts this, the transaction is rolled back so the migration is
+		// re-applied cleanly on the next run rather than leaving a half-applied
+		// state that fails (e.g. "duplicate column name").
+		if err := applyMigration(d, version, string(content)); err != nil {
 			return fmt.Errorf("apply migration %s: %w", name, err)
-		}
-		if _, err := d.ExecContext(context.Background(), "INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
-			return fmt.Errorf("record migration %d: %w", version, err)
 		}
 	}
 	return nil
+}
+
+// applyMigration runs the migration SQL and records its version in a single
+// transaction, committing both or rolling back both.
+func applyMigration(d *sql.DB, version int, content string) error {
+	tx, err := d.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(context.Background(), content); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(context.Background(), "INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

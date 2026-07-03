@@ -128,12 +128,23 @@ func TestSubmitRSVP_Atomic(t *testing.T) {
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Carla", DietaryPreference: "vegetarian"},
 	}
-	saved, err := store.SubmitRSVP(ctx, inv.ID, guests, true, "")
+	savedInv, saved, err := store.SubmitRSVP(ctx, inv.ID, guests, true, "")
 	if err != nil {
 		t.Fatalf("SubmitRSVP() error: %v", err)
 	}
 	if len(saved) != 2 {
 		t.Errorf("len(saved) = %d, want 2", len(saved))
+	}
+	// The returned invite must reflect the post-write state (submitted) directly,
+	// without a second read.
+	if !savedInv.Submitted {
+		t.Errorf("returned invite Submitted = false, want true")
+	}
+	if !saved[0].IsPrimary || saved[0].Name != "Frodi" {
+		t.Errorf("returned primary guest = %+v, want Frodi primary", saved[0])
+	}
+	if saved[1].Name != "Carla" {
+		t.Errorf("returned second guest Name = %q, want Carla", saved[1].Name)
 	}
 
 	inv2, guests2, err := store.GetInviteWithGuests(ctx, inv.ID)
