@@ -63,7 +63,7 @@ func (s *Service) DeleteInvite(ctx context.Context, id string) error {
 
 // SubmitRSVP validates the guests, transactionally upserts them, and marks the
 // invite submitted. The notification email is best-effort: the RSVP is persisted
-// first so a mail outage can never lose or block a guest's response — a send
+// first so a mail outage can never lose or block a guest's response. A send
 // failure is logged, and the admin dashboard remains the source of truth.
 func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, message string) (db.Invite, []db.Guest, error) {
 	inv, err := s.store.GetInvite(ctx, id)
@@ -80,18 +80,15 @@ func (s *Service) SubmitRSVP(ctx context.Context, id string, guests []db.Guest, 
 		return db.Invite{}, nil, err
 	}
 
-	// Best-effort notification — never fail the RSVP because email failed. The
-	// RSVP is already persisted above, so decouple the send from the request:
-	// use a fresh, background-derived context with its own timeout so a client
-	// disconnect right after the DB commit can't cancel the notification.
+	// Best-effort notification, never fail the RSVP because email failed. The
+	// RSVP is already persisted above. WithoutCancel keeps the request's values
+	// but detaches from its cancellation, so a client disconnect right after the
+	// DB commit cannot cancel the send. The timeout still bounds it.
 	subject := "New RSVP for " + savedInv.Name
 	body := buildRSVPEmailBody(&savedInv, savedGuests, message)
-	emailCtx, cancel := context.WithTimeout(context.Background(), emailSendTimeout)
+	emailCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), emailSendTimeout)
 	defer cancel()
-	// Intentionally detached from the request ctx: the RSVP is already committed,
-	// so a client disconnect must not cancel the notification. contextcheck would
-	// otherwise flag the non-inherited context, which is exactly what we want here.
-	if err := s.email.Send(emailCtx, subject, body); err != nil { //nolint:contextcheck // deliberate request-context decoupling for best-effort email
+	if err := s.email.Send(emailCtx, subject, body); err != nil {
 		log.Printf("rsvp notification email failed for invite %s: %v", id, err)
 	}
 
