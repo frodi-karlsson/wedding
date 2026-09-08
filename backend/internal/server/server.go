@@ -15,10 +15,26 @@ import (
 	"wedding/backend/internal/auth"
 	"wedding/backend/internal/db"
 	"wedding/backend/internal/invite"
+	"wedding/backend/internal/ratelimit"
 )
 
 // healthCheckTimeout bounds the DB ping done by the /healthz handler.
 const healthCheckTimeout = 2 * time.Second
+
+// The public invite routes are addressed by a short id, so they are the one
+// place where an attacker can search for a valid invite by guessing. The id
+// space needs hundreds of thousands of guesses to yield a hit, and this budget
+// is what stops those guesses being spent quickly. A guest needs two requests
+// (load the invite, submit the RSVP), so the ceiling is far above real use.
+const (
+	publicInviteLimit  = 15
+	publicInviteWindow = time.Minute
+)
+
+// msgInviteNotFound answers every unresolvable invite id, whether it is unknown
+// or malformed. One response for both denies an enumerator a cheap way to tell
+// a wrong-shaped guess from a merely wrong one.
+const msgInviteNotFound = "invite not found"
 
 // New returns an http.Handler with all routes wired, panic recovery (outermost),
 // CORS, body-size limit, and admin auth applied. d is used only by the
@@ -30,9 +46,11 @@ func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins [
 	// HEALTHCHECK. Kept deliberately trivial: pings the DB and returns JSON.
 	mux.HandleFunc("GET /healthz", handleHealthz(d))
 
-	// Public routes
-	mux.HandleFunc("GET /invites/{id}", handleGetInvite(svc))
-	mux.HandleFunc("POST /invites/{id}/rsvp", handleRSVP(svc))
+	// Public routes, sharing one per-IP budget because either of them can be
+	// used to guess at invite ids.
+	publicLimiter := ratelimit.New(publicInviteLimit, publicInviteWindow)
+	mux.Handle("GET /invites/{id}", rateLimited(publicLimiter, handleGetInvite(svc)))
+	mux.Handle("POST /invites/{id}/rsvp", rateLimited(publicLimiter, handleRSVP(svc)))
 
 	// Admin auth routes (login/logout are NOT behind auth middleware)
 	mux.HandleFunc("POST /admin/login", handleLogin(a))
@@ -59,6 +77,19 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 				writeError(w, http.StatusInternalServerError, "internal error")
 			}
 		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+// rateLimited caps how often one client may reach next. The ServeMux has
+// already matched the route by the time this runs, so path values stay
+// available to the wrapped handler.
+func rateLimited(limiter *ratelimit.Limiter, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow(clientIP(r)) {
+			writeError(w, http.StatusTooManyRequests, "too many requests, try again shortly")
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -131,8 +162,7 @@ func decodeJSON(r *http.Request, v any) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
+		if maxErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			return maxErr
 		}
 		return err
@@ -140,12 +170,11 @@ func decodeJSON(r *http.Request, v any) error {
 	return nil
 }
 
+// idFromPath folds the request's invite id into the form stored in the database
+// and reports whether it is well-formed. Rejecting a malformed id here keeps a
+// guessed or mistyped one from becoming a database lookup.
 func idFromPath(r *http.Request) (string, bool) {
-	id := r.PathValue("id")
-	if id == "" {
-		return "", false
-	}
-	return id, true
+	return db.CanonicalID(r.PathValue("id"))
 }
 
 // --- public handlers ---
@@ -154,13 +183,13 @@ func handleGetInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := idFromPath(r)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "invalid id")
+			writeError(w, http.StatusNotFound, msgInviteNotFound)
 			return
 		}
 		inv, guests, err := svc.GetInvite(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)
@@ -178,13 +207,12 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := idFromPath(r)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "invalid id")
+			writeError(w, http.StatusNotFound, msgInviteNotFound)
 			return
 		}
 		var req RSVPRequest
 		if err := decodeJSON(r, &req); err != nil {
-			var maxErr *http.MaxBytesError
-			if errors.As(err, &maxErr) {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
@@ -207,13 +235,12 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 		}
 		inv, saved, err := svc.SubmitRSVP(r.Context(), id, guests, req.Message)
 		if err != nil {
-			var ve *invite.ValidationError
-			if errors.As(err, &ve) {
+			if ve, ok := errors.AsType[*invite.ValidationError](err); ok {
 				writeError(w, http.StatusBadRequest, ve.Error())
 				return
 			}
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)
@@ -233,8 +260,7 @@ func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		if err := decodeJSON(r, &req); err != nil {
-			var maxErr *http.MaxBytesError
-			if errors.As(err, &maxErr) {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
@@ -329,8 +355,7 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateInviteRequest
 		if err := decodeJSON(r, &req); err != nil {
-			var maxErr *http.MaxBytesError
-			if errors.As(err, &maxErr) {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
@@ -362,13 +387,13 @@ func handleAdminGetInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := idFromPath(r)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "invalid id")
+			writeError(w, http.StatusNotFound, msgInviteNotFound)
 			return
 		}
 		inv, guests, err := svc.GetInvite(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)
@@ -385,13 +410,12 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := idFromPath(r)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "invalid id")
+			writeError(w, http.StatusNotFound, msgInviteNotFound)
 			return
 		}
 		var req UpdateInviteRequest
 		if err := decodeJSON(r, &req); err != nil {
-			var maxErr *http.MaxBytesError
-			if errors.As(err, &maxErr) {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
@@ -405,7 +429,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames, req.Group)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)
@@ -414,7 +438,7 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 		_, guests, err := svc.GetInvite(r.Context(), inv.ID)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)
@@ -431,12 +455,12 @@ func handleDeleteInvite(svc *invite.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := idFromPath(r)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "invalid id")
+			writeError(w, http.StatusNotFound, msgInviteNotFound)
 			return
 		}
 		if err := svc.DeleteInvite(r.Context(), id); err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				writeError(w, http.StatusNotFound, "invite not found")
+				writeError(w, http.StatusNotFound, msgInviteNotFound)
 				return
 			}
 			logInternalError(w, err)

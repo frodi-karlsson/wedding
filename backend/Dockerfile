@@ -4,7 +4,7 @@
 # Keep this Go version in sync with backend/go.mod (the `go` directive) and the
 # CI workflows (which read go-version-file: backend/go.mod). Docker FROM cannot
 # read go.mod, so this one is updated by hand.
-FROM golang:1.26.4 AS build
+FROM golang:1.27.1 AS build
 WORKDIR /src
 
 # Cache deps first

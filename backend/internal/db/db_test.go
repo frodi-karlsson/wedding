@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"encoding/hex"
+	"errors"
 	"testing"
 )
 
@@ -87,7 +87,7 @@ func TestCreateInvite_AutoCreatesPrimaryGuest(t *testing.T) {
 	}
 }
 
-func TestCreateInvite_GeneratesOpaqueTokenID(t *testing.T) {
+func TestCreateInvite_GeneratesShortOpaqueID(t *testing.T) {
 	store, cleanup := newTestStore(t)
 	defer cleanup()
 	ctx := context.Background()
@@ -96,11 +96,95 @@ func TestCreateInvite_GeneratesOpaqueTokenID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
-	if len(inv.ID) != 32 {
-		t.Errorf("ID length = %d, want 32 (hex token)", len(inv.ID))
+	if len(inv.ID) != idLength {
+		t.Errorf("ID %q length = %d, want %d", inv.ID, len(inv.ID), idLength)
 	}
-	if _, err := hex.DecodeString(inv.ID); err != nil {
-		t.Errorf("ID %q is not valid hex: %v", inv.ID, err)
+	if canonical, ok := CanonicalID(inv.ID); !ok || canonical != inv.ID {
+		t.Errorf("ID %q is not a canonical short id", inv.ID)
+	}
+}
+
+func TestCreateInvite_RetriesWhenTheGeneratedIDCollides(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// The second invite draws the id the first one already took, then succeeds
+	// on its retry.
+	draws := []string{"AAAAA", "AAAAA", "BBBBB"}
+	store.newID = func() string {
+		id := draws[0]
+		draws = draws[1:]
+		return id
+	}
+
+	first, err := store.CreateInvite(ctx, "First", 0, 0, []string{"First"}, false)
+	if err != nil {
+		t.Fatalf("CreateInvite() first error: %v", err)
+	}
+	second, err := store.CreateInvite(ctx, "Second", 0, 0, []string{"Second"}, false)
+	if err != nil {
+		t.Fatalf("CreateInvite() second error: %v", err)
+	}
+
+	if first.ID != "AAAAA" {
+		t.Errorf("first ID = %q, want AAAAA", first.ID)
+	}
+	if second.ID != "BBBBB" {
+		t.Errorf("second ID = %q, want BBBBB after retrying past the collision", second.ID)
+	}
+	if len(draws) != 0 {
+		t.Errorf("%d id draws left unused, want the collision to have consumed one", len(draws))
+	}
+}
+
+func TestCreateInvite_RollsBackGuestsFromACollidingAttempt(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	draws := []string{"AAAAA", "AAAAA", "BBBBB"}
+	store.newID = func() string {
+		id := draws[0]
+		draws = draws[1:]
+		return id
+	}
+
+	if _, err := store.CreateInvite(ctx, "First", 0, 0, []string{"First"}, false); err != nil {
+		t.Fatalf("CreateInvite() first error: %v", err)
+	}
+	if _, err := store.CreateInvite(ctx, "Second", 0, 0, []string{"Second"}, false); err != nil {
+		t.Fatalf("CreateInvite() second error: %v", err)
+	}
+
+	// The abandoned attempt inserted a guest row before the invite insert
+	// failed. It must not survive as an orphan attached to the first invite.
+	_, guests, err := store.GetInviteWithGuests(ctx, "AAAAA")
+	if err != nil {
+		t.Fatalf("GetInviteWithGuests() error: %v", err)
+	}
+	if len(guests) != 1 {
+		t.Errorf("invite AAAAA has %d guests, want 1", len(guests))
+	}
+	if len(guests) > 0 && guests[0].Name != "First" {
+		t.Errorf("invite AAAAA guest = %q, want First", guests[0].Name)
+	}
+}
+
+func TestCreateInvite_FailsAfterExhaustingIDAttempts(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	store.newID = func() string { return "AAAAA" }
+
+	if _, err := store.CreateInvite(ctx, "First", 0, 0, []string{"First"}, false); err != nil {
+		t.Fatalf("CreateInvite() first error: %v", err)
+	}
+	_, err := store.CreateInvite(ctx, "Second", 0, 0, []string{"Second"}, false)
+
+	if !errors.Is(err, ErrIDCollision) {
+		t.Errorf("CreateInvite() err = %v, want ErrIDCollision", err)
 	}
 }
 

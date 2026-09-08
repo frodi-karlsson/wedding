@@ -45,7 +45,7 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
             {(invite) => (
               <tr>
                 <td>
-                  <a class="invite-id" href={buildShareLink(globalThis.location.origin, invite.id, props.lang)} title={invite.id}>{invite.id.slice(0, 8)}…</a>
+                  <a class="invite-id" href={buildShareLink(globalThis.location.origin, invite.id, props.lang)}>{invite.id}</a>
                 </td>
                 <td>{invite.name}</td>
                 <td>{invite.min_plus}</td>

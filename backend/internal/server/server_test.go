@@ -76,9 +76,48 @@ func TestGetInvite_ReturnsInviteAndGuests(t *testing.T) {
 
 func TestGetInvite_NotFound(t *testing.T) {
 	srv, _ := newTestServer(t)
-	rec := jsonRequest(t, srv, http.MethodGet, "/invites/999", nil, false)
+	rec := jsonRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", nil, false)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
+
+// A malformed id is answered exactly like an unknown one. Keeping the two
+// indistinguishable denies an enumerator a cheap way to tell "wrong shape" from
+// "no such invite".
+func TestGetInvite_MalformedIDLooksLikeAnUnknownInvite(t *testing.T) {
+	tests := []struct {
+		name string
+		id   string
+	}{
+		{"too short", "1"},
+		{"too long", "ABCDEFGH"},
+		{"outside the alphabet", "AB-DE"},
+		{"legacy length but not hex", strings.Repeat("z", 32)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, _ := newTestServer(t)
+
+			rec := jsonRequest(t, srv, http.MethodGet, "/invites/"+tt.id, nil, false)
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestGetInvite_ResolvesAnIDTypedInLowercase(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := createAndLogin(t, srv)
+	id := firstInviteID(t, srv, cookies)
+
+	rec := jsonRequest(t, srv, http.MethodGet, "/invites/"+strings.ToLower(id), nil, false)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("GET with lowercased id %q: status = %d, want 200; body: %s", strings.ToLower(id), rec.Code, rec.Body.String())
 	}
 }
 
@@ -226,7 +265,7 @@ func TestAdminDeleteInvite(t *testing.T) {
 
 func TestAdminDeleteInvite_NotFound(t *testing.T) {
 	srv, _ := newTestServer(t)
-	rec := jsonRequest(t, srv, http.MethodDelete, "/admin/invites/999", nil, true)
+	rec := jsonRequest(t, srv, http.MethodDelete, "/admin/invites/ZZZZZ", nil, true)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
 	}
@@ -285,7 +324,7 @@ func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
 	a := auth.New("admin-pw", "session-secret", false)
 	srv := New(svc, a, nil, []string{"https://example.com"})
-	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/1",
+	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/ABCDE",
 		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"X"}}, true)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
@@ -451,4 +490,74 @@ func jsonRequestWithCookies(t *testing.T, srv http.Handler, method, path string,
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	return rec
+}
+
+// publicRequest issues a request from a given client IP, spelled the way Caddy
+// presents it to the service.
+func publicRequest(t *testing.T, srv http.Handler, method, path, ip string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, path, strings.NewReader(`{"guests":[]}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", ip)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestPublicInviteRoutes_RateLimitedPerIP(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	for i := range publicInviteLimit {
+		rec := publicRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", "1.2.3.4")
+		if rec.Code == http.StatusTooManyRequests {
+			t.Fatalf("request %d was rate limited, want the first %d allowed through", i+1, publicInviteLimit)
+		}
+	}
+
+	rec := publicRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", "1.2.3.4")
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("request %d: status = %d, want 429", publicInviteLimit+1, rec.Code)
+	}
+}
+
+// Lookups and submissions draw on one budget, because an enumerator can guess
+// ids against either of them.
+func TestPublicInviteRoutes_ShareOneBudgetAcrossLookupAndRSVP(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	for range publicInviteLimit {
+		publicRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", "1.2.3.4")
+	}
+	rec := publicRequest(t, srv, http.MethodPost, "/invites/ZZZZZ/rsvp", "1.2.3.4")
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("RSVP after exhausting lookups: status = %d, want 429", rec.Code)
+	}
+}
+
+func TestPublicInviteRoutes_BudgetIsNotSharedBetweenClients(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	for range publicInviteLimit + 1 {
+		publicRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", "1.2.3.4")
+	}
+	rec := publicRequest(t, srv, http.MethodGet, "/invites/ZZZZZ", "5.6.7.8")
+
+	if rec.Code == http.StatusTooManyRequests {
+		t.Error("a second client was rate limited by the first client's requests")
+	}
+}
+
+// Admins legitimately click around far faster than a guest, and the routes are
+// password protected, so the enumeration budget must not apply to them.
+func TestAdminRoutes_AreNotRateLimited(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := createAndLogin(t, srv)
+
+	for i := range publicInviteLimit * 2 {
+		rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/admin/invites", nil, cookies)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("admin request %d: status = %d, want 200", i+1, rec.Code)
+		}
+	}
 }

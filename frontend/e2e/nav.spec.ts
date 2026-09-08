@@ -11,7 +11,7 @@ test('RSVP nav link is gated on an invite id', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.nav__link--rsvp')).toHaveCount(0);
 
-  await page.goto('/?id=abc123');
+  await page.goto('/?id=K3M7X');
   await expect(page.locator('.nav__link--rsvp')).toBeVisible();
 });
 

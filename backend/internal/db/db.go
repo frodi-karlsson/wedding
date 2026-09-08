@@ -2,13 +2,12 @@ package db
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
 
 // Open opens a SQLite database at path with WAL mode and a 5s busy timeout.
@@ -34,6 +33,12 @@ var ErrNotFound = errors.New("not found")
 
 // ErrNoGuestNames is returned when creating or updating an invite with no guest names.
 var ErrNoGuestNames = errors.New("at least one guest name is required")
+
+// ErrIDCollision is returned when CreateInvite drew an already-taken id on
+// every attempt. At the configured id length this needs the id space to be
+// close to exhausted, so in practice it signals a broken id generator rather
+// than bad luck.
+var ErrIDCollision = errors.New("could not generate an unused invite id")
 
 // Invite is the persisted invite record.
 type Invite struct {
@@ -86,52 +91,56 @@ func presetFlags(i int, group bool) (isPrimary, coPrimary int) {
 	return 0, 0
 }
 
-// SQLiteStore implements Store against a *sql.DB.
+// SQLiteStore implements Store against a *sql.DB. newID is a field rather than
+// a direct call to generateID so tests can force the id collisions that are
+// otherwise too rare to reach.
 type SQLiteStore struct {
-	db *sql.DB
+	db    *sql.DB
+	newID func() string
 }
 
 func NewSQLiteStore(d *sql.DB) *SQLiteStore {
-	return &SQLiteStore{db: d}
+	return &SQLiteStore{db: d, newID: generateID}
 }
 
-func generateToken() string {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		panic(err)
+// createInviteIDAttempts bounds the retry loop that handles an id collision.
+// Ids are short enough that a collision is possible (roughly 1 in 6800 across a
+// hundred invites), so the insert has to cope with one, but the retry must not
+// spin forever if the id space really is exhausted.
+const createInviteIDAttempts = 5
+
+// SQLite extended result codes for a uniqueness violation, which is how a
+// colliding invite id surfaces from the INSERT.
+const (
+	sqliteConstraintUnique     = 2067
+	sqliteConstraintPrimaryKey = 1555
+)
+
+// isIDConflict reports whether err is SQLite rejecting an insert because the id
+// is already taken, as opposed to any other failure.
+func isIDConflict(err error) bool {
+	sqliteErr, ok := errors.AsType[*sqlite.Error](err)
+	if !ok {
+		return false
 	}
-	return hex.EncodeToString(b)
+	code := sqliteErr.Code()
+	return code == sqliteConstraintPrimaryKey || code == sqliteConstraintUnique
 }
 
 func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error) {
 	if len(guestNames) == 0 {
 		return Invite{}, ErrNoGuestNames
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return Invite{}, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	id := generateToken()
-	if _, err := tx.ExecContext(ctx,
-		"INSERT INTO invites (id, name, min_plus, max_plus) VALUES (?, ?, ?, ?)",
-		id, name, minPlus, maxPlus); err != nil {
-		return Invite{}, err
-	}
-	for i, gname := range guestNames {
-		isPrimary, coPrimary := presetFlags(i, group)
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
-			id, gname, isPrimary, coPrimary); err != nil {
+	for range createInviteIDAttempts {
+		id, err := s.insertInvite(ctx, name, minPlus, maxPlus, guestNames, group)
+		if err == nil {
+			return s.GetInvite(ctx, id)
+		}
+		if !isIDConflict(err) {
 			return Invite{}, err
 		}
 	}
-
-	if err := tx.Commit(); err != nil {
-		return Invite{}, err
-	}
-	return s.GetInvite(ctx, id)
+	return Invite{}, fmt.Errorf("%w after %d attempts", ErrIDCollision, createInviteIDAttempts)
 }
 
 func (s *SQLiteStore) GetInvite(ctx context.Context, id string) (Invite, error) {
@@ -347,6 +356,38 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []
 		return Invite{}, nil, err
 	}
 	return inv, savedGuests, nil
+}
+
+// insertInvite writes one invite and its preset guests under a freshly drawn
+// id, returning that id. The whole attempt is a single transaction, so an id
+// collision rolls back the guest rows along with it and leaves nothing behind
+// for the caller to retry around.
+func (s *SQLiteStore) insertInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (string, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	id := s.newID()
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO invites (id, name, min_plus, max_plus) VALUES (?, ?, ?, ?)",
+		id, name, minPlus, maxPlus); err != nil {
+		return "", err
+	}
+	for i, gname := range guestNames {
+		isPrimary, coPrimary := presetFlags(i, group)
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
+			id, gname, isPrimary, coPrimary); err != nil {
+			return "", err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 // getInviteTx reads a single invite within a transaction.

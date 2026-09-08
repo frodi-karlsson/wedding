@@ -26,33 +26,33 @@ test('should return the default locale for an unknown language prefix', () => {
 });
 
 test('should preserve query params and fragment when switching from the default locale to is', () => {
-  const url = { pathname: '/', search: '?id=abc123', hash: '#rsvp' };
+  const url = { pathname: '/', search: '?id=K3M7X', hash: '#rsvp' };
 
-  expect(buildLocaleHref(url, 'is')).toBe('/is?id=abc123#rsvp');
+  expect(buildLocaleHref(url, 'is')).toBe('/is?id=K3M7X#rsvp');
 });
 
 test('should preserve query params and fragment when switching from is to en', () => {
-  const url = { pathname: '/is', search: '?id=abc123', hash: '#rsvp' };
+  const url = { pathname: '/is', search: '?id=K3M7X', hash: '#rsvp' };
 
-  expect(buildLocaleHref(url, 'en')).toBe('/en?id=abc123#rsvp');
+  expect(buildLocaleHref(url, 'en')).toBe('/en?id=K3M7X#rsvp');
 });
 
 test('should preserve query params and fragment when switching from is to de', () => {
-  const url = { pathname: '/is', search: '?id=abc123', hash: '#rsvp' };
+  const url = { pathname: '/is', search: '?id=K3M7X', hash: '#rsvp' };
 
-  expect(buildLocaleHref(url, 'de')).toBe('/de?id=abc123#rsvp');
+  expect(buildLocaleHref(url, 'de')).toBe('/de?id=K3M7X#rsvp');
 });
 
 test('should handle switching from a deeper path', () => {
-  const url = { pathname: '/is/admin', search: '?id=abc123', hash: '' };
+  const url = { pathname: '/is/admin', search: '?id=K3M7X', hash: '' };
 
-  expect(buildLocaleHref(url, 'en')).toBe('/en/admin?id=abc123');
+  expect(buildLocaleHref(url, 'en')).toBe('/en/admin?id=K3M7X');
 });
 
 test('should handle switching to the same locale', () => {
-  const url = { pathname: '/is', search: '?id=abc123', hash: '#rsvp' };
+  const url = { pathname: '/is', search: '?id=K3M7X', hash: '#rsvp' };
 
-  expect(buildLocaleHref(url, 'is')).toBe('/is?id=abc123#rsvp');
+  expect(buildLocaleHref(url, 'is')).toBe('/is?id=K3M7X#rsvp');
 });
 
 test('should handle root path with no params or fragment', () => {
@@ -64,11 +64,11 @@ test('should handle root path with no params or fragment', () => {
 });
 
 test('should return true when id param is present', () => {
-  expect(hasInviteId({ search: '?id=abc123' })).toBe(true);
+  expect(hasInviteId({ search: '?id=K3M7X' })).toBe(true);
 });
 
 test('should return true when id param is present with other params', () => {
-  expect(hasInviteId({ search: '?foo=bar&id=abc123&baz=qux' })).toBe(true);
+  expect(hasInviteId({ search: '?foo=bar&id=K3M7X&baz=qux' })).toBe(true);
 });
 
 test('should return false when id param is absent', () => {

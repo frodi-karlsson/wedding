@@ -3,15 +3,15 @@ import { buildShareLink, createEmptyForm, formFromInvite } from '../src/scripts/
 import type { GuestResponse, InviteResponse } from '../src/scripts/types.gen';
 
 test('should build share link for the default locale without a prefix', () => {
-  const result = buildShareLink('https://example.com', 'abc123', 'sv');
+  const result = buildShareLink('https://example.com', 'K3M7X', 'sv');
 
-  expect(result).toBe('https://example.com/?id=abc123');
+  expect(result).toBe('https://example.com/?id=K3M7X');
 });
 
 test('should build share link for is with the language prefix', () => {
-  const result = buildShareLink('https://example.com', 'abc123', 'is');
+  const result = buildShareLink('https://example.com', 'K3M7X', 'is');
 
-  expect(result).toBe('https://example.com/is?id=abc123');
+  expect(result).toBe('https://example.com/is?id=K3M7X');
 });
 
 test('should build share link for de and en with the language prefix', () => {

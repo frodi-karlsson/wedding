@@ -7,7 +7,7 @@ test('Icelandic route renders translated copy', async ({ page }) => {
 });
 
 test('language switch preserves query params and fragment', async ({ page }) => {
-  await page.goto('/?id=abc123#location');
+  await page.goto('/?id=K3M7X#location');
 
   // open the language dropdown and pick Icelandic
   await page.locator('.lang-dropdown__trigger').click();
@@ -16,7 +16,7 @@ test('language switch preserves query params and fragment', async ({ page }) => 
   await page.waitForURL(/\/is(\/|\b)/);
   const url = new URL(page.url());
   expect(url.pathname).toMatch(/^\/is\/?$/);
-  expect(url.searchParams.get('id')).toBe('abc123');
+  expect(url.searchParams.get('id')).toBe('K3M7X');
   expect(url.hash).toBe('#location');
 });
 

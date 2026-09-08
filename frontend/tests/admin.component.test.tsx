@@ -20,8 +20,8 @@ function mockFailingTask<T>(error: Error): Task<T, HttpError> {
 
 const mockListResponse: ListInvitesResponse = {
   invites: [
-    { id: '1', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, message: '' },
-    { id: '2', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: '' },
+    { id: 'H7K2Q', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, message: '' },
+    { id: 'X4M9B', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: '' },
   ],
 };
 
@@ -49,6 +49,17 @@ test('should render the dashboard when listInvites succeeds', async () => {
   await waitFor(() => {
     expect(screen.getByText('Ada')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
+  });
+});
+
+test('should render invite ids in full so they can be read off the screen', async () => {
+  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
+
+  render(() => <AdminPanel lang="en" />);
+
+  await waitFor(() => {
+    expect(screen.getByText('H7K2Q')).toBeInTheDocument();
+    expect(screen.getByText('X4M9B')).toBeInTheDocument();
   });
 });
 
@@ -80,7 +91,7 @@ test('should show the submission view when clicking view', async () => {
   vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
   vi.spyOn(api, 'getAdminInvite').mockReturnValue(
     mockTask<InviteWithGuestsResponse>({
-      invite: { id: '2', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: 'Cannot wait!' },
+      invite: { id: 'X4M9B', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: 'Cannot wait!' },
       guests: [
         { id: 1, name: 'Bob', dietary_preference: 'Vegetarian', alcohol_free: true, is_primary: true, co_primary: false },
         { id: 2, name: 'Cara', dietary_preference: '', alcohol_free: false, is_primary: false, co_primary: false },
@@ -133,6 +144,6 @@ test('should show the get-invite screen with the shareable link when clicking Ge
   fireEvent.click(screen.getAllByText('Get invite')[0]);
 
   await waitFor(() => {
-    expect(screen.getByDisplayValue('https://example.com/en?id=1')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://example.com/en?id=H7K2Q')).toBeInTheDocument();
   });
 });

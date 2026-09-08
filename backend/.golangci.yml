@@ -2,7 +2,7 @@ version: "2"
 
 run:
   timeout: 5m
-  go: "1.26.4"
+  go: "1.27.1"
 
 linters:
   default: all
@@ -11,6 +11,7 @@ linters:
     - wsl        # opinionated whitespace; noisy
     - nlreturn   # requires blank line before return; noisy
     - exhaustruct # requires exhausting struct fields, overkill
+    - exhaustruct_v5 # same rule under its v5 name, disabled for the same reason
     - ireturn    # disallows returning interfaces, would fight our Store/Sender design
     - varnamelen # opinionated short-var naming, fights Go conventions
     - testpackage # requires tests in _test package, we use internal tests

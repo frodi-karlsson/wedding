@@ -24,14 +24,14 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.12.2
+          version: v2.13.2
           working-directory: backend
           args: --timeout=5m
 
       - name: govulncheck
         working-directory: backend
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
           govulncheck ./...
 
       - name: go mod tidy check
