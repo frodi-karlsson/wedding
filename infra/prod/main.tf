@@ -236,3 +236,36 @@ resource "cloudflare_dns_record" "resend_dmarc" {
   proxied = false
   ttl     = 1
 }
+
+# --- Email Routing: inbound forwarding for @carlaochfrodi.wedding ---
+# Enabling routing makes Cloudflare add and lock the apex MX + SPF records, so
+# they are not declared as cloudflare_dns_record. Outbound Resend records live on
+# the "send" subdomain and do not conflict.
+resource "cloudflare_email_routing_dns" "main" {
+  zone_id = var.cloudflare_zone_id
+}
+
+# Cloudflare emails a verification link to this address on creation. Rules that
+# forward to it are rejected until it is clicked, so a fresh setup needs a
+# second apply after verifying.
+resource "cloudflare_email_routing_address" "forward_to" {
+  account_id = var.cloudflare_account_id
+  email      = var.resend_to
+}
+
+resource "cloudflare_email_routing_rule" "toast" {
+  zone_id = var.cloudflare_zone_id
+  name    = "toast"
+  enabled = true
+  matchers = [{
+    type  = "literal"
+    field = "to"
+    value = "toast@${var.domain}"
+  }]
+  actions = [{
+    type  = "forward"
+    value = [cloudflare_email_routing_address.forward_to.email]
+  }]
+
+  depends_on = [cloudflare_email_routing_dns.main]
+}

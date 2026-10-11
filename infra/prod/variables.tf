@@ -14,7 +14,7 @@ variable "ssh_public_key" {
 variable "cloudflare_api_token" {
   type        = string
   sensitive   = true
-  description = "Cloudflare API token with Pages + DNS edit permissions."
+  description = "Cloudflare API token with Pages, DNS, Zone Settings, Email Routing Rules (zone) and Email Routing Addresses (account) edit permissions."
 }
 
 variable "cloudflare_account_id" {
@@ -81,7 +81,7 @@ variable "resend_from" {
 
 variable "resend_to" {
   type        = string
-  description = "Recipient for RSVP notifications and backup-failure alerts. Required (no default) so the address is set deliberately per deployment."
+  description = "Recipient for RSVP notifications, backup-failure alerts, and mail forwarded from toast@ via Email Routing. Required (no default) so the address is set deliberately per deployment."
 }
 
 variable "cors_allowed_origins" {

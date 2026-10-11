@@ -17,12 +17,16 @@ compose files for prod and local staging.
 - Pages custom domain (apex → carlaochfrodi.wedding)
 - DNS: `api.` A record → droplet reserved IP (DNS-only)
 - DNS: apex CNAME → `<project>.pages.dev`
+- Email Routing: `toast@` forwards to `resend_to`. On a fresh setup the first
+  apply fails at the rule until you click the verification link Cloudflare
+  emails to that address. Click it, then apply again.
 
 ## Prerequisites
 
 1. Install OpenTofu 1.12.3: https://opentofu.org/docs/intro/install/
 2. A DigitalOcean account + API token (`do_token`).
-3. A Cloudflare account + API token with Pages + DNS edit perms.
+3. A Cloudflare account + API token with edit perms for Pages, DNS, Zone
+   Settings, Email Routing Rules (zone) and Email Routing Addresses (account).
 4. Your SSH public key for droplet access.
 5. A Resend account + API key (domain `carlaochfrodi.wedding` verified in Resend).
 
