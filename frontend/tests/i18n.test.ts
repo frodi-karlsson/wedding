@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { translate, langFromPath, type Lang } from '../src/scripts/i18n';
+import { translate, langFromPath, LOCALE_CODES, type Lang } from '../src/scripts/i18n';
 import is from '../src/locales/is.json';
 
 test('should return the translated string for a known key in the requested language', () => {
@@ -95,4 +95,10 @@ test('should return the default locale for an unknown language prefix', () => {
   const result = langFromPath('/xyz');
 
   expect(result).toBe('sv');
+});
+
+test('should place the speech email exactly once in every language', () => {
+  const placeholders = LOCALE_CODES.map((code) => translate('speeches_send', code).split('{email}').length - 1);
+
+  expect(placeholders).toEqual(LOCALE_CODES.map(() => 1));
 });

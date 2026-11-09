@@ -7,6 +7,10 @@ import LocationMap from '../islands/LocationMap';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 
+// Forwarded to our inbox by Cloudflare Email Routing (infra/prod/main.tf).
+const SPEECH_EMAIL = 'toast@carlaochfrodi.wedding';
+const [speechSendBefore, speechSendAfter] = translate('speeches_send', lang).split('{email}');
+
 const contacts = [
   {
     nameKey: 'contact_carla_name' as const,
@@ -72,7 +76,11 @@ const contacts = [
   <h2 class="section__heading">{translate('speeches_eyebrow', lang)}</h2>
   <p class="body-text">{translate('speeches_body1', lang)}</p>
   <p class="body-text">{translate('speeches_body2', lang)}</p>
-  <p class="body-text">{translate('speeches_body3', lang)}</p>
+  <p class="body-text">
+    {translate('speeches_body3', lang)}{' '}
+    {speechSendBefore}<a href={`mailto:${SPEECH_EMAIL}`} class="contact-link">{SPEECH_EMAIL}</a>{speechSendAfter}
+  </p>
+  <p class="body-text">{translate('speeches_body4', lang)}</p>
   <!-- TODO: equipment/instruments info, awaiting final copy from couple -->
 </Section>
 

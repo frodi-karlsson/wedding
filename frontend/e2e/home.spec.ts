@@ -21,3 +21,12 @@ test('all content sections are present', async ({ page }) => {
     await expect(page.locator(id)).toBeAttached();
   }
 });
+
+test('speeches section links the address to send speeches to', async ({ page }) => {
+  await page.goto('/en');
+
+  const link = page.locator('#speeches a[href="mailto:toast@carlaochfrodi.wedding"]');
+
+  await expect(link).toHaveText('toast@carlaochfrodi.wedding');
+  await expect(page.locator('#speeches')).toContainText('by 1 March 2027');
+});
