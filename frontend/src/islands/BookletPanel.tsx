@@ -12,7 +12,7 @@ type Page = { kind: 'cover' } | { kind: 'content'; blocks: Block[] } | { kind: '
 
 // Every face the booklet uses. Measuring before these load would lay text out
 // in a fallback font and break pages in the wrong places.
-const BOOKLET_FONTS = ['500 11.5pt Cormorant', '600 19pt Cormorant', 'italic 500 12.5pt Cormorant'];
+const BOOKLET_FONTS = ['500 13pt Cormorant', '600 21pt Cormorant', 'italic 500 14pt Cormorant'];
 
 // An open spread is two A5 pages: 296mm at 96px per inch.
 const SPREAD_WIDTH_PX = (296 / 25.4) * 96;

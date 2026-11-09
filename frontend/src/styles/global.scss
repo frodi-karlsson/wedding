@@ -635,7 +635,9 @@ input, textarea, select {
   margin-inline: auto;
   box-shadow: 0 2px 12px rgb(27 46 74 / 0.18);
   .booklet-page--none { visibility: hidden; }
-  .booklet-page + .booklet-page { border-left: 1px solid #e4ddd0; }
+  // A shadow, not a border: a border would narrow the text area and break pages
+  // differently from how they were measured.
+  .booklet-page + .booklet-page { box-shadow: inset 1px 0 0 #e4ddd0; }
 }
 .booklet-page {
   position: relative;
@@ -648,13 +650,13 @@ input, textarea, select {
   color: #1b2e4a;
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 11.5pt;
+  font-size: 13pt;
   line-height: 1.45;
 }
 .booklet-page__body { height: 100%; overflow: hidden; }
 .booklet-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; }
-.booklet-heading { margin: 0 0 1.5mm; font-size: 19pt; font-weight: 600; line-height: 1.15; }
-.booklet-subheading { margin: 0 0 7mm; font-style: italic; font-weight: 500; font-size: 12.5pt; color: #4a5a72; }
+.booklet-heading { margin: 0 0 1.5mm; font-size: 21pt; font-weight: 600; line-height: 1.15; }
+.booklet-subheading { margin: 0 0 7mm; font-style: italic; font-weight: 500; font-size: 14pt; color: #4a5a72; }
 .booklet-paragraph { margin: 0 0 3.5mm; white-space: pre-line; text-align: justify; hyphens: auto; }
 .booklet-paragraph--continues { text-align-last: justify; }
 .booklet-folio { position: absolute; left: 0; right: 0; bottom: 10mm; text-align: center; font-size: 9pt; color: #6b778a; }
