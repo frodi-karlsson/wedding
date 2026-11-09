@@ -39,6 +39,29 @@ type UpdateInviteRequest struct {
 	Group   bool               `json:"group"`
 }
 
+type CreateSpeechRequest struct {
+	Speaker      string `json:"speaker"`
+	Title        string `json:"title"`
+	OriginalLang string `json:"original_lang"`
+}
+
+type UpdateSpeechRequest struct {
+	Speaker      string `json:"speaker"`
+	Title        string `json:"title"`
+	OriginalLang string `json:"original_lang"`
+	Version      int    `json:"version"`
+}
+
+type MoveSpeechRequest struct {
+	Delta int `json:"delta"`
+}
+
+type SaveSpeechTextRequest struct {
+	Body    string `json:"body"`
+	Done    bool   `json:"done"`
+	Version int    `json:"version"`
+}
+
 type LoginRequest struct {
 	Password string `json:"password"`
 }
@@ -80,6 +103,37 @@ type InviteResponse struct {
 type InviteWithGuestsResponse struct {
 	Invite InviteResponse  `json:"invite"`
 	Guests []GuestResponse `json:"guests"`
+}
+
+type SpeechTextResponse struct {
+	Lang    string `json:"lang"`
+	Body    string `json:"body"`
+	Done    bool   `json:"done"`
+	Version int    `json:"version"`
+}
+
+type SpeechResponse struct {
+	ID           int64                `json:"id"`
+	Position     int                  `json:"position"`
+	Speaker      string               `json:"speaker"`
+	Title        string               `json:"title"`
+	OriginalLang string               `json:"original_lang"`
+	Version      int                  `json:"version"`
+	Texts        []SpeechTextResponse `json:"texts"`
+}
+
+type ListSpeechesResponse struct {
+	Speeches []SpeechResponse `json:"speeches"`
+}
+
+type SpeechConflictResponse struct {
+	Error   string         `json:"error"`
+	Current SpeechResponse `json:"current"`
+}
+
+type SpeechTextConflictResponse struct {
+	Error   string             `json:"error"`
+	Current SpeechTextResponse `json:"current"`
 }
 
 type ListInvitesResponse struct {

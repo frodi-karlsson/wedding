@@ -5,6 +5,10 @@
 
 
 //////////
+// source: speeches.go
+
+
+//////////
 // source: types.go
 
 export interface GuestInput {
@@ -37,6 +41,25 @@ export interface UpdateInviteRequest {
   guests: PresetGuestInput[];
   group: boolean;
 }
+export interface CreateSpeechRequest {
+  speaker: string;
+  title: string;
+  original_lang: string;
+}
+export interface UpdateSpeechRequest {
+  speaker: string;
+  title: string;
+  original_lang: string;
+  version: number /* int */;
+}
+export interface MoveSpeechRequest {
+  delta: number /* int */;
+}
+export interface SaveSpeechTextRequest {
+  body: string;
+  done: boolean;
+  version: number /* int */;
+}
 export interface LoginRequest {
   password: string;
 }
@@ -68,6 +91,32 @@ export interface InviteResponse {
 export interface InviteWithGuestsResponse {
   invite: InviteResponse;
   guests: GuestResponse[];
+}
+export interface SpeechTextResponse {
+  lang: string;
+  body: string;
+  done: boolean;
+  version: number /* int */;
+}
+export interface SpeechResponse {
+  id: number /* int64 */;
+  position: number /* int */;
+  speaker: string;
+  title: string;
+  original_lang: string;
+  version: number /* int */;
+  texts: SpeechTextResponse[];
+}
+export interface ListSpeechesResponse {
+  speeches: SpeechResponse[];
+}
+export interface SpeechConflictResponse {
+  error: string;
+  current: SpeechResponse;
+}
+export interface SpeechTextConflictResponse {
+  error: string;
+  current: SpeechTextResponse;
 }
 export interface ListInvitesResponse {
   invites: InviteResponse[];

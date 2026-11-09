@@ -16,3 +16,6 @@ packages:
     # The helper functions (toGuestResponse, toInviteResponse) are unexported
     # and won't be emitted.
     exclude_files: []
+  - path: "wedding/backend/internal/langs"
+    output_path: "../frontend/src/scripts/langs.gen.ts"
+    indent: "  "

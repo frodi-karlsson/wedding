@@ -37,7 +37,7 @@ func newTestServerWithDB(t *testing.T) (http.Handler, *email.Fake, *sql.DB) {
 	fakeEmail := &email.Fake{}
 	svc := invite.NewService(store, fakeEmail)
 	a := auth.New(testPasswords, "session-secret", false)
-	return New(svc, a, d, []string{"https://carlaochfrodi.wedding"}), fakeEmail, d
+	return New(svc, store, a, d, []string{"https://carlaochfrodi.wedding"}), fakeEmail, d
 }
 
 func TestGetInvite_ReturnsInviteAndGuests(t *testing.T) {
@@ -400,7 +400,7 @@ func TestAdminCreateInvite_InvalidMinMax(t *testing.T) {
 func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
 	a := auth.New(testPasswords, "session-secret", false)
-	srv := New(svc, a, nil, []string{"https://example.com"})
+	srv := New(svc, nil, a, nil, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/ABCDE",
 		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, Guests: presets("X")}, true)
 	if rec.Code != http.StatusNotFound {

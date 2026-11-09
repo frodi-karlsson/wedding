@@ -39,7 +39,7 @@ const msgInviteNotFound = "invite not found"
 // New returns an http.Handler with all routes wired, panic recovery (outermost),
 // CORS, body-size limit, and admin auth applied. d is used only by the
 // unauthenticated /healthz probe to ping the database.
-func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins []string) http.Handler {
+func New(svc *invite.Service, speeches db.SpeechStore, a *auth.Authenticator, d *sql.DB, allowedOrigins []string) http.Handler {
 	mux := http.NewServeMux()
 
 	// Health check, unauthenticated and not rate limited. Used by the container
@@ -68,6 +68,12 @@ func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins [
 	adminOnly := a.Require(auth.RoleAdmin)
 	mux.Handle("/admin/invites", adminOnly(adminMux))
 	mux.Handle("/admin/invites/", adminOnly(adminMux))
+
+	speechMux := http.NewServeMux()
+	registerSpeechRoutes(speechMux, speeches)
+	speechWorkers := a.Require(auth.RoleAdmin, auth.RoleTranslator)
+	mux.Handle("/speeches", speechWorkers(speechMux))
+	mux.Handle("/speeches/", speechWorkers(speechMux))
 
 	return recoveryMiddleware(CORS(allowedOrigins)(bodyLimitMiddleware(64 * 1024)(mux)))
 }
