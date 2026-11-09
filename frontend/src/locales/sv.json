@@ -146,5 +146,14 @@
   "speeches_load_error": "Kunde inte ladda talen. Försök igen.",
   "speeches_save_error": "Kunde inte spara. Försök igen.",
   "speeches_booklet": "Häfte",
-  "speeches_progress": "{done} av {total} klara"
+  "speeches_progress": "{done} av {total} klara",
+  "booklet_language": "Häftets språk",
+  "booklet_layout_label": "Utskriftslayout",
+  "booklet_layout_home": "Egen skrivare: A4-ark, dubbelsidigt",
+  "booklet_layout_shop": "Tryckeri: A5-sidor i ordning",
+  "booklet_print": "Skriv ut",
+  "booklet_home_instructions": "Skriv ut dubbelsidigt i 100 % skala och vänd längs kortsidan. Lägg arken i ordning, vik dem på mitten och häfta längs vikningen.",
+  "booklet_shop_instructions": "Spara som PDF och be tryckeriet om ett A5-häfte med häftad rygg (klammerhäftning).",
+  "booklet_pages": "{pages} sidor på {sheets} A4-ark",
+  "booklet_missing": "Saknas i häftet, ingen text på detta språk än: {names}"
 }

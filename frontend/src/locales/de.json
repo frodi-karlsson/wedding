@@ -146,5 +146,14 @@
   "speeches_load_error": "Die Reden konnten nicht geladen werden. Bitte versuche es erneut.",
   "speeches_save_error": "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   "speeches_booklet": "Heft",
-  "speeches_progress": "{done} von {total} fertig"
+  "speeches_progress": "{done} von {total} fertig",
+  "booklet_language": "Sprache des Hefts",
+  "booklet_layout_label": "Drucklayout",
+  "booklet_layout_home": "Eigener Drucker: A4-Bögen, beidseitig",
+  "booklet_layout_shop": "Druckerei: A5-Seiten der Reihe nach",
+  "booklet_print": "Drucken",
+  "booklet_home_instructions": "Beidseitig in 100 % Größe drucken und an der kurzen Kante wenden. Die Bögen der Reihe nach stapeln, in der Mitte falten und im Falz heften.",
+  "booklet_shop_instructions": "Als PDF speichern und bei der Druckerei ein A5-Heft mit Rückendrahtheftung bestellen.",
+  "booklet_pages": "{pages} Seiten auf {sheets} A4-Bögen",
+  "booklet_missing": "Fehlt noch im Heft, kein Text in dieser Sprache: {names}"
 }

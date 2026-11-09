@@ -146,5 +146,14 @@
   "speeches_load_error": "Could not load the speeches. Please try again.",
   "speeches_save_error": "Could not save. Please try again.",
   "speeches_booklet": "Booklet",
-  "speeches_progress": "{done} of {total} done"
+  "speeches_progress": "{done} of {total} done",
+  "booklet_language": "Booklet language",
+  "booklet_layout_label": "Print layout",
+  "booklet_layout_home": "Home printer: A4 sheets, double-sided",
+  "booklet_layout_shop": "Print shop: A5 pages in order",
+  "booklet_print": "Print",
+  "booklet_home_instructions": "Print double-sided at 100% scale, flipping on the short edge. Stack the sheets in order, fold them in half and staple along the fold.",
+  "booklet_shop_instructions": "Save as PDF and ask the print shop for an A5 booklet with a stapled spine (saddle stitch).",
+  "booklet_pages": "{pages} pages on {sheets} A4 sheets",
+  "booklet_missing": "Not in this booklet yet, no text in this language: {names}"
 }

@@ -1,0 +1,12 @@
+---
+import BookletPage from '../../../components/BookletPage.astro';
+import { langFromPath, NON_DEFAULT_LOCALES } from '../../../scripts/i18n';
+
+export function getStaticPaths() {
+  // Exclude the default locale, which is served unprefixed at '/speeches/booklet'.
+  return NON_DEFAULT_LOCALES.map((locale) => ({ params: { locale } }));
+}
+
+const lang = langFromPath(Astro.url.pathname);
+---
+<BookletPage lang={lang} />

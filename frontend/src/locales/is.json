@@ -146,5 +146,14 @@
   "speeches_load_error": "Ekki tókst að sækja ræðurnar. Reyndu aftur.",
   "speeches_save_error": "Ekki tókst að vista. Reyndu aftur.",
   "speeches_booklet": "Bæklingur",
-  "speeches_progress": "{done} af {total} tilbúnar"
+  "speeches_progress": "{done} af {total} tilbúnar",
+  "booklet_language": "Tungumál bæklings",
+  "booklet_layout_label": "Prentútlit",
+  "booklet_layout_home": "Heimaprentari: A4 arkir, báðum megin",
+  "booklet_layout_shop": "Prentsmiðja: A5 síður í röð",
+  "booklet_print": "Prenta",
+  "booklet_home_instructions": "Prentaðu báðum megin í 100% stærð og snúðu um styttri brúnina. Raðaðu örkunum í röð, brjóttu þær saman í miðjunni og heftaðu í brotið.",
+  "booklet_shop_instructions": "Vistaðu sem PDF og biddu prentsmiðjuna um A5 bækling heftaðan í kjölinn.",
+  "booklet_pages": "{pages} síður á {sheets} A4 örkum",
+  "booklet_missing": "Vantar í bæklinginn, enginn texti á þessu tungumáli enn: {names}"
 }

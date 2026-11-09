@@ -1,0 +1,11 @@
+---
+import Layout from './Layout.astro';
+import BookletPanel from '../islands/BookletPanel';
+import { translate, type Lang } from '../scripts/i18n';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<Layout title={`${translate('speeches_booklet', lang)} · ${translate('speeches_title', lang)}`} lang={lang}>
+  <BookletPanel client:only="solid-js" lang={lang} />
+</Layout>

@@ -607,3 +607,77 @@ input, textarea, select {
     transition: none;
   }
 }
+
+// Speech booklet: A5 pages, previewed as spreads and printed either imposed on
+// A4 sheets (home printer, saddle stitch) or as plain A5 pages (print shop).
+.booklet { display: flex; flex-direction: column; gap: var(--space-5); align-items: center; }
+// The booklet needs room for an open spread, so it widens past the text column.
+.container > .booklet { width: min(calc(100vw - 2 * var(--space-4)), 1180px); }
+.booklet-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-4);
+  width: 100%;
+  label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--step--1); color: var(--color-text-muted); }
+  a { color: var(--color-accent); align-self: center; }
+}
+.booklet-hint { flex-basis: 100%; margin: 0; font-size: var(--step--1); color: var(--color-text-muted); }
+.booklet-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  padding-block: var(--space-2);
+}
+.booklet-spread {
+  display: flex;
+  margin-inline: auto;
+  box-shadow: 0 2px 12px rgb(27 46 74 / 0.18);
+  .booklet-page--none { visibility: hidden; }
+  .booklet-page + .booklet-page { border-left: 1px solid #e4ddd0; }
+}
+.booklet-page {
+  position: relative;
+  box-sizing: border-box;
+  width: 148mm;
+  height: 210mm;
+  flex: none;
+  padding: 18mm 16mm 22mm;
+  background: #fff;
+  color: #1b2e4a;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 11.5pt;
+  line-height: 1.45;
+}
+.booklet-page__body { height: 100%; overflow: hidden; }
+.booklet-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; }
+.booklet-heading { margin: 0 0 1.5mm; font-size: 19pt; font-weight: 600; line-height: 1.15; }
+.booklet-subheading { margin: 0 0 7mm; font-style: italic; font-weight: 500; font-size: 12.5pt; color: #4a5a72; }
+.booklet-paragraph { margin: 0 0 3.5mm; white-space: pre-line; text-align: justify; hyphens: auto; }
+.booklet-paragraph--continues { text-align-last: justify; }
+.booklet-folio { position: absolute; left: 0; right: 0; bottom: 10mm; text-align: center; font-size: 9pt; color: #6b778a; }
+.booklet-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6mm;
+  height: 100%;
+  text-align: center;
+}
+.booklet-cover__names { margin: 0; font-size: 26pt; font-weight: 600; }
+.booklet-cover__title { margin: 0; font-size: 16pt; letter-spacing: 0.08em; text-transform: uppercase; }
+.booklet-cover__date { margin: 0; font-size: 12pt; color: #4a5a72; }
+
+.booklet-print { display: none; }
+.booklet-sheet { break-after: page; }
+.booklet-sheet--a4 { display: flex; justify-content: center; width: 297mm; height: 210mm; }
+
+@media print {
+  body > :not(.booklet-print) { display: none !important; }
+  html, body { background: #fff; }
+  .booklet-print { display: block; }
+  .booklet-page { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
