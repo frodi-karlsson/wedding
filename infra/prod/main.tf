@@ -23,6 +23,7 @@ resource "digitalocean_droplet" "wedding" {
     do_token              = var.do_token
     resend_api_key        = var.resend_api_key
     admin_password        = var.admin_password
+    translator_password   = var.translator_password
     session_secret        = var.session_secret
     resend_from           = var.resend_from
     resend_to             = var.resend_to

@@ -36,7 +36,7 @@ func newTestServerWithDB(t *testing.T) (http.Handler, *email.Fake, *sql.DB) {
 	store := db.NewSQLiteStore(d)
 	fakeEmail := &email.Fake{}
 	svc := invite.NewService(store, fakeEmail)
-	a := auth.New("admin-pw", "session-secret", false)
+	a := auth.New(testPasswords, "session-secret", false)
 	return New(svc, a, d, []string{"https://carlaochfrodi.wedding"}), fakeEmail, d
 }
 
@@ -163,31 +163,108 @@ func TestPanicRecovery_Returns500(t *testing.T) {
 	}
 }
 
-func TestAdminLogin_CorrectPassword(t *testing.T) {
-	srv, _ := newTestServer(t)
-	rec := jsonRequest(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "admin-pw"}, false)
-	if rec.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", rec.Code)
-	}
-	cookies := rec.Result().Cookies()
-	if len(cookies) != 1 || cookies[0].Name != "wedding_admin" {
-		t.Errorf("expected wedding_admin cookie, got %+v", cookies)
+var testPasswords = auth.Passwords{Admin: "admin-pw", Translator: "translator-pw"}
+
+func TestLogin_ReturnsRoleAndSetsSessionCookie(t *testing.T) {
+	cases := map[string]string{"admin-pw": "admin", "translator-pw": "translator"}
+	for password, wantRole := range cases {
+		srv, _ := newTestServer(t)
+
+		rec := jsonRequest(t, srv, http.MethodPost, "/auth/login", LoginRequest{Password: password}, false)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status = %d, want 200", wantRole, rec.Code)
+		}
+		var resp SessionResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if resp.Role != wantRole {
+			t.Errorf("role = %q, want %q", resp.Role, wantRole)
+		}
+		cookies := rec.Result().Cookies()
+		if len(cookies) != 1 || cookies[0].Name != "wedding_session" {
+			t.Errorf("%s: expected wedding_session cookie, got %+v", wantRole, cookies)
+		}
 	}
 }
 
-func TestAdminLogin_WrongPassword(t *testing.T) {
+func loginAs(t *testing.T, srv http.Handler, password string) []*http.Cookie {
+	t.Helper()
+	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/auth/login", LoginRequest{Password: password}, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login status = %d", rec.Code)
+	}
+	return rec.Result().Cookies()
+}
+
+func TestSession_ReturnsRoleOfCurrentSession(t *testing.T) {
 	srv, _ := newTestServer(t)
-	rec := jsonRequest(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "wrong"}, false)
+	cookies := loginAs(t, srv, "translator-pw")
+
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/auth/session", nil, cookies)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var resp SessionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Role != "translator" {
+		t.Errorf("role = %q, want translator", resp.Role)
+	}
+}
+
+func TestSession_UnauthorizedWithoutSession(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	rec := jsonRequest(t, srv, http.MethodGet, "/auth/session", nil, false)
+
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", rec.Code)
 	}
 }
 
-func TestAdminLogin_BodyLimit_Returns413(t *testing.T) {
+func TestLogout_EndsSession(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := loginAs(t, srv, "admin-pw")
+
+	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/auth/logout", nil, cookies)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	cleared := rec.Result().Cookies()
+	if len(cleared) != 1 || cleared[0].Name != "wedding_session" || cleared[0].MaxAge >= 0 {
+		t.Errorf("expected an expired wedding_session cookie, got %+v", cleared)
+	}
+}
+
+func TestAdminRoutes_ForbiddenForTranslator(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := loginAs(t, srv, "translator-pw")
+
+	rec := jsonRequestWithCookies(t, srv, http.MethodGet, "/admin/invites", nil, cookies)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestLogin_WrongPassword(t *testing.T) {
+	srv, _ := newTestServer(t)
+	rec := jsonRequest(t, srv, http.MethodPost, "/auth/login", LoginRequest{Password: "wrong"}, false)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestLogin_BodyLimit_Returns413(t *testing.T) {
 	srv, _ := newTestServer(t)
 	body := `{"password":"` + strings.Repeat("a", 64*1024) + `"}`
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusRequestEntityTooLarge {
@@ -195,12 +272,12 @@ func TestAdminLogin_BodyLimit_Returns413(t *testing.T) {
 	}
 }
 
-func TestAdminLogin_RateLimitedAfter5Failures(t *testing.T) {
+func TestLogin_RateLimitedAfter5Failures(t *testing.T) {
 	srv, _ := newTestServer(t)
 	// Set X-Forwarded-For so clientIP extracts a stable IP (simulating Caddy).
 	for i := 0; i < 5; i++ {
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(`{"password":"wrong"}`))
+		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"password":"wrong"}`))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Forwarded-For", "1.2.3.4")
 		srv.ServeHTTP(rec, req)
@@ -210,7 +287,7 @@ func TestAdminLogin_RateLimitedAfter5Failures(t *testing.T) {
 	}
 	// 6th attempt: blocked.
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/admin/login", strings.NewReader(`{"password":"wrong"}`))
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"password":"wrong"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Forwarded-For", "1.2.3.4")
 	srv.ServeHTTP(rec, req)
@@ -322,7 +399,7 @@ func TestAdminCreateInvite_InvalidMinMax(t *testing.T) {
 
 func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	svc := invite.NewService(&updateFetchNotFoundStore{}, &email.Fake{})
-	a := auth.New("admin-pw", "session-secret", false)
+	a := auth.New(testPasswords, "session-secret", false)
 	srv := New(svc, a, nil, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/ABCDE",
 		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, Guests: presets("X")}, true)
@@ -400,11 +477,7 @@ func TestHealthz_NotBehindAuth(t *testing.T) {
 
 func loginAndGetCookies(t *testing.T, srv http.Handler) []*http.Cookie {
 	t.Helper()
-	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/login", LoginRequest{Password: "admin-pw"}, nil)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("login status = %d", rec.Code)
-	}
-	return rec.Result().Cookies()
+	return loginAs(t, srv, "admin-pw")
 }
 
 // createAndLogin logs in as admin, seeds one invite, and returns the admin cookies

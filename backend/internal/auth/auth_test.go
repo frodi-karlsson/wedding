@@ -93,129 +93,168 @@ func TestLoginLimiter_CapsEntries(t *testing.T) {
 	}
 }
 
-func TestLogin_CorrectPassword(t *testing.T) {
-	a := New("correct-horse", "session-secret", true)
-	if !a.Login("correct-horse") {
-		t.Error("Login with correct password returned false")
-	}
+var testPasswords = Passwords{Admin: "correct-horse", Translator: "battery-staple"}
+
+func newTestAuth(secure bool) *Authenticator {
+	return New(testPasswords, "session-secret", secure)
 }
 
-func TestLogin_WrongPassword(t *testing.T) {
-	a := New("correct-horse", "session-secret", true)
-	if a.Login("wrong") {
-		t.Error("Login with wrong password returned true")
-	}
-}
-
-// TestLogin_WrongPasswordDifferentLengths guards the length-leak fix: because
-// both sides are SHA-256'd to a fixed 32 bytes before the constant-time compare,
-// a wrong password of a different length must be rejected just like any other.
-func TestLogin_WrongPasswordDifferentLengths(t *testing.T) {
-	a := New("correct-horse", "session-secret", true)
-	for _, pw := range []string{"", "x", "correct-hors", "correct-horsee", strings.Repeat("z", 200)} {
-		if a.Login(pw) {
-			t.Errorf("Login(%q) returned true, want false", pw)
-		}
-	}
-	if !a.Login("correct-horse") {
-		t.Error("Login with correct password returned false")
-	}
-}
-
-func TestSetSessionCookie_ThenIsAuthenticated(t *testing.T) {
-	a := New("pw", "secret", true)
+// sessionRequest returns a request carrying the session cookie that a login as
+// role would set.
+func sessionRequest(t *testing.T, a *Authenticator, role Role) *http.Request {
+	t.Helper()
 	rec := httptest.NewRecorder()
-	a.SetSessionCookie(rec)
-
+	a.SetSessionCookie(rec, role)
 	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
 	for _, c := range rec.Result().Cookies() {
 		req.AddCookie(c)
 	}
-	if !a.IsAuthenticated(req) {
-		t.Error("IsAuthenticated returned false after SetSessionCookie")
+	return req
+}
+
+func TestLogin_ReturnsRoleForEachPassword(t *testing.T) {
+	a := newTestAuth(true)
+	cases := map[string]Role{"correct-horse": RoleAdmin, "battery-staple": RoleTranslator}
+	for pw, want := range cases {
+		role, ok := a.Login(pw)
+
+		if !ok || role != want {
+			t.Errorf("Login(%q) = (%q, %v), want (%q, true)", pw, role, ok, want)
+		}
 	}
 }
 
-func TestIsAuthenticated_NoCookie(t *testing.T) {
-	a := New("pw", "secret", true)
+// TestLogin_RejectsWrongPasswords guards the length-leak fix too: both sides are
+// SHA-256'd to a fixed 32 bytes before the constant-time compare, so a wrong
+// password of any length must be rejected like any other.
+func TestLogin_RejectsWrongPasswords(t *testing.T) {
+	a := newTestAuth(true)
+	for _, pw := range []string{"", "x", "wrong", "correct-hors", "correct-horsee", "battery-staplee", strings.Repeat("z", 200)} {
+		if role, ok := a.Login(pw); ok {
+			t.Errorf("Login(%q) = (%q, true), want rejection", pw, role)
+		}
+	}
+}
+
+func TestLogin_UnsetPasswordNeverMatches(t *testing.T) {
+	a := New(Passwords{Admin: "correct-horse"}, "session-secret", true)
+
+	role, ok := a.Login("")
+
+	if ok {
+		t.Errorf("Login(\"\") = (%q, true) with no translator password set, want rejection", role)
+	}
+}
+
+func TestSessionRole_ReturnsRoleFromCookie(t *testing.T) {
+	a := newTestAuth(true)
+	for _, want := range []Role{RoleAdmin, RoleTranslator} {
+		req := sessionRequest(t, a, want)
+
+		role, ok := a.SessionRole(req)
+
+		if !ok || role != want {
+			t.Errorf("SessionRole() = (%q, %v), want (%q, true)", role, ok, want)
+		}
+	}
+}
+
+func TestSessionRole_NoCookie(t *testing.T) {
+	a := newTestAuth(true)
 	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
-	if a.IsAuthenticated(req) {
-		t.Error("IsAuthenticated returned true with no cookie")
+
+	if _, ok := a.SessionRole(req); ok {
+		t.Error("SessionRole() ok with no cookie")
 	}
 }
 
-func TestIsAuthenticated_TamperedCookie(t *testing.T) {
-	a := New("pw", "secret", true)
-	rec := httptest.NewRecorder()
-	a.SetSessionCookie(rec)
-	cookies := rec.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected 1 cookie, got %d", len(cookies))
+func TestSessionRole_RejectsTamperedCookies(t *testing.T) {
+	a := newTestAuth(true)
+	valid := sessionRequest(t, a, RoleTranslator)
+	c, err := valid.Cookie(cookieName)
+	if err != nil {
+		t.Fatalf("cookie: %v", err)
 	}
-	// Tamper: replace the last char with a guaranteed-different one. Compare the
-	// original last char (not the one before it) so the result always differs.
-	// Otherwise it can reconstruct the valid value and still verify (flaky).
-	c := cookies[0]
+	// Flip the last signature char to a guaranteed-different one.
 	repl := byte('a')
 	if c.Value[len(c.Value)-1] == 'a' {
 		repl = 'b'
 	}
-	tampered := c.Value[:len(c.Value)-1] + string(repl)
-	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
-	req.AddCookie(&http.Cookie{Name: c.Name, Value: tampered})
-	if a.IsAuthenticated(req) {
-		t.Error("IsAuthenticated returned true for tampered cookie")
+	cases := map[string]string{
+		"bad signature": c.Value[:len(c.Value)-1] + string(repl),
+		"role swapped":  "admin" + strings.TrimPrefix(c.Value, "translator"),
+		"legacy format": strings.TrimPrefix(c.Value, "translator."),
+		"unknown role":  "owner" + strings.TrimPrefix(c.Value, "translator"),
+	}
+	for name, value := range cases {
+		req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
+		req.AddCookie(&http.Cookie{Name: cookieName, Value: value})
+
+		if role, ok := a.SessionRole(req); ok {
+			t.Errorf("%s: SessionRole() = (%q, true), want rejection", name, role)
+		}
 	}
 }
 
 func TestClearSessionCookie(t *testing.T) {
-	a := New("pw", "secret", true)
+	a := newTestAuth(true)
 	rec := httptest.NewRecorder()
+
 	a.ClearSessionCookie(rec)
-	cookies := rec.Result().Cookies()
+
 	found := false
-	for _, c := range cookies {
-		if c.Name == "wedding_admin" && c.MaxAge < 0 {
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == cookieName && c.MaxAge < 0 {
 			found = true
 		}
 	}
 	if !found {
-		t.Error("ClearSessionCookie did not set an expired wedding_admin cookie")
+		t.Errorf("ClearSessionCookie did not set an expired %s cookie", cookieName)
 	}
 }
 
-func TestMiddleware_AllowsAuthenticated(t *testing.T) {
-	a := New("pw", "secret", true)
+func TestRequire_AllowsListedRole(t *testing.T) {
+	a := newTestAuth(true)
 	called := false
-	h := a.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := a.Require(RoleAdmin, RoleTranslator)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
-		w.WriteHeader(http.StatusOK)
 	}))
-
 	rec := httptest.NewRecorder()
-	cookieRec := httptest.NewRecorder()
-	a.SetSessionCookie(cookieRec)
-	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
-	for _, c := range cookieRec.Result().Cookies() {
-		req.AddCookie(c)
-	}
-	h.ServeHTTP(rec, req)
+
+	h.ServeHTTP(rec, sessionRequest(t, a, RoleTranslator))
 
 	if !called {
-		t.Error("handler not called when authenticated")
+		t.Errorf("handler not called for an allowed role, status %d", rec.Code)
 	}
 }
 
-func TestMiddleware_BlocksUnauthenticated(t *testing.T) {
-	a := New("pw", "secret", true)
+func TestRequire_ForbidsOtherRole(t *testing.T) {
+	a := newTestAuth(true)
 	called := false
-	h := a.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := a.Require(RoleAdmin)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
-
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
-	h.ServeHTTP(rec, req)
+
+	h.ServeHTTP(rec, sessionRequest(t, a, RoleTranslator))
+
+	if called {
+		t.Error("handler called for a role that is not allowed")
+	}
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestRequire_BlocksUnauthenticated(t *testing.T) {
+	a := newTestAuth(true)
+	called := false
+	h := a.Require(RoleAdmin)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/admin/invites", nil))
 
 	if called {
 		t.Error("handler called when unauthenticated")
@@ -226,25 +265,18 @@ func TestMiddleware_BlocksUnauthenticated(t *testing.T) {
 }
 
 func TestSessionCookie_SecureFlag(t *testing.T) {
-	a := New("pw", "secret", true)
-	rec := httptest.NewRecorder()
-	a.SetSessionCookie(rec)
-	cookies := rec.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected 1 cookie, got %d", len(cookies))
-	}
-	if !cookies[0].Secure {
-		t.Errorf("SetSessionCookie Secure = false, want true")
-	}
+	for _, secure := range []bool{true, false} {
+		a := newTestAuth(secure)
+		rec := httptest.NewRecorder()
 
-	a2 := New("pw", "secret", false)
-	rec2 := httptest.NewRecorder()
-	a2.SetSessionCookie(rec2)
-	cookies2 := rec2.Result().Cookies()
-	if len(cookies2) != 1 {
-		t.Fatalf("expected 1 cookie, got %d", len(cookies2))
-	}
-	if cookies2[0].Secure {
-		t.Errorf("SetSessionCookie Secure = true, want false")
+		a.SetSessionCookie(rec, RoleAdmin)
+
+		cookies := rec.Result().Cookies()
+		if len(cookies) != 1 {
+			t.Fatalf("expected 1 cookie, got %d", len(cookies))
+		}
+		if cookies[0].Secure != secure {
+			t.Errorf("Secure = %v, want %v", cookies[0].Secure, secure)
+		}
 	}
 }

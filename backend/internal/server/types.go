@@ -49,6 +49,10 @@ type StatusResponse struct {
 	Status string `json:"status"`
 }
 
+type SessionResponse struct {
+	Role string `json:"role"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

@@ -38,7 +38,7 @@ wedding/
    ```
    Open `http://localhost:4321/?id=<inviteId>`.
 
-3. **Admin:** `http://localhost:4321/admin` (password from `ADMIN_PASSWORD`).
+3. **Login:** `http://localhost:4321/admin`. The admin password (`ADMIN_PASSWORD`) opens the invite dashboard, the translator password (`TRANSLATOR_PASSWORD`) opens the speeches. With the staging compose these are `staging-admin-pw` and `staging-translator-pw`.
 
 ## Deployment
 

@@ -1,6 +1,6 @@
 import { createSignal, Switch, Match, Show, onMount, untrack, type JSX } from 'solid-js';
 import type { Lang } from '../scripts/i18n';
-import { translate } from '../scripts/i18n';
+import { localePrefix, translate } from '../scripts/i18n';
 import { api } from '../scripts/api';
 import {
   createEmptyForm,
@@ -46,18 +46,34 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
     }
   }
 
+  // Admins manage invites here. Translators only have the speeches, so a
+  // translator session is sent there instead.
+  async function enterAs(role: string): Promise<void> {
+    if (role === 'admin') {
+      await refreshDashboard();
+      return;
+    }
+    globalThis.location.assign(`${localePrefix(lang)}/speeches`);
+  }
+
   onMount(() => {
     rootRef?.classList.add('fade-in');
-    refreshDashboard();
+    api
+      .session()
+      .run()
+      .then((session) => enterAs(session.role))
+      .catch(() => setAuthed(false));
   });
 
   async function onLogin(password: string): Promise<void> {
+    let role: string;
     try {
-      await api.adminLogin(password).run();
-      await refreshDashboard();
+      role = (await api.login(password).run()).role;
     } catch {
       setState((prev) => ({ ...prev, error: translate('admin_login_error', prev.lang) }));
+      return;
     }
+    await enterAs(role);
   }
 
   function onNewInvite(): void {
@@ -71,7 +87,7 @@ export function AdminPanel(props: { lang: Lang }): JSX.Element {
 
   async function onLogout(): Promise<void> {
     try {
-      await api.adminLogout().run();
+      await api.logout().run();
       setState((prev) => ({ ...prev, view: 'dashboard', invites: [], error: undefined }));
       setAuthed(false);
     } catch {

@@ -9,6 +9,7 @@ cloudflare_zone_id    = "your-cloudflare-zone-id"
 
 resend_api_key      = "re_xxxxxxxxxxxxxxxxxxxxxx"
 admin_password      = "choose-a-strong-password"
+translator_password = "a-different-strong-password"
 session_secret      = "generate-a-random-secret"
 
 # Recipient for RSVP notifications, backup-failure alerts, and DMARC reports. Required.

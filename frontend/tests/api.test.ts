@@ -82,14 +82,14 @@ test('should POST /invites/{id}/rsvp with the guest list', async () => {
   expect(result).toEqual(response);
 });
 
-test('should POST /admin/login with the password', async () => {
-  const response = { status: 'ok' };
+test('should POST /auth/login with the password and return the role', async () => {
+  const response = { role: 'translator' };
   const fetchMock = setupFetch(response);
 
-  const result = await api.adminLogin('secret').run();
+  const result = await api.login('secret').run();
 
   const [url, init] = lastCall(fetchMock);
-  expect(url).toBe(`${baseUrl}/admin/login`);
+  expect(url).toBe(`${baseUrl}/auth/login`);
   expect(init.method).toBe('POST');
   expect(init.credentials).toBe('include');
   expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });
@@ -97,14 +97,27 @@ test('should POST /admin/login with the password', async () => {
   expect(result).toEqual(response);
 });
 
-test('should POST /admin/logout', async () => {
+test('should GET /auth/session and return the role', async () => {
+  const response = { role: 'admin' };
+  const fetchMock = setupFetch(response);
+
+  const result = await api.session().run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/auth/session`);
+  expect(init.method).toBe('GET');
+  expect(init.credentials).toBe('include');
+  expect(result).toEqual(response);
+});
+
+test('should POST /auth/logout', async () => {
   const response = { status: 'ok' };
   const fetchMock = setupFetch(response);
 
-  await api.adminLogout().run();
+  await api.logout().run();
 
   const [url, init] = lastCall(fetchMock);
-  expect(url).toBe(`${baseUrl}/admin/logout`);
+  expect(url).toBe(`${baseUrl}/auth/logout`);
   expect(init.method).toBe('POST');
   expect(init.credentials).toBe('include');
   expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });

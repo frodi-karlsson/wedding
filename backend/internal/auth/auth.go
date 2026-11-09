@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -88,21 +89,41 @@ func (l *loginLimiter) evictIfNeeded() {
 }
 
 const (
-	cookieName    = "wedding_admin"
+	cookieName    = "wedding_session"
 	sessionMaxAge = 7 * 24 * time.Hour
 )
 
-// Authenticator handles admin login and session-cookie verification.
+// Role is what a session may do. An admin manages invites, a translator works
+// on the speech translations.
+type Role string
+
+const (
+	RoleAdmin      Role = "admin"
+	RoleTranslator Role = "translator"
+)
+
+func (r Role) known() bool {
+	return r == RoleAdmin || r == RoleTranslator
+}
+
+// Passwords holds one shared password per role. An empty password disables
+// that role's login.
+type Passwords struct {
+	Admin      string
+	Translator string
+}
+
+// Authenticator handles login and role-carrying session cookies.
 type Authenticator struct {
-	password      string
+	passwords     Passwords
 	sessionSecret []byte
 	secure        bool
 	limiter       *loginLimiter
 }
 
-func New(password, sessionSecret string, secure bool) *Authenticator {
+func New(passwords Passwords, sessionSecret string, secure bool) *Authenticator {
 	return &Authenticator{
-		password:      password,
+		passwords:     passwords,
 		sessionSecret: []byte(sessionSecret),
 		secure:        secure,
 		limiter:       newLoginLimiter(),
@@ -124,23 +145,34 @@ func (a *Authenticator) ResetLogin(ip string) {
 	a.limiter.Reset(ip)
 }
 
-// Login returns true if the given password matches the configured admin password.
-// Both sides are SHA-256'd to a fixed 32 bytes before the constant-time compare
-// so the comparison neither short-circuits nor leaks the password length via
-// timing (hmac.Equal on raw bytes of differing length returns early).
-func (a *Authenticator) Login(password string) bool {
+// Login returns the role whose password matches. Every role's password is
+// compared on every attempt, and both sides are SHA-256'd to a fixed 32 bytes
+// before the constant-time compare, so timing reveals neither which role was
+// close nor the password length.
+func (a *Authenticator) Login(password string) (Role, bool) {
 	got := sha256.Sum256([]byte(password))
-	want := sha256.Sum256([]byte(a.password))
-	return hmac.Equal(got[:], want[:])
+	candidates := []struct {
+		role     Role
+		password string
+	}{
+		{RoleAdmin, a.passwords.Admin},
+		{RoleTranslator, a.passwords.Translator},
+	}
+	var matched Role
+	for _, c := range candidates {
+		want := sha256.Sum256([]byte(c.password))
+		if hmac.Equal(got[:], want[:]) && c.password != "" && matched == "" {
+			matched = c.role
+		}
+	}
+	return matched, matched != ""
 }
 
-// SetSessionCookie writes a signed session cookie to the response.
-func (a *Authenticator) SetSessionCookie(w http.ResponseWriter) {
-	ts := time.Now().Unix()
-	value := a.sign(ts)
+// SetSessionCookie writes a signed session cookie for role to the response.
+func (a *Authenticator) SetSessionCookie(w http.ResponseWriter, role Role) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
-		Value:    value,
+		Value:    a.sign(role, time.Now().Unix()),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   a.secure,
@@ -164,47 +196,62 @@ func (a *Authenticator) ClearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// IsAuthenticated returns true if the request carries a valid signed cookie.
-func (a *Authenticator) IsAuthenticated(r *http.Request) bool {
+// SessionRole returns the role of the request's valid session cookie.
+func (a *Authenticator) SessionRole(r *http.Request) (Role, bool) {
 	c, err := r.Cookie(cookieName)
 	if err != nil {
-		return false
+		return "", false
 	}
 	return a.verify(c.Value)
 }
 
-// Middleware protects a handler with session-cookie auth.
-func (a *Authenticator) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !a.IsAuthenticated(r) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// Require lets a request through only with a session for one of roles: 401
+// without a session, 403 with a session for some other role.
+func (a *Authenticator) Require(roles ...Role) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, ok := a.SessionRole(r)
+			if !ok {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if !slices.Contains(roles, role) {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
-func (a *Authenticator) sign(ts int64) string {
+// sign renders a cookie value "<role>.<unix ts>.<hex hmac of role.ts>".
+func (a *Authenticator) sign(role Role, ts int64) string {
+	payload := string(role) + "." + strconv.FormatInt(ts, 10)
+	return payload + "." + a.mac(payload)
+}
+
+func (a *Authenticator) mac(payload string) string {
 	m := hmac.New(sha256.New, a.sessionSecret)
-	m.Write([]byte(strconv.FormatInt(ts, 10)))
-	sig := hex.EncodeToString(m.Sum(nil))
-	return strconv.FormatInt(ts, 10) + "." + sig
+	m.Write([]byte(payload))
+	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (a *Authenticator) verify(value string) bool {
-	tsStr, sig, ok := strings.Cut(value, ".")
-	if !ok {
-		return false
+func (a *Authenticator) verify(value string) (Role, bool) {
+	parts := strings.Split(value, ".")
+	if len(parts) != 3 {
+		return "", false
+	}
+	roleStr, tsStr, sig := parts[0], parts[1], parts[2]
+	if !hmac.Equal([]byte(sig), []byte(a.mac(roleStr+"."+tsStr))) {
+		return "", false
 	}
 	ts, err := strconv.ParseInt(tsStr, 10, 64)
-	if err != nil {
-		return false
+	if err != nil || time.Now().Unix()-ts > int64(sessionMaxAge.Seconds()) {
+		return "", false
 	}
-	if time.Now().Unix()-ts > int64(sessionMaxAge.Seconds()) {
-		return false
+	role := Role(roleStr)
+	if !role.known() {
+		return "", false
 	}
-	m := hmac.New(sha256.New, a.sessionSecret)
-	m.Write([]byte(tsStr))
-	expected := hex.EncodeToString(m.Sum(nil))
-	return hmac.Equal([]byte(sig), []byte(expected))
+	return role, true
 }

@@ -15,14 +15,15 @@ All config comes from environment variables:
 | Var | Required | Default | Purpose |
 |-----|----------|---------|---------|
 | `DB_PATH` | no | `/data/wedding.db` | SQLite file path (`:memory:` for tests) |
-| `ADMIN_PASSWORD` | yes | none | Admin login password |
+| `ADMIN_PASSWORD` | yes | none | Admin login password (manages invites) |
+| `TRANSLATOR_PASSWORD` | yes | none | Translator login password (speeches only). Must differ from `ADMIN_PASSWORD` |
 | `SESSION_SECRET` | yes | none | HMAC secret for session cookies |
 | `RESEND_API_KEY` | yes | none | Resend API key |
 | `RESEND_FROM` | yes | none | From address (e.g. `rsvp@carlaochfrodi.wedding`) |
 | `RESEND_TO` | yes | none | Destination email (`frodi.carla@gmail.com`) |
 | `CORS_ALLOWED_ORIGINS` | yes | none | Comma-separated allowed origins |
 | `PORT` | no | `8080` | Listen port |
-| `SECURE_COOKIE` | no | `true` | Set `Secure` flag on admin session cookies (set `false` for local HTTP testing) |
+| `SECURE_COOKIE` | no | `true` | Set `Secure` flag on session cookies (set `false` for local HTTP testing) |
 
 Never commit secrets. Use a `.env` file (gitignored) for local runs.
 

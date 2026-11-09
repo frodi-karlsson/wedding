@@ -52,9 +52,11 @@ func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins [
 	mux.Handle("GET /invites/{id}", rateLimited(publicLimiter, handleGetInvite(svc)))
 	mux.Handle("POST /invites/{id}/rsvp", rateLimited(publicLimiter, handleRSVP(svc)))
 
-	// Admin auth routes (login/logout are NOT behind auth middleware)
-	mux.HandleFunc("POST /admin/login", handleLogin(a))
-	mux.HandleFunc("POST /admin/logout", handleLogout(a))
+	// Login and logout are open to everyone; the session route reports the
+	// caller's role so the frontend knows which pages to offer.
+	mux.HandleFunc("POST /auth/login", handleLogin(a))
+	mux.HandleFunc("POST /auth/logout", handleLogout(a))
+	mux.HandleFunc("GET /auth/session", handleSession(a))
 
 	// Admin protected routes
 	adminMux := http.NewServeMux()
@@ -63,8 +65,9 @@ func New(svc *invite.Service, a *auth.Authenticator, d *sql.DB, allowedOrigins [
 	adminMux.HandleFunc("GET /admin/invites/{id}", handleAdminGetInvite(svc))
 	adminMux.HandleFunc("PUT /admin/invites/{id}", handleUpdateInvite(svc))
 	adminMux.HandleFunc("DELETE /admin/invites/{id}", handleDeleteInvite(svc))
-	mux.Handle("/admin/invites", a.Middleware(adminMux))
-	mux.Handle("/admin/invites/", a.Middleware(adminMux))
+	adminOnly := a.Require(auth.RoleAdmin)
+	mux.Handle("/admin/invites", adminOnly(adminMux))
+	mux.Handle("/admin/invites/", adminOnly(adminMux))
 
 	return recoveryMiddleware(CORS(allowedOrigins)(bodyLimitMiddleware(64 * 1024)(mux)))
 }
@@ -254,7 +257,7 @@ func handleRSVP(svc *invite.Service) http.HandlerFunc {
 	}
 }
 
-// --- admin auth handlers ---
+// --- auth handlers ---
 
 func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +275,8 @@ func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 			writeError(w, http.StatusTooManyRequests, "too many failed attempts, try again later")
 			return
 		}
-		if !a.Login(req.Password) {
+		role, ok := a.Login(req.Password)
+		if !ok {
 			a.RecordFailure(ip)
 			if !a.Allow(ip) {
 				writeError(w, http.StatusTooManyRequests, "too many failed attempts, try again later")
@@ -282,8 +286,8 @@ func handleLogin(a *auth.Authenticator) http.HandlerFunc {
 			return
 		}
 		a.ResetLogin(ip)
-		a.SetSessionCookie(w)
-		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
+		a.SetSessionCookie(w, role)
+		writeJSON(w, http.StatusOK, SessionResponse{Role: string(role)})
 	}
 }
 
@@ -291,6 +295,17 @@ func handleLogout(a *auth.Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		a.ClearSessionCookie(w)
 		writeJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
+	}
+}
+
+func handleSession(a *auth.Authenticator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		role, ok := a.SessionRole(r)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "not logged in")
+			return
+		}
+		writeJSON(w, http.StatusOK, SessionResponse{Role: string(role)})
 	}
 }
 

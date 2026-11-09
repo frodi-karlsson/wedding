@@ -43,6 +43,9 @@ export interface LoginRequest {
 export interface StatusResponse {
   status: string;
 }
+export interface SessionResponse {
+  role: string;
+}
 export interface ErrorResponse {
   error: string;
 }

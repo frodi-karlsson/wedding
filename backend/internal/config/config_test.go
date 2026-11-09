@@ -9,6 +9,7 @@ import (
 func TestLoad_ReadsEnvVars(t *testing.T) {
 	t.Setenv("DB_PATH", "/data/wedding.db")
 	t.Setenv("ADMIN_PASSWORD", "secret-pass")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
 	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "re_test_key")
 	t.Setenv("RESEND_FROM", "rsvp@carlaochfrodi.wedding")
@@ -26,6 +27,9 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 	}
 	if cfg.AdminPassword != "secret-pass" {
 		t.Errorf("AdminPassword = %q", cfg.AdminPassword)
+	}
+	if cfg.TranslatorPassword != "translator-pass" {
+		t.Errorf("TranslatorPassword = %q", cfg.TranslatorPassword)
 	}
 	if cfg.SessionSecret != "0123456789abcdef0123456789abcdef" {
 		t.Errorf("SessionSecret = %q", cfg.SessionSecret)
@@ -58,6 +62,7 @@ func TestLoad_ReadsEnvVars(t *testing.T) {
 
 func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "x")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
 	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
@@ -83,6 +88,7 @@ func TestLoad_DefaultsPortAndDBPath(t *testing.T) {
 
 func TestLoad_RejectsShortSessionSecret(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "x")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
 	t.Setenv("SESSION_SECRET", strings.Repeat("a", 31)) // one byte short
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
@@ -102,6 +108,7 @@ func TestLoad_RejectsShortSessionSecret(t *testing.T) {
 
 func TestLoad_AcceptsExactly32ByteSessionSecret(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "x")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
 	t.Setenv("SESSION_SECRET", strings.Repeat("a", 32))
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
@@ -117,6 +124,7 @@ func TestLoad_AcceptsExactly32ByteSessionSecret(t *testing.T) {
 
 func TestLoad_RequiresAdminPassword(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
 	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
 	t.Setenv("RESEND_API_KEY", "x")
 	t.Setenv("RESEND_FROM", "x@x")
@@ -128,5 +136,38 @@ func TestLoad_RequiresAdminPassword(t *testing.T) {
 	_, err := Load()
 	if err == nil {
 		t.Fatal("Load() should error when ADMIN_PASSWORD is empty")
+	}
+}
+
+func setValidEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("ADMIN_PASSWORD", "admin-pass")
+	t.Setenv("TRANSLATOR_PASSWORD", "translator-pass")
+	t.Setenv("SESSION_SECRET", "0123456789abcdef0123456789abcdef")
+	t.Setenv("RESEND_API_KEY", "x")
+	t.Setenv("RESEND_FROM", "x@x")
+	t.Setenv("RESEND_TO", "x@x")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://example.com")
+}
+
+func TestLoad_RequiresTranslatorPassword(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("TRANSLATOR_PASSWORD", "")
+
+	_, err := Load()
+
+	if !errors.Is(err, ErrMissingEnvVars) || !strings.Contains(err.Error(), "TRANSLATOR_PASSWORD") {
+		t.Errorf("Load() err = %v, want missing TRANSLATOR_PASSWORD", err)
+	}
+}
+
+func TestLoad_RejectsSharedPassword(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("TRANSLATOR_PASSWORD", "admin-pass")
+
+	_, err := Load()
+
+	if !errors.Is(err, ErrSharedPassword) {
+		t.Errorf("Load() err = %v, want ErrSharedPassword", err)
 	}
 }

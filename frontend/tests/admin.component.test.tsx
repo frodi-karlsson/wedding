@@ -18,7 +18,7 @@ const mockListResponse: ListInvitesResponse = {
   ],
 };
 
-const mockLoginResponse: StatusResponse = { status: 'ok' };
+const mockLogoutResponse: StatusResponse = { status: 'ok' };
 
 const familyInvite: InviteWithGuestsResponse = {
   invite: { id: 'X4M9B', name: 'Bob', min_plus: 1, max_plus: 3, submitted: false, message: '' },
@@ -35,6 +35,7 @@ beforeEach(() => {
     pathname: '/admin',
     search: '',
     hash: '',
+    assign: vi.fn(),
   });
 });
 
@@ -44,6 +45,7 @@ afterEach(() => {
 });
 
 async function renderDashboard(): Promise<void> {
+  vi.spyOn(api, 'session').mockReturnValueOnce(mockTask({ role: 'admin' }));
   vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
   render(() => <AdminPanel lang="en" />);
   await settleTasks();
@@ -88,13 +90,50 @@ test('should render invite ids in full so they can be read off the screen', asyn
   expect(screen.getByText('X4M9B')).toBeInTheDocument();
 });
 
-test('should render the login view when listInvites fails', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockFailingTask(new Error('Unauthorized')));
+test('should render the login view when there is no session', async () => {
+  vi.spyOn(api, 'session').mockReturnValueOnce(mockFailingTask(new Error('Unauthorized')));
   render(() => <AdminPanel lang="en" />);
 
   await settleTasks();
 
   expect(screen.getByText('Log in')).toBeInTheDocument();
+});
+
+test('should send a translator session to the speeches page', async () => {
+  vi.spyOn(api, 'session').mockReturnValueOnce(mockTask({ role: 'translator' }));
+  render(() => <AdminPanel lang="en" />);
+
+  await settleTasks();
+
+  expect(globalThis.location.assign).toHaveBeenCalledWith('/en/speeches');
+});
+
+test('should show the dashboard after logging in as admin', async () => {
+  vi.spyOn(api, 'session').mockReturnValueOnce(mockFailingTask(new Error('Unauthorized')));
+  vi.spyOn(api, 'login').mockReturnValueOnce(mockTask({ role: 'admin' }));
+  vi.spyOn(api, 'listInvites').mockReturnValueOnce(mockTask(mockListResponse));
+  render(() => <AdminPanel lang="en" />);
+  await settleTasks();
+  fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'secret' } });
+
+  fireEvent.submit(document.querySelector('form.admin-login') as HTMLFormElement);
+  await settleTasks();
+
+  expect(api.login).toHaveBeenCalledWith('secret');
+  expect(screen.getByText('Ada')).toBeInTheDocument();
+});
+
+test('should send a translator to the speeches page after logging in', async () => {
+  vi.spyOn(api, 'session').mockReturnValueOnce(mockFailingTask(new Error('Unauthorized')));
+  vi.spyOn(api, 'login').mockReturnValueOnce(mockTask({ role: 'translator' }));
+  render(() => <AdminPanel lang="en" />);
+  await settleTasks();
+  fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'secret' } });
+
+  fireEvent.submit(document.querySelector('form.admin-login') as HTMLFormElement);
+  await settleTasks();
+
+  expect(globalThis.location.assign).toHaveBeenCalledWith('/en/speeches');
 });
 
 test('should show the create form when clicking new invite', async () => {
@@ -126,7 +165,7 @@ test('should show the submission view when clicking view', async () => {
 });
 
 test('should log out and return to login view', async () => {
-  vi.spyOn(api, 'adminLogout').mockReturnValueOnce(mockTask(mockLoginResponse));
+  vi.spyOn(api, 'logout').mockReturnValueOnce(mockTask(mockLogoutResponse));
   await renderDashboard();
 
   fireEvent.click(screen.getByText('Log out'));

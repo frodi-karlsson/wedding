@@ -69,6 +69,11 @@ variable "admin_password" {
   sensitive = true
 }
 
+variable "translator_password" {
+  type      = string
+  sensitive = true
+}
+
 variable "session_secret" {
   type      = string
   sensitive = true

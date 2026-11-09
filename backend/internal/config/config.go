@@ -12,6 +12,7 @@ import (
 type Config struct {
 	DBPath             string
 	AdminPassword      string
+	TranslatorPassword string
 	SessionSecret      string
 	ResendAPIKey       string
 	ResendFrom         string
@@ -24,6 +25,10 @@ type Config struct {
 // ErrMissingEnvVars is returned when one or more required environment variables are absent.
 var ErrMissingEnvVars = errors.New("missing required env vars")
 
+// ErrSharedPassword is returned when the admin and translator passwords are the
+// same, which would log every translator in as admin.
+var ErrSharedPassword = errors.New("ADMIN_PASSWORD and TRANSLATOR_PASSWORD must differ")
+
 // ErrWeakSessionSecret is returned when SESSION_SECRET is shorter than the
 // minimum required length.
 var ErrWeakSessionSecret = errors.New("SESSION_SECRET must be at least 32 bytes")
@@ -34,13 +39,14 @@ var ErrWeakSessionSecret = errors.New("SESSION_SECRET must be at least 32 bytes"
 const minSessionSecretLen = 32
 
 // Load reads configuration from environment variables. Required vars are
-// ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY, RESEND_FROM, RESEND_TO,
+// ADMIN_PASSWORD, TRANSLATOR_PASSWORD, SESSION_SECRET, RESEND_API_KEY, RESEND_FROM, RESEND_TO,
 // and CORS_ALLOWED_ORIGINS. DB_PATH defaults to /data/wedding.db and PORT
 // defaults to 8080.
 func Load() (Config, error) {
 	cfg := Config{
 		DBPath:             envOr("DB_PATH", "/data/wedding.db"),
 		AdminPassword:      os.Getenv("ADMIN_PASSWORD"),
+		TranslatorPassword: os.Getenv("TRANSLATOR_PASSWORD"),
 		SessionSecret:      os.Getenv("SESSION_SECRET"),
 		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
 		ResendFrom:         os.Getenv("RESEND_FROM"),
@@ -53,6 +59,9 @@ func Load() (Config, error) {
 	var missing []string
 	if cfg.AdminPassword == "" {
 		missing = append(missing, "ADMIN_PASSWORD")
+	}
+	if cfg.TranslatorPassword == "" {
+		missing = append(missing, "TRANSLATOR_PASSWORD")
 	}
 	if cfg.SessionSecret == "" {
 		missing = append(missing, "SESSION_SECRET")
@@ -71,6 +80,9 @@ func Load() (Config, error) {
 	}
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("%w: %s", ErrMissingEnvVars, strings.Join(missing, ", "))
+	}
+	if cfg.AdminPassword == cfg.TranslatorPassword {
+		return Config{}, ErrSharedPassword
 	}
 	// Guard against a weak session secret: a short secret makes the HMAC-signed
 	// session cookie brute-forceable. Only checked once the var is present.

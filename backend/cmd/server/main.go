@@ -56,7 +56,7 @@ func main() {
 	}
 
 	svc := invite.NewService(store, sender)
-	a := auth.New(cfg.AdminPassword, cfg.SessionSecret, cfg.SecureCookie)
+	a := auth.New(auth.Passwords{Admin: cfg.AdminPassword, Translator: cfg.TranslatorPassword}, cfg.SessionSecret, cfg.SecureCookie)
 	handler := server.New(svc, a, d, cfg.CORSAllowedOrigins)
 
 	srv := &http.Server{

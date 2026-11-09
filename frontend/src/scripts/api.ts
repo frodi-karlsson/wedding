@@ -6,6 +6,7 @@ import type {
   GuestInput,
   InviteWithGuestsResponse,
   ListInvitesResponse,
+  SessionResponse,
   StatusResponse,
   UpdateInviteRequest,
 } from './types.gen';
@@ -51,6 +52,7 @@ const hasKeys =
 const isInviteWithGuests = hasKeys('invite', 'guests');
 const isListInvites = hasKeys('invites');
 const isStatus = hasKeys('status');
+const isSession = hasKeys('role');
 
 const client = WebClient.create()
   .withBaseUrl(resolvedBaseUrl)
@@ -70,12 +72,16 @@ export const api = {
       .map((r) => unwrap<InviteWithGuestsResponse>(r, isInviteWithGuests));
   },
 
-  adminLogin(password: string): Task<StatusResponse, HttpError> {
-    return client.post('admin/login', { password }).map((r) => unwrap<StatusResponse>(r, isStatus));
+  login(password: string): Task<SessionResponse, HttpError> {
+    return client.post('auth/login', { password }).map((r) => unwrap<SessionResponse>(r, isSession));
   },
 
-  adminLogout(): Task<StatusResponse, HttpError> {
-    return client.post('admin/logout', {}).map((r) => unwrap<StatusResponse>(r, isStatus));
+  session(): Task<SessionResponse, HttpError> {
+    return client.get('auth/session').map((r) => unwrap<SessionResponse>(r, isSession));
+  },
+
+  logout(): Task<StatusResponse, HttpError> {
+    return client.post('auth/logout', {}).map((r) => unwrap<StatusResponse>(r, isStatus));
   },
 
   listInvites(): Task<ListInvitesResponse, HttpError> {
