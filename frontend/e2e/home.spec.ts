@@ -17,16 +17,32 @@ test('site is marked noindex', async ({ page }) => {
 
 test('all content sections are present', async ({ page }) => {
   await page.goto('/');
-  for (const id of ['#welcome', '#location', '#dress', '#speeches', '#language', '#gifts', '#contact']) {
+  for (const id of ['#welcome', '#location', '#schedule', '#dress', '#speeches', '#toastmasters', '#language', '#gifts', '#contact']) {
     await expect(page.locator(id)).toBeAttached();
   }
 });
 
-test('speeches section links the address to send speeches to', async ({ page }) => {
+test('toastmasters section names them and links their address', async ({ page }) => {
   await page.goto('/en');
 
-  const link = page.locator('#speeches a[href="mailto:toast@carlaochfrodi.wedding"]');
+  const section = page.locator('#toastmasters');
 
-  await expect(link).toHaveText('toast@carlaochfrodi.wedding');
+  await expect(section).toContainText('Siri Andersson');
+  await expect(section).toContainText('Tobias Gummeson');
+  await expect(section.locator('a[href="mailto:toast@carlaochfrodi.wedding"]')).toHaveText('toast@carlaochfrodi.wedding');
+  await expect(page.locator('#contact a[href="mailto:toast@carlaochfrodi.wedding"]')).toHaveCount(1);
+});
+
+test('speeches section asks for texts by the deadline', async ({ page }) => {
+  await page.goto('/en');
+
   await expect(page.locator('#speeches')).toContainText('by 1 March 2027');
+});
+
+test('schedule lists the day in order', async ({ page }) => {
+  await page.goto('/en');
+
+  const times = await page.locator('#schedule .schedule__time').allTextContents();
+
+  expect(times).toEqual(['approx. 14:45', '15:00', '16:00', '17:00–20:00', 'from 20:00']);
 });

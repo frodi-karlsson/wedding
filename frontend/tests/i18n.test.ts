@@ -97,8 +97,8 @@ test('should return the default locale for an unknown language prefix', () => {
   expect(result).toBe('sv');
 });
 
-test('should place the speech email exactly once in every language', () => {
-  const placeholders = LOCALE_CODES.map((code) => translate('speeches_send', code).split('{email}').length - 1);
+test('should place the toastmasters email exactly once in every language', () => {
+  const placeholders = LOCALE_CODES.map((code) => translate('toastmasters_reach', code).split('{email}').length - 1);
 
   expect(placeholders).toEqual(LOCALE_CODES.map(() => 1));
 });

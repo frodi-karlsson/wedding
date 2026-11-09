@@ -6,6 +6,7 @@ import { translate } from '../scripts/i18n';
 import {
   CEREMONY,
   RECEPTION,
+  WALKING_ROUTE,
   googleMapsSearchUrl,
   googleMapsDirectionsUrl,
   type LatLng,
@@ -63,21 +64,12 @@ export function LocationMap(props: LocationMapProps): JSX.Element {
         );
     }
 
-    L.polyline(
-      [
-        [CEREMONY.lat, CEREMONY.lng],
-        [RECEPTION.lat, RECEPTION.lng],
-      ],
+    const route = L.polyline(
+      WALKING_ROUTE.map((p) => [p.lat, p.lng] as [number, number]),
       { color: '#2b436b', weight: 3, opacity: 0.6, dashArray: '4 6' },
     ).addTo(map);
 
-    map.fitBounds(
-      [
-        [CEREMONY.lat, CEREMONY.lng],
-        [RECEPTION.lat, RECEPTION.lng],
-      ],
-      { padding: [50, 50], maxZoom: 17 },
-    );
+    map.fitBounds(route.getBounds(), { padding: [50, 50], maxZoom: 17 });
   });
 
   onCleanup(() => {
