@@ -1,6 +1,7 @@
 package db
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -112,5 +113,54 @@ func TestMigrate_IsIdempotent(t *testing.T) {
 	}
 	if version != 1 {
 		t.Errorf("version = %d, want 1", version)
+	}
+}
+
+// TestMigrate_0005MarksChildrenAlcoholFree runs migration 5 against a database
+// that already holds guests, which is how it meets production.
+func TestMigrate_0005MarksChildrenAlcoholFree(t *testing.T) {
+	d, err := Open(":memory:")
+	if err != nil {
+		t.Fatalf("Open() error: %v", err)
+	}
+	defer d.Close()
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate() error: %v", err)
+	}
+	if _, err := d.Exec(`INSERT INTO invites (id, name) VALUES ('AAAAA', 'Family');
+		INSERT INTO guests (invite_id, name) VALUES
+			('AAAAA', 'Rán Karlsdóttir'),
+			('AAAAA', 'Lára Björk Hall'),
+			('AAAAA', 'Stella Kejmar'),
+			('AAAAA', 'Viggo Kejmar'),
+			('AAAAA', 'Lára'),
+			('AAAAA', 'Carla Kejmar');
+		DELETE FROM schema_migrations WHERE version=5;`); err != nil {
+		t.Fatalf("seed guests: %v", err)
+	}
+
+	if err := Migrate(d); err != nil {
+		t.Fatalf("Migrate() error: %v", err)
+	}
+
+	rows, err := d.Query("SELECT name FROM guests WHERE alcohol_free=1 ORDER BY id")
+	if err != nil {
+		t.Fatalf("query guests: %v", err)
+	}
+	defer rows.Close()
+	var got []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		got = append(got, name)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	want := []string{"Rán Karlsdóttir", "Lára Björk Hall", "Stella Kejmar", "Viggo Kejmar"}
+	if !slices.Equal(got, want) {
+		t.Errorf("alcohol-free guests = %q, want %q", got, want)
 	}
 }
