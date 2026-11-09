@@ -17,20 +17,26 @@ type RSVPRequest struct {
 	Message string       `json:"message"`
 }
 
+type PresetGuestInput struct {
+	ID          int64  `json:"id,omitempty"`
+	Name        string `json:"name"`
+	AlcoholFree bool   `json:"alcohol_free"`
+}
+
 type CreateInviteRequest struct {
-	Name       string   `json:"name"`
-	MinPlus    int      `json:"min_plus"`
-	MaxPlus    int      `json:"max_plus"`
-	GuestNames []string `json:"guest_names"`
-	Group      bool     `json:"group"`
+	Name    string             `json:"name"`
+	MinPlus int                `json:"min_plus"`
+	MaxPlus int                `json:"max_plus"`
+	Guests  []PresetGuestInput `json:"guests"`
+	Group   bool               `json:"group"`
 }
 
 type UpdateInviteRequest struct {
-	Name       string   `json:"name"`
-	MinPlus    int      `json:"min_plus"`
-	MaxPlus    int      `json:"max_plus"`
-	GuestNames []string `json:"guest_names"`
-	Group      bool     `json:"group"`
+	Name    string             `json:"name"`
+	MinPlus int                `json:"min_plus"`
+	MaxPlus int                `json:"max_plus"`
+	Guests  []PresetGuestInput `json:"guests"`
+	Group   bool               `json:"group"`
 }
 
 type LoginRequest struct {
@@ -74,6 +80,14 @@ type InviteWithGuestsResponse struct {
 
 type ListInvitesResponse struct {
 	Invites []InviteResponse `json:"invites"`
+}
+
+func toPresetGuests(in []PresetGuestInput) []db.PresetGuest {
+	out := make([]db.PresetGuest, len(in))
+	for i, g := range in {
+		out[i] = db.PresetGuest{ID: g.ID, Name: g.Name, AlcoholFree: g.AlcoholFree}
+	}
+	return out
 }
 
 // toGuestResponse converts a db.Guest to a GuestResponse.

@@ -230,7 +230,7 @@ func TestAdminRoutes_RequireAuth(t *testing.T) {
 func TestAdminCreateInvite(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites",
-		CreateInviteRequest{Name: "New Couple", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"New Couple"}}, true)
+		CreateInviteRequest{Name: "New Couple", MinPlus: 0, MaxPlus: 1, Guests: presets("New Couple")}, true)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want 200 or 201; body: %s", rec.Code, rec.Body.String())
 	}
@@ -273,7 +273,7 @@ func TestAdminDeleteInvite_NotFound(t *testing.T) {
 
 func TestAdminCreateInvite_WithPresetGuests(t *testing.T) {
 	srv, _ := newTestServer(t)
-	body := CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, GuestNames: []string{"Frodi & Carla", "Friend"}}
+	body := CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, Guests: presets("Frodi & Carla", "Friend")}
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
 	if rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want 201; body: %s", rec.Code, rec.Body.String())
@@ -295,7 +295,7 @@ func TestAdminCreateInvite_WithPresetGuests(t *testing.T) {
 
 func TestAdminCreateInvite_GuestNamesMissing(t *testing.T) {
 	srv, _ := newTestServer(t)
-	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: nil}
+	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, Guests: nil}
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -304,7 +304,7 @@ func TestAdminCreateInvite_GuestNamesMissing(t *testing.T) {
 
 func TestAdminCreateInvite_FirstNameMismatch(t *testing.T) {
 	srv, _ := newTestServer(t)
-	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"Y"}}
+	body := CreateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, Guests: presets("Y")}
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -313,7 +313,7 @@ func TestAdminCreateInvite_FirstNameMismatch(t *testing.T) {
 
 func TestAdminCreateInvite_InvalidMinMax(t *testing.T) {
 	srv, _ := newTestServer(t)
-	body := CreateInviteRequest{Name: "X", MinPlus: 3, MaxPlus: 1, GuestNames: []string{"X"}}
+	body := CreateInviteRequest{Name: "X", MinPlus: 3, MaxPlus: 1, Guests: presets("X")}
 	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -325,7 +325,7 @@ func TestAdminUpdateInvite_GuestFetchNotFound(t *testing.T) {
 	a := auth.New("admin-pw", "session-secret", false)
 	srv := New(svc, a, nil, []string{"https://example.com"})
 	rec := jsonRequest(t, srv, http.MethodPut, "/admin/invites/ABCDE",
-		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, GuestNames: []string{"X"}}, true)
+		UpdateInviteRequest{Name: "X", MinPlus: 0, MaxPlus: 1, Guests: presets("X")}, true)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
 	}
@@ -413,7 +413,7 @@ func createAndLogin(t *testing.T, srv http.Handler) []*http.Cookie {
 	t.Helper()
 	cookies := loginAndGetCookies(t, srv)
 	rec := jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/invites",
-		CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, GuestNames: []string{"Frodi & Carla"}}, cookies)
+		CreateInviteRequest{Name: "Frodi & Carla", MinPlus: 0, MaxPlus: 2, Guests: presets("Frodi & Carla")}, cookies)
 	if rec.Code != http.StatusOK && rec.Code != http.StatusCreated {
 		t.Fatalf("create invite status = %d; body: %s", rec.Code, rec.Body.String())
 	}
@@ -446,7 +446,7 @@ func jsonRequest(t *testing.T, srv http.Handler, method, path string, body inter
 
 type updateFetchNotFoundStore struct{}
 
-func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guests []db.PresetGuest, group bool) (db.Invite, error) {
 	return db.Invite{}, nil
 }
 
@@ -462,7 +462,7 @@ func (s *updateFetchNotFoundStore) ListInvites(ctx context.Context) ([]db.Invite
 	return nil, nil
 }
 
-func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string, group bool) (db.Invite, error) {
+func (s *updateFetchNotFoundStore) UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guests []db.PresetGuest, group bool) (db.Invite, error) {
 	return db.Invite{ID: id, Name: name, MinPlus: minPlus, MaxPlus: maxPlus}, nil
 }
 
@@ -560,4 +560,80 @@ func TestAdminRoutes_AreNotRateLimited(t *testing.T) {
 			t.Fatalf("admin request %d: status = %d, want 200", i+1, rec.Code)
 		}
 	}
+}
+
+func presets(names ...string) []PresetGuestInput {
+	out := make([]PresetGuestInput, len(names))
+	for i, n := range names {
+		out[i] = PresetGuestInput{Name: n}
+	}
+	return out
+}
+
+func TestAdminCreateInvite_PresetAlcoholFreeIsReturned(t *testing.T) {
+	srv, _ := newTestServer(t)
+	body := CreateInviteRequest{Name: "Parent", MinPlus: 0, MaxPlus: 1, Guests: []PresetGuestInput{
+		{Name: "Parent"},
+		{Name: "Kid", AlcoholFree: true},
+	}}
+
+	rec := jsonRequest(t, srv, http.MethodPost, "/admin/invites", body, true)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	var resp InviteWithGuestsResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Guests[0].AlcoholFree || !resp.Guests[1].AlcoholFree {
+		t.Errorf("alcohol_free = [%v %v], want [false true]", resp.Guests[0].AlcoholFree, resp.Guests[1].AlcoholFree)
+	}
+}
+
+func TestAdminUpdateInvite_KeepsGuestMatchedByID(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := loginAndGetCookies(t, srv)
+	created := decodeInvite(t, jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/invites",
+		CreateInviteRequest{Name: "A", MinPlus: 0, MaxPlus: 2, Guests: presets("A", "B", "C")}, cookies))
+	path := "/admin/invites/" + created.Invite.ID
+	body := UpdateInviteRequest{Name: "A", MinPlus: 0, MaxPlus: 2, Guests: []PresetGuestInput{
+		{ID: created.Guests[0].ID, Name: "A"},
+		{ID: created.Guests[2].ID, Name: "C", AlcoholFree: true},
+	}}
+
+	rec := jsonRequestWithCookies(t, srv, http.MethodPut, path, body, cookies)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	got := decodeInvite(t, rec).Guests
+	if len(got) != 2 || got[1].ID != created.Guests[2].ID || got[1].Name != "C" || !got[1].AlcoholFree {
+		t.Errorf("guests = %+v, want A then C (id %d, alcohol-free)", got, created.Guests[2].ID)
+	}
+}
+
+func TestAdminUpdateInvite_StaleGuestIDConflicts(t *testing.T) {
+	srv, _ := newTestServer(t)
+	cookies := loginAndGetCookies(t, srv)
+	created := decodeInvite(t, jsonRequestWithCookies(t, srv, http.MethodPost, "/admin/invites",
+		CreateInviteRequest{Name: "A", MinPlus: 0, MaxPlus: 1, Guests: presets("A")}, cookies))
+	body := UpdateInviteRequest{Name: "A", MinPlus: 0, MaxPlus: 1, Guests: []PresetGuestInput{
+		{ID: created.Guests[0].ID + 1000, Name: "A"},
+	}}
+
+	rec := jsonRequestWithCookies(t, srv, http.MethodPut, "/admin/invites/"+created.Invite.ID, body, cookies)
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("status = %d, want 409; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func decodeInvite(t *testing.T, rec *httptest.ResponseRecorder) InviteWithGuestsResponse {
+	t.Helper()
+	var resp InviteWithGuestsResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v; body: %s", err, rec.Body.String())
+	}
+	return resp
 }

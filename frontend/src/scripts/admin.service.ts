@@ -1,15 +1,15 @@
 import { localePrefix, type Lang } from './i18n';
 import { sortPrimaryFirst } from './guests';
-import type { GuestResponse, InviteResponse } from './types.gen';
+import type { GuestResponse, InviteResponse, PresetGuestInput } from './types.gen';
 
 export interface InviteForm {
   id?: string;
   name: string;
   min_plus: number;
   max_plus: number;
-  guest_names: string[];
+  guests: PresetGuestInput[];
   link_lang: Lang;
-  // Group invite: guest_names are co-primaries (no single primary, no pluses).
+  // Group invite: guests are co-primaries (no single primary, no pluses).
   group: boolean;
 }
 
@@ -39,7 +39,7 @@ export function createEmptyForm(lang: Lang): InviteForm {
     name: '',
     min_plus: 0,
     max_plus: 1,
-    guest_names: [''],
+    guests: [{ name: '', alcohol_free: false }],
     link_lang: lang,
     group: false,
   };
@@ -51,16 +51,17 @@ export function formFromInvite(
   lang: Lang,
 ): InviteForm {
   const group = guests.length > 0 && guests.every((g) => g.co_primary);
-  const names =
+  const ordered = group ? guests : sortPrimaryFirst(guests);
+  const presets =
     guests.length > 0
-      ? (group ? guests.map((g) => g.name) : sortPrimaryFirst(guests).map((g) => g.name))
-      : [invite.name];
+      ? ordered.map((g) => ({ id: g.id, name: g.name, alcohol_free: g.alcohol_free }))
+      : [{ name: invite.name, alcohol_free: false }];
   return {
     id: invite.id,
     name: invite.name,
     min_plus: invite.min_plus,
     max_plus: invite.max_plus,
-    guest_names: names,
+    guests: presets,
     link_lang: lang,
     group,
   };

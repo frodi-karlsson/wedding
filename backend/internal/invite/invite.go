@@ -48,26 +48,30 @@ func (s *Service) GetInvite(ctx context.Context, id string) (db.Invite, []db.Gue
 	return s.store.GetInviteWithGuests(ctx, id)
 }
 
-func (s *Service) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (db.Invite, error) {
-	name, minPlus, maxPlus = normalizeInviteShape(name, minPlus, maxPlus, guestNames, group)
-	return s.store.CreateInvite(ctx, name, minPlus, maxPlus, guestNames, group)
+func (s *Service) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, presets []db.PresetGuest, group bool) (db.Invite, error) {
+	name, minPlus, maxPlus = normalizeInviteShape(name, minPlus, maxPlus, presets, group)
+	return s.store.CreateInvite(ctx, name, minPlus, maxPlus, presets, group)
 }
 
 func (s *Service) ListInvites(ctx context.Context) ([]db.Invite, error) {
 	return s.store.ListInvites(ctx)
 }
 
-func (s *Service) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string, group bool) (db.Invite, error) {
-	name, minPlus, maxPlus = normalizeInviteShape(name, minPlus, maxPlus, guestNames, group)
-	return s.store.UpdateInvite(ctx, id, name, minPlus, maxPlus, guestNames, group)
+func (s *Service) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, presets []db.PresetGuest, group bool) (db.Invite, error) {
+	name, minPlus, maxPlus = normalizeInviteShape(name, minPlus, maxPlus, presets, group)
+	return s.store.UpdateInvite(ctx, id, name, minPlus, maxPlus, presets, group)
 }
 
 // normalizeInviteShape enforces the group-invite invariants at the service
 // boundary: a group invite has no single primary, no plus allowance, and its
 // display name is derived from the co-primary names joined together.
-func normalizeInviteShape(name string, minPlus, maxPlus int, guestNames []string, group bool) (outName string, outMin, outMax int) {
+func normalizeInviteShape(name string, minPlus, maxPlus int, presets []db.PresetGuest, group bool) (outName string, outMin, outMax int) {
 	if group {
-		return joinNames(guestNames), 0, 0
+		names := make([]string, len(presets))
+		for i, p := range presets {
+			names[i] = p.Name
+		}
+		return joinNames(names), 0, 0
 	}
 	return name, minPlus, maxPlus
 }

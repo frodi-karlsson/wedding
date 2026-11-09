@@ -41,7 +41,7 @@ func TestSubmitRSVP_Valid(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, presets("Frodi"), false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestSubmitRSVP_NoPrimary(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, presets("Frodi"), false)
 	guests := []db.Guest{
 		{Name: "Frodi"},
 	}
@@ -85,7 +85,7 @@ func TestSubmitRSVP_TooManyPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1, []string{"Frodi"}, false)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 1, presets("Frodi"), false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: "Plus1"},
@@ -102,7 +102,7 @@ func TestSubmitRSVP_TooFewPluses(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2, []string{"Frodi"}, false)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 2, 2, presets("Frodi"), false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 	}
@@ -117,7 +117,7 @@ func TestSubmitRSVP_EmptyName(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, presets("Frodi"), false)
 	guests := []db.Guest{
 		{Name: "Frodi", IsPrimary: true},
 		{Name: ""},
@@ -142,7 +142,7 @@ func TestCreateInvite_MultipleGuests(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 	ctx := context.Background()
-	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi", "Carla"}, false)
+	inv, err := svc.CreateInvite(ctx, "Frodi", 0, 2, presets("Frodi", "Carla"), false)
 	if err != nil {
 		t.Fatalf("CreateInvite() error: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestSubmitRSVP_EmailSendFailure_StillPersists(t *testing.T) {
 	emailer.sendErr = errors.New("send failed")
 	ctx := context.Background()
 
-	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, []string{"Frodi"}, false)
+	inv, _ := svc.CreateInvite(ctx, "Frodi", 0, 2, presets("Frodi"), false)
 	guests := []db.Guest{{Name: "Frodi", IsPrimary: true}}
 
 	savedInv, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, "hi")
@@ -203,7 +203,7 @@ func TestCreateInvite_Group_DerivesNameAndForcesNoPluses(t *testing.T) {
 
 	// name/min/max are ignored for group invites; the name is derived from the
 	// co-primary names and the plus allowance is forced to 0.
-	inv, err := svc.CreateInvite(ctx, "ignored", 3, 7, []string{"Alice", "Bob", "Carla"}, true)
+	inv, err := svc.CreateInvite(ctx, "ignored", 3, 7, presets("Alice", "Bob", "Carla"), true)
 	if err != nil {
 		t.Fatalf("CreateInvite(group) error: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestSubmitRSVP_Group_Valid(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, "", 0, 0, []string{"Alice", "Bob"}, true)
+	inv, err := svc.CreateInvite(ctx, "", 0, 0, presets("Alice", "Bob"), true)
 	if err != nil {
 		t.Fatalf("CreateInvite(group) error: %v", err)
 	}
@@ -259,7 +259,7 @@ func TestSubmitRSVP_Group_RejectsMixingWithPrimary(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	inv, err := svc.CreateInvite(ctx, "", 0, 0, []string{"Alice", "Bob"}, true)
+	inv, err := svc.CreateInvite(ctx, "", 0, 0, presets("Alice", "Bob"), true)
 	if err != nil {
 		t.Fatalf("CreateInvite(group) error: %v", err)
 	}
@@ -271,4 +271,12 @@ func TestSubmitRSVP_Group_RejectsMixingWithPrimary(t *testing.T) {
 	if _, _, err := svc.SubmitRSVP(ctx, inv.ID, guests, ""); err == nil {
 		t.Fatal("SubmitRSVP should reject mixing a primary with co-primaries")
 	}
+}
+
+func presets(names ...string) []db.PresetGuest {
+	out := make([]db.PresetGuest, len(names))
+	for i, n := range names {
+		out[i] = db.PresetGuest{Name: n}
+	}
+	return out
 }

@@ -18,18 +18,23 @@ export interface RSVPRequest {
   guests: GuestInput[];
   message: string;
 }
+export interface PresetGuestInput {
+  id?: number /* int64 */;
+  name: string;
+  alcohol_free: boolean;
+}
 export interface CreateInviteRequest {
   name: string;
   min_plus: number /* int */;
   max_plus: number /* int */;
-  guest_names: string[];
+  guests: PresetGuestInput[];
   group: boolean;
 }
 export interface UpdateInviteRequest {
   name: string;
   min_plus: number /* int */;
   max_plus: number /* int */;
-  guest_names: string[];
+  guests: PresetGuestInput[];
   group: boolean;
 }
 export interface LoginRequest {

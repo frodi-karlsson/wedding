@@ -1,6 +1,7 @@
 import { createSignal, For, Index, Show, untrack, type JSX } from 'solid-js';
 import { translate, LOCALE_CODES, type Lang } from '../../scripts/i18n';
 import type { InviteForm } from '../../scripts/admin.service';
+import type { PresetGuestInput } from '../../scripts/types.gen';
 
 interface AdminFormProps {
   lang: Lang;
@@ -18,10 +19,11 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   // never need to resync mid-lifecycle.
   const form = untrack(() => props.form);
 
-  const [name, setName] = createSignal(form.guest_names[0] ?? '');
+  const [name, setName] = createSignal(form.guests[0]?.name ?? '');
+  const [nameAlcoholFree, setNameAlcoholFree] = createSignal(form.guests[0]?.alcohol_free ?? false);
   const [minPlus, setMinPlus] = createSignal(String(form.min_plus));
   const [maxPlus, setMaxPlus] = createSignal(String(form.max_plus));
-  const [guestNames, setGuestNames] = createSignal<string[]>(form.guest_names.slice(1));
+  const [presets, setPresets] = createSignal<PresetGuestInput[]>(form.guests.slice(1));
   const [linkLang, setLinkLang] = createSignal<Lang>(form.link_lang);
   const [countError, setCountError] = createSignal('');
   const [group, setGroup] = createSignal(form.group);
@@ -32,12 +34,12 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   const canAddName = () => {
     if (group()) return true;
     const max = Number(maxPlus());
-    return !Number.isNaN(max) && guestNames().length < max;
+    return !Number.isNaN(max) && presets().length < max;
   };
   const canRemoveName = () => {
     if (group()) return true;
     const min = Number(minPlus());
-    return guestNames().length > (Number.isNaN(min) ? 0 : min);
+    return presets().length > (Number.isNaN(min) ? 0 : min);
   };
 
   const heading = () =>
@@ -48,24 +50,27 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
   function addName() {
     if (!canAddName()) return;
     setCountError('');
-    setGuestNames((prev) => [...prev, '']);
+    setPresets((prev) => [...prev, { name: '', alcohol_free: false }]);
   }
 
   function removeName(index: number) {
     if (!canRemoveName()) return;
     setCountError('');
-    setGuestNames((prev) => prev.filter((_, i) => i !== index));
+    setPresets((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function updateName(index: number, value: string) {
-    setGuestNames((prev) => prev.map((n, i) => (i === index ? value : n)));
+  function updatePreset(index: number, patch: Partial<PresetGuestInput>) {
+    setPresets((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
   }
 
   function handleSubmit(e: Event) {
     e.preventDefault();
     const trimmedName = name().trim();
     if (!trimmedName) return;
-    const allNames = [trimmedName, ...guestNames().filter((n) => n.trim().length > 0)];
+    const allGuests = [
+      { id: form.guests[0]?.id, name: trimmedName, alcohol_free: nameAlcoholFree() },
+      ...presets().filter((p) => p.name.trim().length > 0),
+    ];
 
     // Group invite: co-primaries, no primary/plus distinction, no min/max. The
     // server derives the display name from the joined co-primary names.
@@ -76,7 +81,7 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
         name: trimmedName,
         min_plus: 0,
         max_plus: 0,
-        guest_names: allNames,
+        guests: allGuests,
         link_lang: linkLang(),
         group: true,
       });
@@ -87,7 +92,7 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
     const max = Number(maxPlus());
     if (Number.isNaN(min) || Number.isNaN(max) || min > max) return;
 
-    const plusCount = allNames.length - 1;
+    const plusCount = allGuests.length - 1;
     if (plusCount < min || plusCount > max) {
       setCountError(
         translate('admin_guest_count_error', props.lang)
@@ -103,7 +108,7 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
       name: trimmedName,
       min_plus: min,
       max_plus: max,
-      guest_names: allNames,
+      guests: allGuests,
       link_lang: linkLang(),
       group: false,
     });
@@ -130,6 +135,14 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
           required
           onInput={(e) => setName(e.currentTarget.value)}
         />
+      </label>
+      <label class="admin-alcohol-free">
+        <input
+          type="checkbox"
+          checked={nameAlcoholFree()}
+          onChange={(e) => setNameAlcoholFree(e.currentTarget.checked)}
+        />
+        <span>{translate('alcohol_free_label', props.lang)}</span>
       </label>
       <Show when={!group()}>
         <label>
@@ -158,16 +171,24 @@ export function AdminForm(props: AdminFormProps): JSX.Element {
       <div class="guest-names">
         <span>{translate(group() ? 'admin_coprimary_names_label' : 'admin_guest_names_label', props.lang)}</span>
         <div class="guest-names-list">
-          <Index each={guestNames()}>
-            {(gname, index) => (
+          <Index each={presets()}>
+            {(preset, index) => (
               <div class="guest-name-row">
                 <input
                   type="text"
                   class="guest-name"
                   data-index={index}
-                  value={gname()}
-                  onInput={(e) => updateName(index, e.currentTarget.value)}
+                  value={preset().name}
+                  onInput={(e) => updatePreset(index, { name: e.currentTarget.value })}
                 />
+                <label class="admin-alcohol-free">
+                  <input
+                    type="checkbox"
+                    checked={preset().alcohol_free}
+                    onChange={(e) => updatePreset(index, { alcohol_free: e.currentTarget.checked })}
+                  />
+                  <span>{translate('alcohol_free_label', props.lang)}</span>
+                </label>
                 <button
                   type="button"
                   class="btn btn--ghost btn--sm"

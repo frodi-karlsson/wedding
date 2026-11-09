@@ -126,12 +126,12 @@ test('should GET /admin/invites', async () => {
   expect(result).toEqual(response);
 });
 
-test('should POST /admin/invites with the full CreateInviteRequest body including guest_names', async () => {
+test('should POST /admin/invites with the full CreateInviteRequest body including preset guests', async () => {
   const body = {
     name: 'Ada',
     min_plus: 0,
     max_plus: 1,
-    guest_names: ['Ada'],
+    guests: [{ name: 'Ada', alcohol_free: false }],
     group: false,
   };
   const response = {
@@ -168,12 +168,12 @@ test('should GET /admin/invites/{id} for an admin invite', async () => {
   expect(result).toEqual(response);
 });
 
-test('should PUT /admin/invites/{id} with the full update body including guest_names', async () => {
+test('should PUT /admin/invites/{id} with the full update body including preset guests', async () => {
   const body = {
     name: 'Ada + Guest',
     min_plus: 0,
     max_plus: 1,
-    guest_names: ['Ada + Guest'],
+    guests: [{ name: 'Ada + Guest', alcohol_free: true }],
     group: false,
   };
   const response = {

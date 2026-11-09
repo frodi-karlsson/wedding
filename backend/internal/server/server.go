@@ -298,11 +298,11 @@ func handleLogout(a *auth.Authenticator) http.HandlerFunc {
 
 // inviteRequest holds the common fields validated for Create/Update invite requests.
 type inviteRequest struct {
-	Name       string
-	GuestNames []string
-	MinPlus    int
-	MaxPlus    int
-	Group      bool
+	Name    string
+	Guests  []PresetGuestInput
+	MinPlus int
+	MaxPlus int
+	Group   bool
 }
 
 // validateInviteRequest returns a non-empty error message string on failure
@@ -311,11 +311,11 @@ func validateInviteRequest(req inviteRequest) string {
 	// Group invite: a list of co-primary names, no single primary, no pluses.
 	// The display name and min/max are derived server-side.
 	if req.Group {
-		if len(req.GuestNames) == 0 {
+		if len(req.Guests) == 0 {
 			return "at least one co-primary name is required"
 		}
-		for _, n := range req.GuestNames {
-			if strings.TrimSpace(n) == "" {
+		for _, g := range req.Guests {
+			if strings.TrimSpace(g.Name) == "" {
 				return "co-primary names cannot be empty"
 			}
 		}
@@ -324,10 +324,10 @@ func validateInviteRequest(req inviteRequest) string {
 	if strings.TrimSpace(req.Name) == "" {
 		return "name is required"
 	}
-	if len(req.GuestNames) == 0 {
+	if len(req.Guests) == 0 {
 		return "at least one guest name is required"
 	}
-	if req.GuestNames[0] != req.Name {
+	if req.Guests[0].Name != req.Name {
 		return "first guest name must match the invite name"
 	}
 	if req.MinPlus < 0 || req.MaxPlus < 0 || req.MinPlus > req.MaxPlus {
@@ -362,11 +362,11 @@ func handleCreateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, Guests: req.Guests, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
 			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, req.GuestNames, req.Group)
+		inv, err := svc.CreateInvite(r.Context(), req.Name, req.MinPlus, req.MaxPlus, toPresetGuests(req.Guests), req.Group)
 		if err != nil {
 			logInternalError(w, err)
 			return
@@ -422,14 +422,18 @@ func handleUpdateInvite(svc *invite.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if msg := validateInviteRequest(inviteRequest{Name: req.Name, GuestNames: req.GuestNames, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
+		if msg := validateInviteRequest(inviteRequest{Name: req.Name, Guests: req.Guests, MinPlus: req.MinPlus, MaxPlus: req.MaxPlus, Group: req.Group}); msg != "" {
 			writeError(w, http.StatusBadRequest, msg)
 			return
 		}
-		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, req.GuestNames, req.Group)
+		inv, err := svc.UpdateInvite(r.Context(), id, req.Name, req.MinPlus, req.MaxPlus, toPresetGuests(req.Guests), req.Group)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
 				writeError(w, http.StatusNotFound, msgInviteNotFound)
+				return
+			}
+			if errors.Is(err, db.ErrGuestNotOnInvite) {
+				writeError(w, http.StatusConflict, "the invite's guests changed since it was loaded, reload and try again")
 				return
 			}
 			logInternalError(w, err)

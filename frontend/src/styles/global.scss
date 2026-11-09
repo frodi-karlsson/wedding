@@ -467,7 +467,7 @@ input, textarea, select {
   }
 }
 .admin-form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
-.admin-form .admin-group-toggle {
+.admin-form .admin-group-toggle, .admin-form .admin-alcohol-free {
   flex-direction: row;
   align-items: center;
   gap: var(--space-2);
@@ -479,7 +479,7 @@ input, textarea, select {
   gap: var(--space-2);
   > span { font-size: var(--step--1); color: var(--color-text-muted); }
 }
-.guest-name-row { display: flex; gap: var(--space-2); align-items: center; }
+.guest-name-row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .guest-names-list { display: flex; flex-direction: column; gap: var(--space-2); }
 .form-actions { display: flex; gap: var(--space-2); }
 

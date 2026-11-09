@@ -29,22 +29,22 @@ test('should create an empty form with the given language', () => {
     name: '',
     min_plus: 0,
     max_plus: 1,
-    guest_names: [''],
+    guests: [{ name: '', alcohol_free: false }],
     link_lang: 'de',
     group: false,
   });
 });
 
-test('should derive the primary guest name from the invite when no guests exist', () => {
+test('should derive the primary guest from the invite when no guests exist', () => {
   const invite: InviteResponse = { id: '5', name: 'Ada', min_plus: 0, max_plus: 2, submitted: false, message: '' };
 
   const result = formFromInvite(invite, [], 'en');
 
-  expect(result.guest_names).toEqual(['Ada']);
+  expect(result.guests).toEqual([{ name: 'Ada', alcohol_free: false }]);
   expect(result.link_lang).toBe('en');
 });
 
-test('should sort guest names with the primary guest first', () => {
+test('should sort preset guests with the primary guest first', () => {
   const invite: InviteResponse = { id: '6', name: 'Ada', min_plus: 1, max_plus: 3, submitted: false, message: '' };
   const guests: GuestResponse[] = [
     { id: 2, name: 'Bob', dietary_preference: '', alcohol_free: false, is_primary: false, co_primary: false },
@@ -54,6 +54,21 @@ test('should sort guest names with the primary guest first', () => {
 
   const result = formFromInvite(invite, guests, 'is');
 
-  expect(result.guest_names).toEqual(['Ada', 'Bob', 'Cid']);
+  expect(result.guests.map((g) => g.name)).toEqual(['Ada', 'Bob', 'Cid']);
   expect(result.link_lang).toBe('is');
+});
+
+test('should carry each guest\'s id and alcohol-free flag into the form', () => {
+  const invite: InviteResponse = { id: '7', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' };
+  const guests: GuestResponse[] = [
+    { id: 2, name: 'Kid', dietary_preference: '', alcohol_free: true, is_primary: false, co_primary: false },
+    { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false },
+  ];
+
+  const result = formFromInvite(invite, guests, 'en');
+
+  expect(result.guests).toEqual([
+    { id: 1, name: 'Ada', alcohol_free: false },
+    { id: 2, name: 'Kid', alcohol_free: true },
+  ]);
 });

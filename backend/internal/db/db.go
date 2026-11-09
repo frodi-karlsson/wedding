@@ -31,8 +31,13 @@ func Open(path string) (*sql.DB, error) {
 // ErrNotFound is returned when a query finds no row.
 var ErrNotFound = errors.New("not found")
 
-// ErrNoGuestNames is returned when creating or updating an invite with no guest names.
-var ErrNoGuestNames = errors.New("at least one guest name is required")
+// ErrNoPresetGuests is returned when creating or updating an invite with no preset guests.
+var ErrNoPresetGuests = errors.New("at least one preset guest is required")
+
+// ErrGuestNotOnInvite is returned when an invite update names a guest id that
+// is not (or no longer) one of the invite's guests. Submitting an RSVP replaces
+// every guest row, so this is what an edit made from a stale form looks like.
+var ErrGuestNotOnInvite = errors.New("guest is not on this invite")
 
 // ErrIDCollision is returned when CreateInvite drew an already-taken id on
 // every attempt. At the configured id length this needs the id space to be
@@ -65,16 +70,25 @@ type Guest struct {
 	UpdatedAt         time.Time
 }
 
+// PresetGuest is a guest the admin sets up on an invite before the RSVP. The
+// invitee sees AlcoholFree prefilled and can still change it when responding.
+// ID is zero for a guest being added and the existing row's id otherwise.
+type PresetGuest struct {
+	ID          int64
+	Name        string
+	AlcoholFree bool
+}
+
 // Store is the storage contract used by the invite service and handlers.
 // group=true marks a "group" invite: every preset guest is stored as a
 // co-primary (no single primary). group=false is the standard shape where the
 // first guest is the primary and the rest are plain pluses.
 type Store interface {
-	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error)
+	CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, presets []PresetGuest, group bool) (Invite, error)
 	GetInvite(ctx context.Context, id string) (Invite, error)
 	GetInviteWithGuests(ctx context.Context, id string) (Invite, []Guest, error)
 	ListInvites(ctx context.Context) ([]Invite, error)
-	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error)
+	UpdateInvite(ctx context.Context, id string, name string, minPlus, maxPlus int, presets []PresetGuest, group bool) (Invite, error)
 	DeleteInvite(ctx context.Context, id string) error
 	SubmitRSVP(ctx context.Context, inviteID string, guests []Guest, submitted bool, message string) (Invite, []Guest, error)
 }
@@ -127,12 +141,12 @@ func isIDConflict(err error) bool {
 	return code == sqliteConstraintPrimaryKey || code == sqliteConstraintUnique
 }
 
-func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error) {
-	if len(guestNames) == 0 {
-		return Invite{}, ErrNoGuestNames
+func (s *SQLiteStore) CreateInvite(ctx context.Context, name string, minPlus, maxPlus int, presets []PresetGuest, group bool) (Invite, error) {
+	if len(presets) == 0 {
+		return Invite{}, ErrNoPresetGuests
 	}
 	for range createInviteIDAttempts {
-		id, err := s.insertInvite(ctx, name, minPlus, maxPlus, guestNames, group)
+		id, err := s.insertInvite(ctx, name, minPlus, maxPlus, presets, group)
 		if err == nil {
 			return s.GetInvite(ctx, id)
 		}
@@ -208,9 +222,9 @@ func (s *SQLiteStore) ListInvites(ctx context.Context) ([]Invite, error) {
 	return invites, rows.Err()
 }
 
-func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, guestNames []string, group bool) (Invite, error) {
-	if len(guestNames) == 0 {
-		return Invite{}, ErrNoGuestNames
+func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus, maxPlus int, presets []PresetGuest, group bool) (Invite, error) {
+	if len(presets) == 0 {
+		return Invite{}, ErrNoPresetGuests
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -228,55 +242,69 @@ func (s *SQLiteStore) UpdateInvite(ctx context.Context, id, name string, minPlus
 		return Invite{}, ErrNotFound
 	}
 
-	rows, err := tx.QueryContext(ctx,
-		"SELECT id FROM guests WHERE invite_id=? ORDER BY is_primary DESC, id ASC", id)
-	if err != nil {
+	if err := reconcilePresets(ctx, tx, id, presets, group); err != nil {
 		return Invite{}, err
-	}
-	defer rows.Close()
-
-	var existingIDs []int64
-	for rows.Next() {
-		var gid int64
-		if err := rows.Scan(&gid); err != nil {
-			return Invite{}, err
-		}
-		existingIDs = append(existingIDs, gid)
-	}
-	if err := rows.Err(); err != nil {
-		return Invite{}, err
-	}
-
-	// Reconcile existing guest rows by position; insert new rows for extra names;
-	// delete trailing extras. This preserves dietary_preference/alcohol_free on retained rows.
-	for i, gname := range guestNames {
-		isPrimary, coPrimary := presetFlags(i, group)
-		if i < len(existingIDs) {
-			if _, err := tx.ExecContext(ctx,
-				"UPDATE guests SET name=?, is_primary=?, co_primary=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-				gname, isPrimary, coPrimary, existingIDs[i]); err != nil {
-				return Invite{}, err
-			}
-		} else {
-			if _, err := tx.ExecContext(ctx,
-				"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
-				id, gname, isPrimary, coPrimary); err != nil {
-				return Invite{}, err
-			}
-		}
-	}
-	if len(guestNames) < len(existingIDs) {
-		for _, gid := range existingIDs[len(guestNames):] {
-			if _, err := tx.ExecContext(ctx, "DELETE FROM guests WHERE id=?", gid); err != nil {
-				return Invite{}, err
-			}
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return Invite{}, err
 	}
 	return s.GetInvite(ctx, id)
+}
+
+// reconcilePresets makes the invite's guest rows match presets. A preset with
+// an id updates that row in place, so whatever the guest entered in an RSVP
+// (dietary preference) stays with them. A preset without one is inserted, and
+// rows no preset names are deleted.
+func reconcilePresets(ctx context.Context, tx *sql.Tx, inviteID string, presets []PresetGuest, group bool) error {
+	unclaimed, err := guestIDsTx(ctx, tx, inviteID)
+	if err != nil {
+		return err
+	}
+	for i, p := range presets {
+		isPrimary, coPrimary := presetFlags(i, group)
+		if p.ID == 0 {
+			if _, err := tx.ExecContext(ctx,
+				"INSERT INTO guests (invite_id, name, alcohol_free, is_primary, co_primary) VALUES (?, ?, ?, ?, ?)",
+				inviteID, p.Name, p.AlcoholFree, isPrimary, coPrimary); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, ok := unclaimed[p.ID]; !ok {
+			return fmt.Errorf("%w: id %d", ErrGuestNotOnInvite, p.ID)
+		}
+		delete(unclaimed, p.ID)
+		if _, err := tx.ExecContext(ctx,
+			"UPDATE guests SET name=?, alcohol_free=?, is_primary=?, co_primary=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+			p.Name, p.AlcoholFree, isPrimary, coPrimary, p.ID); err != nil {
+			return err
+		}
+	}
+	for gid := range unclaimed {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM guests WHERE id=?", gid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func guestIDsTx(ctx context.Context, tx *sql.Tx, inviteID string) (map[int64]struct{}, error) {
+	rows, err := tx.QueryContext(ctx, "SELECT id FROM guests WHERE invite_id=?", inviteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ids := make(map[int64]struct{})
+	for rows.Next() {
+		var gid int64
+		if err := rows.Scan(&gid); err != nil {
+			return nil, err
+		}
+		ids[gid] = struct{}{}
+	}
+	return ids, rows.Err()
 }
 
 func (s *SQLiteStore) DeleteInvite(ctx context.Context, id string) error {
@@ -362,7 +390,7 @@ func (s *SQLiteStore) SubmitRSVP(ctx context.Context, inviteID string, guests []
 // id, returning that id. The whole attempt is a single transaction, so an id
 // collision rolls back the guest rows along with it and leaves nothing behind
 // for the caller to retry around.
-func (s *SQLiteStore) insertInvite(ctx context.Context, name string, minPlus, maxPlus int, guestNames []string, group bool) (string, error) {
+func (s *SQLiteStore) insertInvite(ctx context.Context, name string, minPlus, maxPlus int, presets []PresetGuest, group bool) (string, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", err
@@ -375,11 +403,11 @@ func (s *SQLiteStore) insertInvite(ctx context.Context, name string, minPlus, ma
 		id, name, minPlus, maxPlus); err != nil {
 		return "", err
 	}
-	for i, gname := range guestNames {
+	for i, p := range presets {
 		isPrimary, coPrimary := presetFlags(i, group)
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO guests (invite_id, name, is_primary, co_primary) VALUES (?, ?, ?, ?)",
-			id, gname, isPrimary, coPrimary); err != nil {
+			"INSERT INTO guests (invite_id, name, alcohol_free, is_primary, co_primary) VALUES (?, ?, ?, ?, ?)",
+			id, p.Name, p.AlcoholFree, isPrimary, coPrimary); err != nil {
 			return "", err
 		}
 	}

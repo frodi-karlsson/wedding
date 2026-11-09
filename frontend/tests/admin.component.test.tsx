@@ -1,22 +1,15 @@
 import { test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+import { render, screen, fireEvent } from '@solidjs/testing-library';
 import { AdminPanel } from '../src/islands/AdminPanel';
+import { AdminForm } from '../src/islands/components/AdminForm';
 import { api } from '../src/scripts/api';
+import { formFromInvite } from '../src/scripts/admin.service';
 import type {
   ListInvitesResponse,
   StatusResponse,
   InviteWithGuestsResponse,
 } from '../src/scripts/types.gen';
-import type { Task } from 'anabranch';
-import type { HttpError } from '@anabranch/web-client';
-
-function mockTask<T>(value: T): Task<T, HttpError> {
-  return { run: vi.fn().mockResolvedValue(value) } as unknown as Task<T, HttpError>;
-}
-
-function mockFailingTask<T>(error: Error): Task<T, HttpError> {
-  return { run: vi.fn().mockRejectedValue(error) } as unknown as Task<T, HttpError>;
-}
+import { mockTask, mockFailingTask, settleTasks } from './tasks';
 
 const mockListResponse: ListInvitesResponse = {
   invites: [
@@ -26,6 +19,15 @@ const mockListResponse: ListInvitesResponse = {
 };
 
 const mockLoginResponse: StatusResponse = { status: 'ok' };
+
+const familyInvite: InviteWithGuestsResponse = {
+  invite: { id: 'X4M9B', name: 'Bob', min_plus: 1, max_plus: 3, submitted: false, message: '' },
+  guests: [
+    { id: 1, name: 'Bob', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false },
+    { id: 2, name: 'Kid', dietary_preference: '', alcohol_free: true, is_primary: false, co_primary: false },
+    { id: 3, name: 'Cara', dietary_preference: 'vegan', alcohol_free: false, is_primary: false, co_primary: false },
+  ],
+};
 
 beforeEach(() => {
   vi.stubGlobal('location', {
@@ -41,46 +43,62 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('should render the dashboard when listInvites succeeds', async () => {
+async function renderDashboard(): Promise<void> {
   vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
-
   render(() => <AdminPanel lang="en" />);
+  await settleTasks();
+}
 
-  await waitFor(() => {
-    expect(screen.getByText('Ada')).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-  });
+function renderFamilyEditForm(onSubmit = vi.fn()): typeof onSubmit {
+  render(() => (
+    <AdminForm
+      lang="en"
+      form={formFromInvite(familyInvite.invite, familyInvite.guests, 'en')}
+      isCreate={false}
+      onSubmit={onSubmit}
+      onCancel={vi.fn()}
+    />
+  ));
+  return onSubmit;
+}
+
+function alcoholFreeBoxes(): HTMLInputElement[] {
+  return screen.getAllByRole('checkbox', { name: 'Alcohol-free' }) as HTMLInputElement[];
+}
+
+function guestNameInputs(): string[] {
+  return [...document.querySelectorAll<HTMLInputElement>('.guest-name')].map((i) => i.value);
+}
+
+function submitAdminForm(): void {
+  fireEvent.submit(document.querySelector('form.admin-form') as HTMLFormElement);
+}
+
+test('should render the dashboard when listInvites succeeds', async () => {
+  await renderDashboard();
+
+  expect(screen.getByText('Ada')).toBeInTheDocument();
+  expect(screen.getByText('Bob')).toBeInTheDocument();
 });
 
 test('should render invite ids in full so they can be read off the screen', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
+  await renderDashboard();
 
-  render(() => <AdminPanel lang="en" />);
-
-  await waitFor(() => {
-    expect(screen.getByText('H7K2Q')).toBeInTheDocument();
-    expect(screen.getByText('X4M9B')).toBeInTheDocument();
-  });
+  expect(screen.getByText('H7K2Q')).toBeInTheDocument();
+  expect(screen.getByText('X4M9B')).toBeInTheDocument();
 });
 
 test('should render the login view when listInvites fails', async () => {
   vi.spyOn(api, 'listInvites').mockReturnValue(mockFailingTask(new Error('Unauthorized')));
-
   render(() => <AdminPanel lang="en" />);
 
-  await waitFor(() => {
-    expect(screen.getByText('Log in')).toBeInTheDocument();
-  });
+  await settleTasks();
+
+  expect(screen.getByText('Log in')).toBeInTheDocument();
 });
 
 test('should show the create form when clicking new invite', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
-
-  render(() => <AdminPanel lang="en" />);
-
-  await waitFor(() => {
-    expect(screen.getByText('Ada')).toBeInTheDocument();
-  });
+  await renderDashboard();
 
   fireEvent.click(screen.getByText('+ New invite'));
 
@@ -88,8 +106,7 @@ test('should show the create form when clicking new invite', async () => {
 });
 
 test('should show the submission view when clicking view', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
-  vi.spyOn(api, 'getAdminInvite').mockReturnValue(
+  vi.spyOn(api, 'getAdminInvite').mockReturnValueOnce(
     mockTask<InviteWithGuestsResponse>({
       invite: { id: 'X4M9B', name: 'Bob', min_plus: 1, max_plus: 3, submitted: true, message: 'Cannot wait!' },
       guests: [
@@ -98,52 +115,143 @@ test('should show the submission view when clicking view', async () => {
       ],
     }),
   );
-
-  render(() => <AdminPanel lang="en" />);
-
-  await waitFor(() => {
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-  });
+  await renderDashboard();
 
   // one "View" button per invite row; click Bob's (second row)
   fireEvent.click(screen.getAllByText('View')[1]);
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText('Cannot wait!')).toBeInTheDocument();
-    expect(screen.getByText('Cara')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Cannot wait!')).toBeInTheDocument();
+  expect(screen.getByText('Cara')).toBeInTheDocument();
 });
 
 test('should log out and return to login view', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
-  vi.spyOn(api, 'adminLogout').mockReturnValue(mockTask(mockLoginResponse));
-
-  render(() => <AdminPanel lang="en" />);
-
-  await waitFor(() => {
-    expect(screen.getByText('Ada')).toBeInTheDocument();
-  });
+  vi.spyOn(api, 'adminLogout').mockReturnValueOnce(mockTask(mockLoginResponse));
+  await renderDashboard();
 
   fireEvent.click(screen.getByText('Log out'));
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText('Log in')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Log in')).toBeInTheDocument();
 });
 
 test('should show the get-invite screen with the shareable link when clicking Get invite', async () => {
-  vi.spyOn(api, 'listInvites').mockReturnValue(mockTask(mockListResponse));
-
-  render(() => <AdminPanel lang="en" />);
-
-  await waitFor(() => {
-    expect(screen.getByText('Ada')).toBeInTheDocument();
-  });
+  await renderDashboard();
 
   // Ada is the first row.
   fireEvent.click(screen.getAllByText('Get invite')[0]);
 
-  await waitFor(() => {
-    expect(screen.getByDisplayValue('https://example.com/en?id=H7K2Q')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('https://example.com/en?id=H7K2Q')).toBeInTheDocument();
+});
+
+test('should send preset alcohol-free flags when creating an invite', async () => {
+  vi.spyOn(api, 'createInvite').mockReturnValueOnce(
+    mockTask<InviteWithGuestsResponse>({
+      invite: { id: 'K3M7X', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' },
+      guests: [],
+    }),
+  );
+  await renderDashboard();
+  fireEvent.click(screen.getByText('+ New invite'));
+  fireEvent.input(screen.getByRole('textbox', { name: 'Name (primary invitee)' }), { target: { value: 'Ada' } });
+  fireEvent.click(screen.getByText('+ Add name'));
+  fireEvent.input(document.querySelector('.guest-name') as HTMLInputElement, { target: { value: 'Kid' } });
+
+  fireEvent.click(alcoholFreeBoxes()[1]);
+  submitAdminForm();
+  await settleTasks();
+
+  expect(api.createInvite).toHaveBeenCalledWith({
+    name: 'Ada',
+    min_plus: 0,
+    max_plus: 1,
+    guests: [
+      { name: 'Ada', alcohol_free: false },
+      { name: 'Kid', alcohol_free: true },
+    ],
+    group: false,
+  });
+});
+
+test('should show preset alcohol-free flags ticked when editing an invite', () => {
+  renderFamilyEditForm();
+
+  const checked = alcoholFreeBoxes().map((b) => b.checked);
+
+  expect(checked).toEqual([false, true, false]);
+});
+
+test('should save an edited invite with each guest\'s id and alcohol-free flag', () => {
+  const onSubmit = renderFamilyEditForm();
+
+  submitAdminForm();
+
+  expect(onSubmit).toHaveBeenCalledWith({
+    id: 'X4M9B',
+    name: 'Bob',
+    min_plus: 1,
+    max_plus: 3,
+    guests: [
+      { id: 1, name: 'Bob', alcohol_free: false },
+      { id: 2, name: 'Kid', alcohol_free: true },
+      { id: 3, name: 'Cara', alcohol_free: false },
+    ],
+    link_lang: 'en',
+    group: false,
+  });
+});
+
+test('should save the primary invitee as alcohol-free when its box is ticked', () => {
+  const onSubmit = renderFamilyEditForm();
+
+  fireEvent.click(alcoholFreeBoxes()[0]);
+  submitAdminForm();
+
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    guests: [
+      { id: 1, name: 'Bob', alcohol_free: true },
+      { id: 2, name: 'Kid', alcohol_free: true },
+      { id: 3, name: 'Cara', alcohol_free: false },
+    ],
+  }));
+});
+
+test('should keep each remaining guest\'s id and flag when removing a middle guest', () => {
+  const onSubmit = renderFamilyEditForm();
+
+  fireEvent.click(screen.getAllByText('Remove')[0]);
+  submitAdminForm();
+
+  expect(guestNameInputs()).toEqual(['Cara']);
+  expect(alcoholFreeBoxes().map((b) => b.checked)).toEqual([false, false]);
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    guests: [
+      { id: 1, name: 'Bob', alcohol_free: false },
+      { id: 3, name: 'Cara', alcohol_free: false },
+    ],
+  }));
+});
+
+test('should send the edited guests to updateInvite when saving from the panel', async () => {
+  vi.spyOn(api, 'getAdminInvite').mockReturnValueOnce(mockTask(familyInvite));
+  vi.spyOn(api, 'updateInvite').mockReturnValueOnce(mockTask(familyInvite));
+  await renderDashboard();
+  // Bob is the second row.
+  fireEvent.click(screen.getAllByText('Edit')[1]);
+  await settleTasks();
+
+  submitAdminForm();
+  await settleTasks();
+
+  expect(api.updateInvite).toHaveBeenCalledWith('X4M9B', {
+    name: 'Bob',
+    min_plus: 1,
+    max_plus: 3,
+    guests: [
+      { id: 1, name: 'Bob', alcohol_free: false },
+      { id: 2, name: 'Kid', alcohol_free: true },
+      { id: 3, name: 'Cara', alcohol_free: false },
+    ],
+    group: false,
   });
 });

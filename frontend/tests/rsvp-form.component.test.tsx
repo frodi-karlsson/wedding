@@ -1,18 +1,9 @@
 import { test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+import { render, screen, fireEvent } from '@solidjs/testing-library';
 import { RsvpForm } from '../src/islands/RsvpForm';
 import { api } from '../src/scripts/api';
 import type { InviteWithGuestsResponse } from '../src/scripts/types.gen';
-import type { Task } from 'anabranch';
-import type { HttpError } from '@anabranch/web-client';
-
-function mockTask<T>(value: T): Task<T, HttpError> {
-  return { run: vi.fn().mockResolvedValue(value) } as unknown as Task<T, HttpError>;
-}
-
-function mockFailingTask<T>(error: Error): Task<T, HttpError> {
-  return { run: vi.fn().mockRejectedValue(error) } as unknown as Task<T, HttpError>;
-}
+import { mockTask, mockFailingTask, settleTasks } from './tasks';
 
 const mockInviteResponse: InviteWithGuestsResponse = {
   invite: { id: 'K3M7X', name: 'Ada & Guest', min_plus: 0, max_plus: 2, submitted: false, message: '' },
@@ -36,7 +27,7 @@ afterEach(() => {
 });
 
 test('should render a loading state initially', () => {
-  vi.spyOn(api, 'getInvite').mockReturnValue(mockTask(mockInviteResponse));
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(mockTask(mockInviteResponse));
 
   render(() => <RsvpForm lang="en" />);
 
@@ -44,26 +35,21 @@ test('should render a loading state initially', () => {
 });
 
 test('should render the form with the invite name after loading', async () => {
-  vi.spyOn(api, 'getInvite').mockReturnValue(mockTask(mockInviteResponse));
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(mockTask(mockInviteResponse));
 
   render(() => <RsvpForm lang="en" />);
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText('Ada & Guest')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Ada & Guest')).toBeInTheDocument();
 });
 
 test('should add a guest row when clicking add guest', async () => {
-  vi.spyOn(api, 'getInvite').mockReturnValue(mockTask(mockInviteResponse));
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(mockTask(mockInviteResponse));
 
   render(() => <RsvpForm lang="en" />);
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText('Ada & Guest')).toBeInTheDocument();
-  });
-
-  const addButton = screen.getByText('+ Add guest');
-  fireEvent.click(addButton);
+  fireEvent.click(screen.getByText('+ Add guest'));
 
   expect(screen.getAllByRole('group')).toHaveLength(2);
 });
@@ -75,24 +61,37 @@ test('should disable submit when a guest name is empty', async () => {
       { id: 1, name: '', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false },
     ],
   };
-  vi.spyOn(api, 'getInvite').mockReturnValue(mockTask(emptyNameResponse));
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(mockTask(emptyNameResponse));
 
   render(() => <RsvpForm lang="en" />);
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText('Ada & Guest')).toBeInTheDocument();
-  });
-
-  const submitButton = screen.getByRole('button', { name: /Submit RSVP/i });
-  expect(submitButton).toBeDisabled();
+  expect(screen.getByRole('button', { name: /Submit RSVP/i })).toBeDisabled();
 });
 
 test('should show an error message when the invite fails to load', async () => {
-  vi.spyOn(api, 'getInvite').mockReturnValue(mockFailingTask(new Error('Network error')));
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(mockFailingTask(new Error('Network error')));
 
   render(() => <RsvpForm lang="en" />);
+  await settleTasks();
 
-  await waitFor(() => {
-    expect(screen.getByText(/Could not load your invitation/i)).toBeInTheDocument();
-  });
+  expect(screen.getByText(/Could not load your invitation/i)).toBeInTheDocument();
+});
+
+test('should render the alcohol-free box ticked for a guest the admin preset', async () => {
+  vi.spyOn(api, 'getInvite').mockReturnValueOnce(
+    mockTask<InviteWithGuestsResponse>({
+      invite: { id: 'K3M7X', name: 'Ada', min_plus: 0, max_plus: 1, submitted: false, message: '' },
+      guests: [
+        { id: 1, name: 'Ada', dietary_preference: '', alcohol_free: false, is_primary: true, co_primary: false },
+        { id: 2, name: 'Kid', dietary_preference: '', alcohol_free: true, is_primary: false, co_primary: false },
+      ],
+    }),
+  );
+
+  render(() => <RsvpForm lang="en" />);
+  await settleTasks();
+
+  const boxes = screen.getAllByRole('checkbox', { name: 'Alcohol-free' }) as HTMLInputElement[];
+  expect(boxes.map((b) => b.checked)).toEqual([false, true]);
 });
