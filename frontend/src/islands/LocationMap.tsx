@@ -29,30 +29,33 @@ export function LocationMap(props: LocationMapProps): JSX.Element {
       attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    const icon = L.divIcon({
-      className: 'map-pin',
-      html: '<span class="map-pin__dot"></span>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-      popupAnchor: [0, -8],
-    });
+    const pinIcon = (label: string): L.DivIcon =>
+      L.divIcon({
+        className: 'map-pin',
+        html: `<span class="map-pin__dot"></span><span class="map-pin__label">${label}</span>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        popupAnchor: [0, -8],
+      });
 
     const openLabel = translate('location_open_maps', lang);
-    const venues: { pos: LatLng; name: string; addr: string }[] = [
+    const venues: { pos: LatLng; tag: string; name: string; addr: string }[] = [
       {
         pos: CEREMONY,
+        tag: translate('location_ceremony_tag', lang),
         name: translate('location_ceremony_name', lang),
         addr: translate('location_ceremony_addr', lang),
       },
       {
         pos: RECEPTION,
+        tag: translate('location_reception_tag', lang),
         name: translate('location_reception_name', lang),
         addr: translate('location_reception_addr', lang),
       },
     ];
 
     for (const v of venues) {
-      L.marker([v.pos.lat, v.pos.lng], { icon, title: v.name })
+      L.marker([v.pos.lat, v.pos.lng], { icon: pinIcon(v.tag), title: v.name })
         .addTo(map)
         .bindPopup(
           `<strong>${v.name}</strong><br>${v.addr}<br>` +

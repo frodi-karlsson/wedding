@@ -12,3 +12,13 @@ test('venue map renders with both pins and a Google Maps link', async ({ page })
   await expect(cta).toBeVisible();
   await expect(cta).toHaveAttribute('href', /google\.com\/maps\/dir/);
 });
+
+test('venue map labels each pin with its role', async ({ page }) => {
+  await page.goto('/en');
+  await page.locator('#location').scrollIntoViewIfNeeded();
+
+  const labels = page.locator('.map-pin__label');
+
+  await expect(labels).toHaveText(['Ceremony', 'Reception']);
+  await expect(labels.first()).toBeVisible();
+});

@@ -4,7 +4,7 @@ export interface LatLng {
 }
 
 // Venue coordinates, geocoded via OpenStreetMap Nominatim.
-export const CEREMONY: LatLng = { lat: 55.7048, lng: 13.1965 };
+export const CEREMONY: LatLng = { lat: 55.7044, lng: 13.19724 };
 export const RECEPTION: LatLng = { lat: 55.7055359, lng: 13.1956671 };
 
 /** Google Maps link that opens a single point as a place/search. */
