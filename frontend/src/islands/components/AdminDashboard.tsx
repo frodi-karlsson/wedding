@@ -1,6 +1,6 @@
 import { For, type JSX } from 'solid-js';
 import type { Lang } from '../../scripts/i18n';
-import { translate } from '../../scripts/i18n';
+import { localePrefix, translate } from '../../scripts/i18n';
 import type { InviteResponse } from '../../scripts/types.gen';
 import { buildShareLink } from '../../scripts/admin.service';
 
@@ -23,6 +23,9 @@ export function AdminDashboard(props: AdminDashboardProps): JSX.Element {
         <button type="button" class="btn btn--primary btn--md" onClick={() => props.onNewInvite()}>
           {translate('admin_new_invite', props.lang)}
         </button>
+        <a class="btn btn--secondary btn--md" href={`${localePrefix(props.lang)}/speeches`}>
+          {translate('speeches_title', props.lang)}
+        </a>
         <button type="button" class="btn btn--ghost btn--md" onClick={() => props.onLogout()}>
           {translate('admin_logout', props.lang)}
         </button>

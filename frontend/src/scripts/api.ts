@@ -3,6 +3,12 @@ import type { Task } from 'anabranch';
 import type { HttpError } from '@anabranch/web-client';
 import type {
   CreateInviteRequest,
+  CreateSpeechRequest,
+  ListSpeechesResponse,
+  SaveSpeechTextRequest,
+  SpeechResponse,
+  SpeechTextResponse,
+  UpdateSpeechRequest,
   GuestInput,
   InviteWithGuestsResponse,
   ListInvitesResponse,
@@ -53,6 +59,20 @@ const isInviteWithGuests = hasKeys('invite', 'guests');
 const isListInvites = hasKeys('invites');
 const isStatus = hasKeys('status');
 const isSession = hasKeys('role');
+const isSpeech = hasKeys('id', 'texts');
+const isSpeechList = hasKeys('speeches');
+const isSpeechText = hasKeys('lang', 'body', 'version');
+
+/**
+ * Whether a failed request was rejected because the row changed since it was
+ * loaded. The web client's HttpError is exported as a type only, so this reads
+ * the status off the error's shape.
+ */
+export function isConflict(error: unknown): boolean {
+  if (!(error instanceof Error) || !('details' in error)) return false;
+  const { details } = error as { details?: { status?: number } };
+  return details?.status === 409;
+}
 
 const client = WebClient.create()
   .withBaseUrl(resolvedBaseUrl)
@@ -102,5 +122,29 @@ export const api = {
 
   deleteInvite(id: string): Task<void, HttpError> {
     return client.delete(`admin/invites/${id}`).map(() => undefined);
+  },
+
+  listSpeeches(): Task<ListSpeechesResponse, HttpError> {
+    return client.get('speeches').map((r) => unwrap<ListSpeechesResponse>(r, isSpeechList));
+  },
+
+  createSpeech(body: CreateSpeechRequest): Task<SpeechResponse, HttpError> {
+    return client.post('speeches', body).map((r) => unwrap<SpeechResponse>(r, isSpeech));
+  },
+
+  updateSpeech(id: number, body: UpdateSpeechRequest): Task<SpeechResponse, HttpError> {
+    return client.put(`speeches/${id}`, body).map((r) => unwrap<SpeechResponse>(r, isSpeech));
+  },
+
+  deleteSpeech(id: number): Task<void, HttpError> {
+    return client.delete(`speeches/${id}`).map(() => undefined);
+  },
+
+  moveSpeech(id: number, delta: -1 | 1): Task<ListSpeechesResponse, HttpError> {
+    return client.post(`speeches/${id}/move`, { delta }).map((r) => unwrap<ListSpeechesResponse>(r, isSpeechList));
+  },
+
+  saveSpeechText(id: number, lang: string, body: SaveSpeechTextRequest): Task<SpeechTextResponse, HttpError> {
+    return client.put(`speeches/${id}/texts/${lang}`, body).map((r) => unwrap<SpeechTextResponse>(r, isSpeechText));
   },
 };

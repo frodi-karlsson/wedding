@@ -1,5 +1,5 @@
 import { test, expect, vi, afterEach, type Mock } from 'vitest';
-import { api } from '../src/scripts/api';
+import { api, isConflict } from '../src/scripts/api';
 
 const baseUrl = 'http://localhost:8080';
 
@@ -217,4 +217,97 @@ test('should DELETE /admin/invites/{id}', async () => {
   expect(init.credentials).toBe('include');
   expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });
   expect(result).toBeUndefined();
+});
+
+const speechResponse = {
+  id: 7,
+  position: 1,
+  speaker: 'Anna',
+  title: 'Toast',
+  original_lang: 'sv',
+  version: 1,
+  texts: [{ lang: 'sv', body: '', done: false, version: 1 }],
+};
+
+test('should GET /speeches', async () => {
+  const fetchMock = setupFetch({ speeches: [speechResponse] });
+
+  const result = await api.listSpeeches().run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches`);
+  expect(init.method).toBe('GET');
+  expect(init.credentials).toBe('include');
+  expect(result).toEqual({ speeches: [speechResponse] });
+});
+
+test('should POST /speeches with the new speech details', async () => {
+  const body = { speaker: 'Anna', title: 'Toast', original_lang: 'sv' };
+  const fetchMock = setupFetch(speechResponse);
+
+  const result = await api.createSpeech(body).run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches`);
+  expect(init.method).toBe('POST');
+  expect(JSON.parse(init.body as string)).toEqual(body);
+  expect(result).toEqual(speechResponse);
+});
+
+test('should PUT /speeches/{id} with the details and version', async () => {
+  const body = { speaker: 'Anna K', title: '', original_lang: 'is', version: 1 };
+  const fetchMock = setupFetch(speechResponse);
+
+  await api.updateSpeech(7, body).run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches/7`);
+  expect(init.method).toBe('PUT');
+  expect(JSON.parse(init.body as string)).toEqual(body);
+});
+
+test('should DELETE /speeches/{id}', async () => {
+  const fetchMock = setupFetch({});
+
+  await api.deleteSpeech(7).run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches/7`);
+  expect(init.method).toBe('DELETE');
+});
+
+test('should POST /speeches/{id}/move with the direction', async () => {
+  const fetchMock = setupFetch({ speeches: [speechResponse] });
+
+  const result = await api.moveSpeech(7, -1).run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches/7/move`);
+  expect(init.method).toBe('POST');
+  expect(JSON.parse(init.body as string)).toEqual({ delta: -1 });
+  expect(result).toEqual({ speeches: [speechResponse] });
+});
+
+test('should PUT /speeches/{id}/texts/{lang} with the text and version', async () => {
+  const body = { body: 'Kæru vinir', done: true, version: 1 };
+  const saved = { lang: 'is', body: 'Kæru vinir', done: true, version: 2 };
+  const fetchMock = setupFetch(saved);
+
+  const result = await api.saveSpeechText(7, 'is', body).run();
+
+  const [url, init] = lastCall(fetchMock);
+  expect(url).toBe(`${baseUrl}/speeches/7/texts/is`);
+  expect(init.method).toBe('PUT');
+  expect(JSON.parse(init.body as string)).toEqual(body);
+  expect(result).toEqual(saved);
+});
+
+test('should recognise a 409 response as a conflict', async () => {
+  const conflictResponse = { ...fakeResponse({ error: 'changed' }), ok: false, status: 409, statusText: 'Conflict' };
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(conflictResponse)));
+
+  const error = await api.saveSpeechText(7, 'is', { body: 'x', done: false, version: 1 }).run().catch((e: unknown) => e);
+
+  expect(isConflict(error)).toBe(true);
+  expect(isConflict(new Error('network'))).toBe(false);
 });

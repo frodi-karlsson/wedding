@@ -1,0 +1,13 @@
+---
+import Layout from './Layout.astro';
+import Heading from './Heading.astro';
+import SpeechesPanel from '../islands/SpeechesPanel';
+import { translate, type Lang } from '../scripts/i18n';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+<Layout title={translate('speeches_title', lang)} lang={lang}>
+  <Heading size="xl" class="admin-heading">{translate('speeches_title', lang)}</Heading>
+  <SpeechesPanel client:only="solid-js" lang={lang} />
+</Layout>
