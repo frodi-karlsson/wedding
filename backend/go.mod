@@ -1,6 +1,6 @@
 module wedding/backend
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/resend/resend-go/v3 v3.9.2
